@@ -48,8 +48,8 @@
   flex: 0 0 190px;
   height: 100vh;
   overflow: visible;
-  background: #102447;
-  color: #e8f0fb;
+  background: #0b5fa5;
+  color: #eef5fc;
   display: flex;
   flex-direction: column;
   padding: 18px 10px 16px;
@@ -75,7 +75,7 @@
 }
 .rail-section-label {
   padding: 6px 10px 10px;
-  color: #7189b0;
+  color: rgba(255, 255, 255, 0.62);
   text-transform: uppercase;
   font-size: 9px;
   font-weight: 800;
@@ -86,7 +86,7 @@
   height: 30px;
   flex: 0 0 auto;
   border-radius: 7px;
-  color: #8fa4c4;
+  color: rgba(255, 255, 255, 0.8);
 }
 .rail-toggle:hover {
   color: #fff;
@@ -107,7 +107,7 @@
   gap: 7px;
   min-height: 44px;
   padding: 0 8px;
-  color: #b8c7df;
+  color: rgba(255, 255, 255, 0.82);
   border: 1px solid transparent;
   border-radius: 9px;
   background: transparent;
@@ -4500,7 +4500,7 @@
   display: grid;
   place-items: center;
   padding: 0;
-  color: #8fa4c4;
+  color: rgba(255, 255, 255, 0.8);
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
