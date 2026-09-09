@@ -1,0 +1,563 @@
+openapi: 3.0.3
+info:
+  title: HBIMS Cash Collection API
+  version: 1.0.0
+  description: >-
+    Frontend contract for the new Spring Boot cash-collection service. The
+    backend owns authorization, counter scope, eligibility, prices, totals,
+    payment state, document numbers and printable data.
+servers:
+  - url: /api/cash-collection
+security:
+  - sessionCookie: []
+paths:
+  /bootstrap:
+    get:
+      summary: Load counter-scoped reference data and dashboard summaries
+      operationId: loadBootstrap
+      responses:
+        "200":
+          description: Bootstrap data. Requests and transactions may contain only an initial page.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BootstrapEnvelope" }
+        default: { $ref: "#/components/responses/Error" }
+  /patients:
+    get:
+      summary: Search eligible patients in the current hospital and counter scope
+      operationId: searchPatients
+      parameters:
+        - { $ref: "#/components/parameters/Query" }
+        - name: hospitalServiceId
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Matching patients
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/SuccessEnvelope" }
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/Patient" }
+        default: { $ref: "#/components/responses/Error" }
+  /requests:
+    get:
+      summary: List pending requests with server-side filtering and pagination
+      operationId: listPendingRequests
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/Size" }
+        - { $ref: "#/components/parameters/Search" }
+        - name: chargeType
+          in: query
+          schema: { type: string }
+        - name: department
+          in: query
+          schema: { type: string }
+        - name: sort
+          in: query
+          description: Whitelisted sort, for example date,desc or amount,asc.
+          schema: { type: string }
+      responses:
+        "200":
+          description: Counter-scoped request page
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RequestPageEnvelope" }
+        default: { $ref: "#/components/responses/Error" }
+  /requests/{requestId}:
+    get:
+      summary: Reload authoritative request and linked patient before collection
+      operationId: getRequest
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Request detail
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/SuccessEnvelope" }
+                  - properties:
+                      data: { $ref: "#/components/schemas/RequestDetail" }
+        default: { $ref: "#/components/responses/Error" }
+  /tariffs:
+    get:
+      summary: Search server-authorized tariffs
+      operationId: getTariffs
+      parameters:
+        - { $ref: "#/components/parameters/Search" }
+        - name: groupId
+          in: query
+          schema: { type: string }
+        - name: patientId
+          in: query
+          required: true
+          schema: { type: string }
+        - name: workflowId
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Tariffs with server prices
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/SuccessEnvelope" }
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/Tariff" }
+        default: { $ref: "#/components/responses/Error" }
+  /payment-options:
+    get:
+      summary: Load allowed payment modes, card types and POS terminals
+      operationId: getPaymentOptions
+      responses:
+        "200":
+          description: Counter and patient-context payment options
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/SuccessEnvelope" }
+                  - properties:
+                      data: { $ref: "#/components/schemas/PaymentOptions" }
+        default: { $ref: "#/components/responses/Error" }
+  /eligibility:
+    post:
+      summary: Validate patient, request and workflow eligibility
+      operationId: checkEligibility
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EligibilityCommand" }
+      responses:
+        "200":
+          description: Eligibility and authoritative workflow context
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/SuccessEnvelope" }
+                  - properties:
+                      data: { $ref: "#/components/schemas/EligibilityResult" }
+        default: { $ref: "#/components/responses/Error" }
+  /terminal-payments:
+    post:
+      summary: Initiate Card or UPI collection on a POS terminal
+      operationId: initiateTerminalPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TerminalPaymentCommand" }
+      responses:
+        "200":
+          description: Pending terminal transaction
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/SuccessEnvelope" }
+                  - properties:
+                      data: { $ref: "#/components/schemas/TerminalPayment" }
+        default: { $ref: "#/components/responses/Error" }
+  /terminal-payments/{terminalTransactionId}:
+    get:
+      summary: Poll POS transaction status
+      operationId: getTerminalPaymentStatus
+      parameters:
+        - name: terminalTransactionId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Current terminal state
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/SuccessEnvelope" }
+                  - properties:
+                      data: { $ref: "#/components/schemas/TerminalPayment" }
+        default: { $ref: "#/components/responses/Error" }
+  /transactions:
+    get:
+      summary: List counter-scoped transactions with server pagination
+      operationId: listTransactions
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/Size" }
+        - { $ref: "#/components/parameters/Search" }
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+        - name: paymentMode
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Transaction page
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TransactionPageEnvelope" }
+        default: { $ref: "#/components/responses/Error" }
+    post:
+      summary: Atomically post a collection, refund or estimate
+      operationId: postTransaction
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, minLength: 16, maxLength: 128 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TransactionCommand" }
+      responses:
+        "200":
+          description: Existing result for a replayed idempotency key
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PostedTransactionEnvelope" }
+        "201":
+          description: Transaction posted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PostedTransactionEnvelope" }
+        default: { $ref: "#/components/responses/Error" }
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+  parameters:
+    Query: { name: query, in: query, schema: { type: string, maxLength: 100 } }
+    Search:
+      { name: search, in: query, schema: { type: string, maxLength: 100 } }
+    Page:
+      {
+        name: page,
+        in: query,
+        schema: { type: integer, minimum: 0, default: 0 },
+      }
+    Size:
+      {
+        name: size,
+        in: query,
+        schema: { type: integer, minimum: 1, maximum: 100, default: 10 },
+      }
+  responses:
+    Error:
+      description: Validation, authorization, conflict or server error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  schemas:
+    SuccessEnvelope:
+      type: object
+      required: [success, data, requestId]
+      properties:
+        success: { type: boolean, enum: [true] }
+        data: {}
+        requestId: { type: string }
+    ErrorEnvelope:
+      type: object
+      required: [success, error, requestId]
+      properties:
+        success: { type: boolean, enum: [false] }
+        requestId: { type: string }
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            fieldErrors:
+              type: object
+              additionalProperties: { type: string }
+    Page:
+      type: object
+      required: [items, total, page, size]
+      properties:
+        items: { type: array, items: {} }
+        total: { type: integer, format: int64 }
+        page: { type: integer }
+        size: { type: integer }
+    BootstrapEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/SuccessEnvelope" }
+        - properties:
+            data:
+              type: object
+              required:
+                [
+                  todayIso,
+                  facility,
+                  serviceOptions,
+                  billingByService,
+                  paymentOptions,
+                  queueSummary,
+                  requestFilterOptions,
+                ]
+              properties:
+                todayIso: { type: string, format: date }
+                facility: { type: object, additionalProperties: true }
+                serviceOptions:
+                  {
+                    type: array,
+                    items: { type: object, additionalProperties: true },
+                  }
+                billingByService: { type: object, additionalProperties: true }
+                paymentOptions: { $ref: "#/components/schemas/PaymentOptions" }
+                queueSummary:
+                  type: object
+                  properties: { pendingCount: { type: integer, format: int64 } }
+                requestFilterOptions:
+                  { type: object, additionalProperties: true }
+                patients:
+                  {
+                    type: array,
+                    items: { $ref: "#/components/schemas/Patient" },
+                  }
+                requests:
+                  {
+                    type: array,
+                    items: { $ref: "#/components/schemas/BillingRequest" },
+                  }
+                tariffGroups: { type: array, items: { type: string } }
+                tariffCatalog:
+                  {
+                    type: array,
+                    items: { $ref: "#/components/schemas/Tariff" },
+                  }
+                collectionModes:
+                  {
+                    type: array,
+                    items: { type: object, additionalProperties: true },
+                  }
+                recentTransactions:
+                  {
+                    type: array,
+                    items: { $ref: "#/components/schemas/Transaction" },
+                  }
+                recentEstimates:
+                  {
+                    type: array,
+                    items: { type: object, additionalProperties: true },
+                  }
+    Patient:
+      type: object
+      required: [id, cr, name]
+      properties:
+        id: { type: string }
+        cr: { type: string }
+        name: { type: string }
+      additionalProperties: true
+    BillingRequest:
+      type: object
+      required: [id, version, patient, cr, type, dateIso, amount, department]
+      properties:
+        id: { type: string }
+        version: { type: string, description: Opaque concurrency version }
+        patient: { type: string }
+        cr: { type: string }
+        type: { type: string }
+        dateIso: { type: string, format: date }
+        amount: { type: string }
+        department: { type: string }
+      additionalProperties: true
+    RequestDetail:
+      allOf:
+        - { $ref: "#/components/schemas/BillingRequest" }
+        - type: object
+          required: [linkedPatient]
+          properties:
+            linkedPatient: { $ref: "#/components/schemas/Patient" }
+            lines:
+              {
+                type: array,
+                items: { $ref: "#/components/schemas/TariffLine" },
+              }
+    RequestPageEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/SuccessEnvelope" }
+        - properties:
+            data:
+              allOf:
+                - { $ref: "#/components/schemas/Page" }
+                - properties:
+                    items:
+                      {
+                        type: array,
+                        items: { $ref: "#/components/schemas/BillingRequest" },
+                      }
+    Tariff:
+      type: object
+      required: [code, name, rate]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        group: { type: string }
+        rate: { type: number, minimum: 0 }
+    TariffLine:
+      allOf:
+        - { $ref: "#/components/schemas/Tariff" }
+        - type: object
+          required: [qty, discount]
+          properties:
+            qty: { type: number, minimum: 0 }
+            discount: { type: number, minimum: 0, maximum: 100 }
+    PaymentOptions:
+      type: object
+      required: [modes, cardTypes, posTerminals]
+      properties:
+        modes: { type: array, items: { type: string } }
+        cardTypes: { type: array, items: { type: string } }
+        posTerminals: { type: array, items: { type: string } }
+        restrictionsByCategory: { type: object, additionalProperties: true }
+    EligibilityCommand:
+      type: object
+      required:
+        [
+          source,
+          requestType,
+          patientId,
+          crNumber,
+          hospitalServiceId,
+          chargeTypeId,
+          billingServiceId,
+          processingBillingServiceId,
+          workflowId,
+        ]
+      properties:
+        source: { type: string, enum: [request, direct] }
+        requestId: { type: string, nullable: true }
+        requestVersion: { type: string, nullable: true }
+        requestType: { type: string, enum: [Receipt, Refund, Estimation] }
+        patientId: { type: string }
+        crNumber: { type: string }
+        hospitalServiceId: { type: string }
+        chargeTypeId: { type: string }
+        billingServiceId: { type: string }
+        processingBillingServiceId: { type: string }
+        workflowId: { type: string }
+    EligibilityResult:
+      type: object
+      required: [eligible, code]
+      properties:
+        eligible: { type: boolean }
+        code: { type: string }
+        message: { type: string }
+        patientContextVersion: { type: string }
+        workflowContext: { type: object, additionalProperties: true }
+    TerminalPaymentCommand:
+      type: object
+      required: [paymentMode, terminalId, amount]
+      properties:
+        paymentMode: { type: string, enum: [Card, UPI] }
+        cardType: { type: string, nullable: true }
+        terminalId: { type: string }
+        amount: { type: number, exclusiveMinimum: 0 }
+        patientId: { type: string }
+        description: { type: string, maxLength: 500 }
+    TerminalPayment:
+      type: object
+      required: [terminalTransactionId, status]
+      properties:
+        terminalTransactionId: { type: string }
+        status:
+          {
+            type: string,
+            enum: [PENDING, APPROVED, DECLINED, FAILED, CANCELLED, EXPIRED],
+          }
+        pollAfterMs: { type: integer, default: 10000 }
+        expiresInSeconds: { type: integer, default: 300 }
+        approvalCode: { type: string }
+        cardLastFour: { type: string }
+    TransactionCommand:
+      type: object
+      required:
+        [
+          source,
+          requestType,
+          workflowId,
+          processingBillingServiceId,
+          patientId,
+          patientContextVersion,
+          workflowFields,
+          lines,
+          displayedTotal,
+          payment,
+          idempotencyKey,
+        ]
+      properties:
+        source: { type: string, enum: [request, direct] }
+        requestId: { type: string, nullable: true }
+        requestVersion: { type: string, nullable: true }
+        requestType: { type: string, enum: [Receipt, Refund, Estimation] }
+        workflowId: { type: string }
+        processingBillingServiceId: { type: string }
+        patientId: { type: string }
+        patientContextVersion: { type: string }
+        workflowFields: { type: object, additionalProperties: true }
+        lines:
+          { type: array, items: { $ref: "#/components/schemas/TariffLine" } }
+        displayedTotal: { type: string, pattern: '^\\d+\\.\\d{2}$' }
+        payment: { type: object, additionalProperties: true }
+        idempotencyKey: { type: string }
+      additionalProperties: true
+    PostedTransactionEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/SuccessEnvelope" }
+        - properties:
+            data:
+              type: object
+              required: [documentNumber, status, printableData]
+              properties:
+                documentNumber: { type: string }
+                status: { type: string }
+                printableData: { type: object, additionalProperties: true }
+    Transaction:
+      type: object
+      required: [no, patient, cr, dateIso, mode, amount, status]
+      properties:
+        no: { type: string }
+        patient: { type: string }
+        cr: { type: string }
+        dateIso: { type: string, format: date }
+        mode: { type: string }
+        amount: { type: string }
+        status: { type: string }
+      additionalProperties: true
+    TransactionPageEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/SuccessEnvelope" }
+        - properties:
+            data:
+              allOf:
+                - { $ref: "#/components/schemas/Page" }
+                - properties:
+                    items:
+                      {
+                        type: array,
+                        items: { $ref: "#/components/schemas/Transaction" },
+                      }

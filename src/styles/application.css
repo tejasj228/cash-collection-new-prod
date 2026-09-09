@@ -1,0 +1,54 @@
+html,
+body,
+#root {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+body {
+  background: #f3f6fa;
+}
+.application-state {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.application-state > * {
+  width: min(620px, 100%);
+}
+.application-state-space {
+  width: 240px;
+  height: 120px;
+}
+.hbims-cash-collection .ant-btn.button {
+  display: inline-flex;
+}
+.hbims-cash-collection .antd-select {
+  width: 100%;
+  min-height: 46px;
+}
+.hbims-cash-collection .antd-select .ant-select-selector {
+  min-height: 46px;
+  align-items: center;
+  border-color: #dbe4ed;
+  box-shadow: none;
+}
+.hbims-cash-collection .input-wrap .ant-input-affix-wrapper {
+  min-height: 44px;
+  padding-inline: 14px;
+}
+.hbims-cash-collection .input-wrap .ant-input {
+  height: auto;
+  padding: 0;
+}
+
+.inline-error {
+  margin: 12px 16px;
+  padding: 10px 12px;
+  border: 1px solid #f3b9b4;
+  border-radius: 8px;
+  color: #a63832;
+  background: #fff5f4;
+  font-size: 13px;
+}
