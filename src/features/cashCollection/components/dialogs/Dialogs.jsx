@@ -251,17 +251,7 @@ function ManualPaymentDialog({ paymentMode, cardType, onSave, onCancel }) {
             maxLength={10}
             invalid={Boolean(transactionDate && !validCalendarDate)}
           />
-          {isCard && (
-            <div className="manual-readonly">
-              <span>Card Type</span>
-              <strong>{cardType}</strong>
-            </div>
-          )}
         </div>
-        <p className="manual-payment-warning">
-          Use this when the payment can be verified independently or the POS
-          terminal status is unavailable.
-        </p>
         <div className="manual-payment-actions">
           <button className="button button-ghost" onClick={onCancel}>
             Cancel
