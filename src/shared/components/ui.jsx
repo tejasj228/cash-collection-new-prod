@@ -26,6 +26,52 @@ export function Button({
   );
 }
 
+export function Loader({ label, size = 44, className = "" }) {
+  return (
+    <div
+      className={`app-loader ${className}`.trim()}
+      role="status"
+      aria-live="polite"
+    >
+      <span
+        className="app-loader-ring"
+        style={{ width: size, height: size }}
+        aria-hidden="true"
+      >
+        <span className="app-loader-ring-arc" />
+        <span className="app-loader-ring-core" />
+      </span>
+      {label && <span className="app-loader-label">{label}</span>}
+    </div>
+  );
+}
+
+export function LoaderOverlay({ label = "Working…" }) {
+  return (
+    <div className="app-loader-overlay" role="status" aria-live="polite">
+      <div className="app-loader-card">
+        <Loader label={label} />
+      </div>
+    </div>
+  );
+}
+
+export function SkeletonRows({ rows = 6, cols = 5 }) {
+  return Array.from({ length: rows }, (_, rowIndex) => (
+    <tr
+      key={`skeleton-${rowIndex}`}
+      className="skeleton-row"
+      aria-hidden="true"
+    >
+      {Array.from({ length: cols }, (_, colIndex) => (
+        <td key={colIndex}>
+          <span className="skeleton-bar" />
+        </td>
+      ))}
+    </tr>
+  ));
+}
+
 export function StatusPill({ children, tone = "green" }) {
   return (
     <span className={`status-pill ${tone}`}>

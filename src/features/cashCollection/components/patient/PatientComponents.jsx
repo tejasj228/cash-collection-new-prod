@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAppData } from "../../../../app/providers/AppDataProvider";
 import { useEscapeToClose } from "../../../../shared/hooks/useEscapeToClose";
+import { useModalClose } from "../../../../shared/hooks/useModalClose";
 import {
   compactIdentifier,
   optionValue,
@@ -20,7 +21,8 @@ function PatientSearchPopover({
   service,
   listOnly = false,
 }) {
-  useEscapeToClose(onClose);
+  const { closing, requestClose } = useModalClose(onClose);
+  useEscapeToClose(requestClose);
   const { patients } = useAppData();
   const [listQuery, setListQuery] = useState("");
   const episodeType = service?.id === "ipd" ? "IPD" : "OPD";
@@ -43,7 +45,11 @@ function PatientSearchPopover({
     else onChange(digits);
   };
   return (
-    <div className="popover-backdrop" onMouseDown={onClose}>
+    <div
+      className="popover-backdrop"
+      data-closing={closing || undefined}
+      onMouseDown={requestClose}
+    >
       <div
         className="patient-popover"
         onMouseDown={(event) => event.stopPropagation()}
@@ -56,7 +62,7 @@ function PatientSearchPopover({
                 : `Find ${episodeType} Patient by CR No.`}
             </strong>
           </div>
-          <button className="plain-icon" onClick={onClose}>
+          <button className="plain-icon" onClick={requestClose}>
             <Icon name="close" size={17} />
           </button>
         </div>

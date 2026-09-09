@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useAppData } from "../../../app/providers/AppDataProvider";
 import { useSort, applySort } from "../../../shared/hooks/useSort";
+import { useFakeLoad } from "../../../shared/hooks/useFakeLoad";
 import {
   amountOf,
   money,
@@ -11,6 +12,7 @@ import {
   StatusPill,
   StatCard,
   SortHeader,
+  Loader,
 } from "../../../shared/components/ui";
 
 function DonutChart({ data, total, centreValue }) {
@@ -85,6 +87,7 @@ function DonutChart({ data, total, centreValue }) {
 
 function Overview() {
   const { recentTransactions, collectionModes, todayIso } = useAppData();
+  const loading = useFakeLoad();
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [txSort, toggleTxSort] = useSort();
@@ -158,6 +161,12 @@ function Overview() {
     );
     setPage(1);
   };
+  if (loading)
+    return (
+      <div className="page-loading">
+        <Loader label="Loading overview…" size={48} />
+      </div>
+    );
   return (
     <>
       <div className="overview-summary">

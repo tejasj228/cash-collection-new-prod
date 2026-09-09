@@ -10,6 +10,7 @@ import {
   StatusPill,
   PageHeading,
   SortHeader,
+  SkeletonRows,
 } from "../../../../shared/components/ui";
 import { SelectField } from "../../../../shared/components/FormFields";
 
@@ -20,35 +21,44 @@ const ALL_DEPTS = "All Departments";
 function ModeTabs({ mode, onChange }) {
   const { requests, queueSummary } = useAppData();
   const pendingCount = Number(queueSummary?.pendingCount ?? requests.length);
+  const options = [
+    {
+      id: "request",
+      label: "Request-Based Collection",
+      icon: "receipt",
+      count: pendingCount,
+    },
+    { id: "direct", label: "Direct Collection", icon: "cash" },
+  ];
+  const activeIndex = Math.max(
+    0,
+    options.findIndex((option) => option.id === mode),
+  );
   return (
-    <div className="mode-tabs" role="tablist" aria-label="Collection mode">
-      <button
-        className={mode === "request" ? "selected" : ""}
-        onClick={() => onChange("request")}
-        role="tab"
-        aria-selected={mode === "request"}
-      >
-        <span className="tab-icon request">
-          <Icon name="receipt" size={16} />
-        </span>
-        <span>
-          <strong>Request-Based Collection</strong>
-        </span>
-        <span className="tab-count">{pendingCount}</span>
-      </button>
-      <button
-        className={mode === "direct" ? "selected" : ""}
-        onClick={() => onChange("direct")}
-        role="tab"
-        aria-selected={mode === "direct"}
-      >
-        <span className="tab-icon direct">
-          <Icon name="cash" size={16} />
-        </span>
-        <span>
-          <strong>Direct Collection</strong>
-        </span>
-      </button>
+    <div className="mode-switch" role="tablist" aria-label="Collection mode">
+      <span
+        className="mode-switch-thumb"
+        aria-hidden="true"
+        style={{ transform: `translateX(calc(${activeIndex} * 100%))` }}
+      />
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          role="tab"
+          aria-selected={mode === option.id}
+          className={`mode-switch-option ${mode === option.id ? "selected" : ""}`}
+          onClick={() => onChange(option.id)}
+        >
+          <span className={`tab-icon ${option.id}`}>
+            <Icon name={option.icon} size={16} />
+          </span>
+          <strong>{option.label}</strong>
+          {option.count != null && (
+            <span className="tab-count">{option.count}</span>
+          )}
+        </button>
+      ))}
     </div>
   );
 }
@@ -62,6 +72,7 @@ function RequestWorklist({ onCollect, search, setSearch, services }) {
     total: Number(queueSummary?.pendingCount ?? requests.length),
   });
   const [loadError, setLoadError] = useState("");
+  const [loading, setLoading] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
   useEscapeToClose(() => setFilterOpen(false), filterOpen);
   const [typeFilter, setTypeFilter] = useState(ALL_TYPES);
@@ -87,6 +98,7 @@ function RequestWorklist({ onCollect, search, setSearch, services }) {
     (typeFilter !== ALL_TYPES ? 1 : 0) + (deptFilter !== ALL_DEPTS ? 1 : 0);
   React.useEffect(() => {
     let active = true;
+    setLoading(true);
     const timer = window.setTimeout(async () => {
       try {
         const result = await services.listPendingRequests({
@@ -109,6 +121,8 @@ function RequestWorklist({ onCollect, search, setSearch, services }) {
           setLoadError(
             error?.message || "Pending requests could not be loaded.",
           );
+      } finally {
+        if (active) setLoading(false);
       }
     }, 250);
     return () => {
@@ -229,39 +243,43 @@ function RequestWorklist({ onCollect, search, setSearch, services }) {
             </tr>
           </thead>
           <tbody>
-            {visible.map((request) => (
-              <tr key={request.id}>
-                <td className="col-c">
-                  <span className="request-id">
-                    {compactIdentifier(request.id)}
-                  </span>
-                </td>
-                <td className="col-c cell-muted">{request.date}</td>
-                <td>
-                  <strong>{request.patient}</strong>
-                </td>
-                <td className="cell-muted">{request.department}</td>
-                <td className="col-c mono">{compactIdentifier(request.cr)}</td>
-                <td>
-                  <span className="type-label">{request.type}</span>
-                </td>
-                <td className="num amount-cell">₹{request.amount}</td>
-                <td className="action-cell">
-                  <Button
-                    variant="soft"
-                    className={
-                      isRefundRequest(request)
-                        ? "action-refund"
-                        : "action-collect"
-                    }
-                    onClick={() => onCollect(request)}
-                    icon="arrow"
-                  >
-                    {isRefundRequest(request) ? "Refund" : "Collect"}
-                  </Button>
-                </td>
-              </tr>
-            ))}
+            {loading && <SkeletonRows rows={pageSize} cols={8} />}
+            {!loading &&
+              visible.map((request) => (
+                <tr key={request.id}>
+                  <td className="col-c">
+                    <span className="request-id">
+                      {compactIdentifier(request.id)}
+                    </span>
+                  </td>
+                  <td className="col-c cell-muted">{request.date}</td>
+                  <td>
+                    <strong>{request.patient}</strong>
+                  </td>
+                  <td className="cell-muted">{request.department}</td>
+                  <td className="col-c mono">
+                    {compactIdentifier(request.cr)}
+                  </td>
+                  <td>
+                    <span className="type-label">{request.type}</span>
+                  </td>
+                  <td className="num amount-cell">₹{request.amount}</td>
+                  <td className="action-cell">
+                    <Button
+                      variant="soft"
+                      className={
+                        isRefundRequest(request)
+                          ? "action-refund"
+                          : "action-collect"
+                      }
+                      onClick={() => onCollect(request)}
+                      icon="arrow"
+                    >
+                      {isRefundRequest(request) ? "Refund" : "Collect"}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
         {loadError && (
@@ -269,7 +287,7 @@ function RequestWorklist({ onCollect, search, setSearch, services }) {
             {loadError}
           </div>
         )}
-        {!pageData.total && !loadError && (
+        {!loading && !pageData.total && !loadError && (
           <div className="empty-state">
             <Icon name="search" size={22} />
             <strong>No Matching Requests</strong>
@@ -286,7 +304,7 @@ function RequestWorklist({ onCollect, search, setSearch, services }) {
           </div>
         )}
       </div>
-      {pageData.total > 0 && (
+      {!loading && pageData.total > 0 && (
         <div className="table-pagination">
           <span>
             Showing {(currentPage - 1) * pageSize + 1}–

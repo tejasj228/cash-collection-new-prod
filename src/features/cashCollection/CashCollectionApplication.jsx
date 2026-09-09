@@ -12,6 +12,7 @@ import {
   sectionFromPath,
 } from "./model/navigationRoutes";
 import { Icon } from "../../shared/components/Icon";
+import { LoaderOverlay } from "../../shared/components/ui";
 import { SideRail, TopBar } from "./components/layout/Navigation";
 import {
   ModeTabs,
@@ -65,6 +66,7 @@ export default function CashCollectionApplication({
   const [workflowContext, setWorkflowContext] = useState(null);
   const [patientContextVersion, setPatientContextVersion] = useState(null);
   const [toast, setToast] = useState(null);
+  const [busy, setBusy] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(() => {
     try {
       return window.localStorage.getItem("hbims-nav-collapsed") === "1";
@@ -116,6 +118,14 @@ export default function CashCollectionApplication({
   };
   const openRequest = async (request) => {
     if (!request) return;
+    setBusy(true);
+    try {
+      await openRequestFlow(request);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const openRequestFlow = async (request) => {
     let requestDetail;
     try {
       requestDetail = await integration.services.getRequest(request.id);
@@ -340,6 +350,7 @@ export default function CashCollectionApplication({
             )}
           </main>
         </div>
+        {busy && <LoaderOverlay label="Opening request…" />}
         {toast && (
           <div className={`toast ${toast.tone === "error" ? "error" : ""}`}>
             <Icon name={toast.tone === "error" ? "info" : "check"} size={15} />

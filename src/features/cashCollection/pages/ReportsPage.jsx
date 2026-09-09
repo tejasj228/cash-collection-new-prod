@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Icon } from "../../../shared/components/Icon";
-import { SortHeader } from "../../../shared/components/ui";
+import { SortHeader, Loader } from "../../../shared/components/ui";
 import { applySort, useSort } from "../../../shared/hooks/useSort";
+import { useFakeLoad } from "../../../shared/hooks/useFakeLoad";
 import { formatDateInput, isoFromDisplayDate } from "../model/reportDates";
 import "../../../styles/reports.css";
 
@@ -67,6 +68,7 @@ function ReportDateField({ label, value, onChange, isoValue, invalid }) {
 }
 
 export default function Reports({ transactions, modes, todayIso }) {
+  const loading = useFakeLoad();
   const [view, setView] = useState("collections");
   const [fromInput, setFromInput] = useState(dateLabel(todayIso));
   const [toInput, setToInput] = useState(dateLabel(todayIso));
@@ -151,6 +153,12 @@ export default function Reports({ transactions, modes, todayIso }) {
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
+  if (loading)
+    return (
+      <div className="page-loading">
+        <Loader label="Loading reports…" size={48} />
+      </div>
+    );
   return (
     <div className="reports-page">
       <div className="report-tabs-row">

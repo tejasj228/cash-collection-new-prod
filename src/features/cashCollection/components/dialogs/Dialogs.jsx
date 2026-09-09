@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAppData } from "../../../../app/providers/AppDataProvider";
 import { useEscapeToClose } from "../../../../shared/hooks/useEscapeToClose";
+import { useModalClose } from "../../../../shared/hooks/useModalClose";
 import {
   displayDate,
   money,
@@ -16,9 +17,14 @@ import { Button } from "../../../../shared/components/ui";
 import { TextField } from "../../../../shared/components/FormFields";
 
 function TariffDetailsDialog({ lines, context, onCancel }) {
-  useEscapeToClose(onCancel);
+  const { closing, requestClose } = useModalClose(onCancel);
+  useEscapeToClose(requestClose);
   return (
-    <div className="popover-backdrop" onMouseDown={onCancel}>
+    <div
+      className="popover-backdrop"
+      data-closing={closing || undefined}
+      onMouseDown={requestClose}
+    >
       <div
         className="confirm-dialog tariff-details-dialog"
         role="dialog"
@@ -28,7 +34,11 @@ function TariffDetailsDialog({ lines, context, onCancel }) {
       >
         <div className="confirm-head">
           <strong id="tariff-details-title">Tariff Details</strong>
-          <button className="plain-icon" onClick={onCancel} aria-label="Close">
+          <button
+            className="plain-icon"
+            onClick={requestClose}
+            aria-label="Close"
+          >
             <Icon name="close" size={16} />
           </button>
         </div>
@@ -83,7 +93,7 @@ function TariffDetailsDialog({ lines, context, onCancel }) {
           </table>
         </div>
         <div className="confirm-actions">
-          <button className="link-button" onClick={onCancel}>
+          <button className="link-button" onClick={requestClose}>
             Close
           </button>
         </div>
@@ -100,8 +110,9 @@ function ConfirmDialog({
   onConfirm,
   onCancel,
 }) {
+  const { closing, requestClose } = useModalClose(onCancel);
   return (
-    <div className="popover-backdrop">
+    <div className="popover-backdrop" data-closing={closing || undefined}>
       <div className="confirm-dialog" role="dialog" aria-modal="true">
         <div className="confirm-head">
           <strong>{title}</strong>
@@ -116,7 +127,7 @@ function ConfirmDialog({
           ))}
         </dl>
         <div className="confirm-actions">
-          <button className="link-button" onClick={onCancel}>
+          <button className="link-button" onClick={requestClose}>
             Cancel
           </button>
           <Button onClick={onConfirm} icon="print">
@@ -129,7 +140,8 @@ function ConfirmDialog({
 }
 
 function ManualPaymentDialog({ paymentMode, cardType, onSave, onCancel }) {
-  useEscapeToClose(onCancel);
+  const { closing, requestClose } = useModalClose(onCancel);
+  useEscapeToClose(requestClose);
   const { todayIso } = useAppData();
   const [bankName, setBankName] = useState("");
   const [reference, setReference] = useState("");
@@ -171,7 +183,11 @@ function ManualPaymentDialog({ paymentMode, cardType, onSave, onCancel }) {
   };
 
   return (
-    <div className="popover-backdrop" onMouseDown={onCancel}>
+    <div
+      className="popover-backdrop"
+      data-closing={closing || undefined}
+      onMouseDown={requestClose}
+    >
       <div
         className="manual-payment-dialog"
         role="dialog"
@@ -183,7 +199,11 @@ function ManualPaymentDialog({ paymentMode, cardType, onSave, onCancel }) {
           <h2 id="manual-payment-title">
             Payment Details · {isCard ? "Credit / Debit Card" : "UPI"}
           </h2>
-          <button className="plain-icon" onClick={onCancel} aria-label="Close">
+          <button
+            className="plain-icon"
+            onClick={requestClose}
+            aria-label="Close"
+          >
             <Icon name="close" size={17} />
           </button>
         </div>
@@ -244,7 +264,7 @@ function ManualPaymentDialog({ paymentMode, cardType, onSave, onCancel }) {
           />
         </div>
         <div className="manual-payment-actions">
-          <button className="button button-ghost" onClick={onCancel}>
+          <button className="button button-ghost" onClick={requestClose}>
             Cancel
           </button>
           <Button onClick={save} disabled={!canSave}>

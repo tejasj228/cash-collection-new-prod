@@ -129,18 +129,32 @@ const isRefundRequestType = (value) =>
     .toLowerCase()
     .includes("refund");
 
+/**
+ * Prototype-only latency. The real services respond over the network; the
+ * in-memory prototype resolves instantly, which hides every loading state.
+ * A fixed ~1s pause on read/write calls lets the UI's loaders, skeletons and
+ * transitions actually be seen during a design review.
+ */
+const PROTOTYPE_LATENCY_MS = 1000;
+const withLatency = (value, ms = PROTOTYPE_LATENCY_MS) =>
+  new Promise((resolve) => {
+    window.setTimeout(() => resolve(value), ms);
+  });
+
 /** Browser-only adapters used by the standalone design review build. */
 export function createPrototypeServices({ now = () => Date.now() } = {}) {
   const postedByKey = new Map();
   const terminalPayments = new Map();
   return {
     async loadBootstrap() {
-      return PROTOTYPE_DATA;
+      return withLatency(PROTOTYPE_DATA);
     },
     async searchPatients(query) {
       const term = String(query || "").toLowerCase();
-      return PROTOTYPE_DATA.patients.filter((row) =>
-        `${row.name} ${row.cr} ${row.mobile}`.toLowerCase().includes(term),
+      return withLatency(
+        PROTOTYPE_DATA.patients.filter((row) =>
+          `${row.name} ${row.cr} ${row.mobile}`.toLowerCase().includes(term),
+        ),
       );
     },
     async listPendingRequests({
@@ -177,32 +191,32 @@ export function createPrototypeServices({ now = () => Date.now() } = {}) {
         );
       }
       const start = Number(page) * Number(size);
-      return {
+      return withLatency({
         items: items.slice(start, start + Number(size)),
         total: items.length,
         page: Number(page),
         size: Number(size),
-      };
+      });
     },
     async getRequest(requestId) {
       const request = PROTOTYPE_DATA.requests.find(
         (row) => row.id === requestId,
       );
-      if (!request) return null;
-      return {
+      if (!request) return withLatency(null);
+      return withLatency({
         ...request,
         linkedPatient:
           PROTOTYPE_DATA.patients.find((row) => row.cr === request.cr) || null,
-      };
+      });
     },
     async getTariffs() {
-      return PROTOTYPE_DATA.tariffCatalog;
+      return withLatency(PROTOTYPE_DATA.tariffCatalog);
     },
     async getPaymentOptions() {
-      return PROTOTYPE_DATA.paymentOptions;
+      return withLatency(PROTOTYPE_DATA.paymentOptions);
     },
     async checkEligibility(command) {
-      return eligibilityFor(command);
+      return withLatency(eligibilityFor(command));
     },
     async initiateTerminalPayment(command) {
       if (
@@ -242,7 +256,7 @@ export function createPrototypeServices({ now = () => Date.now() } = {}) {
     },
     async postTransaction(command) {
       if (postedByKey.has(command.idempotencyKey))
-        return postedByKey.get(command.idempotencyKey);
+        return withLatency(postedByKey.get(command.idempotencyKey));
       const eligibility = eligibilityFor(command);
       if (!eligibility.eligible) {
         const error = new Error(eligibility.message);
@@ -299,13 +313,13 @@ export function createPrototypeServices({ now = () => Date.now() } = {}) {
         },
       };
       postedByKey.set(command.idempotencyKey, result);
-      return result;
+      return withLatency(result);
     },
     async listTransactions() {
-      return {
+      return withLatency({
         items: PROTOTYPE_DATA.recentTransactions,
         total: PROTOTYPE_DATA.recentTransactions.length,
-      };
+      });
     },
   };
 }

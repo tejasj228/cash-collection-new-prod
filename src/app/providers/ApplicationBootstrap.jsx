@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Alert, Button, Spin } from "antd";
+import { Alert, Button } from "antd";
 import { resolveApplicationRuntime } from "../../services/applicationRuntime";
+import { Loader } from "../../shared/components/ui";
 import CashCollectionApplication from "../../features/cashCollection/CashCollectionApplication";
 
 export function ApplicationBootstrap() {
@@ -18,10 +19,8 @@ export function ApplicationBootstrap() {
   useEffect(load, []);
   if (state.loading)
     return (
-      <div className="application-state">
-        <Spin size="large" tip="Loading cash collection data…">
-          <div className="application-state-space" />
-        </Spin>
+      <div className="application-state app-loader-screen">
+        <Loader label="Loading cash collection…" size={52} />
       </div>
     );
   if (state.error)

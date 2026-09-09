@@ -5561,3 +5561,351 @@
     font-size: 11.5px;
   }
 }
+
+/* ============================================================
+   Polish pass — elevation, motion, loaders, sliding switch
+   ============================================================ */
+.hbims-cash-collection {
+  --shadow-xs:
+    0 1px 2px rgba(16, 36, 71, 0.04), 0 1px 3px rgba(16, 36, 71, 0.05);
+  --shadow-sm:
+    0 2px 6px rgba(16, 36, 71, 0.05), 0 4px 12px rgba(16, 36, 71, 0.05);
+  --shadow-md:
+    0 6px 16px rgba(16, 36, 71, 0.07), 0 12px 30px rgba(16, 36, 71, 0.07);
+  --shadow-lg:
+    0 18px 44px rgba(16, 36, 71, 0.16), 0 6px 16px rgba(16, 36, 71, 0.1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------- soft elevation, applied consistently ---------- */
+.hbims-cash-collection .panel,
+.hbims-cash-collection .stat-card,
+.hbims-cash-collection .mode-switch {
+  box-shadow: var(--shadow-sm);
+}
+.hbims-cash-collection .patient-banner,
+.hbims-cash-collection .service-card,
+.hbims-cash-collection .selected-patient,
+.hbims-cash-collection .estimate-info,
+.hbims-cash-collection .eligibility-message {
+  box-shadow: var(--shadow-xs);
+}
+.hbims-cash-collection .toast,
+.hbims-cash-collection .filter-panel {
+  box-shadow: var(--shadow-md);
+}
+.hbims-cash-collection .confirm-dialog,
+.hbims-cash-collection .manual-payment-dialog,
+.hbims-cash-collection .tariff-details-dialog,
+.hbims-cash-collection .patient-popover {
+  box-shadow: var(--shadow-lg);
+}
+
+/* ---------- restrained hover motion ---------- */
+.hbims-cash-collection .panel,
+.hbims-cash-collection .stat-card,
+.hbims-cash-collection .service-card,
+.hbims-cash-collection .selected-patient {
+  transition:
+    transform 0.18s var(--ease-out),
+    box-shadow 0.18s var(--ease-out),
+    border-color 0.18s var(--ease-out);
+}
+.hbims-cash-collection .stat-card:hover,
+.hbims-cash-collection .service-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.hbims-cash-collection .worklist-panel:hover,
+.hbims-cash-collection .chart-panel:hover {
+  box-shadow: var(--shadow-md);
+}
+.hbims-cash-collection .service-card:hover {
+  border-color: #cfe0f4;
+}
+.hbims-cash-collection .table-wrap tbody tr {
+  transition: background 0.15s ease;
+}
+.hbims-cash-collection .button,
+.hbims-cash-collection .text-button,
+.hbims-cash-collection .link-button,
+.hbims-cash-collection .filter-button,
+.hbims-cash-collection .patient-result,
+.hbims-cash-collection .back-link {
+  transition:
+    transform 0.15s var(--ease-out),
+    box-shadow 0.15s var(--ease-out),
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+.hbims-cash-collection .button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+.hbims-cash-collection .button:not(:disabled):active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+.hbims-cash-collection .patient-result:hover {
+  transform: translateX(2px);
+}
+.hbims-cash-collection .back-link:hover {
+  transform: translateX(-2px);
+}
+
+/* ---------- popup open / close transition ---------- */
+.hbims-cash-collection .popover-backdrop {
+  animation: cc-overlay-in 0.18s var(--ease-out) both;
+}
+.hbims-cash-collection .popover-backdrop > * {
+  animation: cc-dialog-in 0.22s var(--ease-out) both;
+}
+/* the tariff popup must not keep a transform (breaks its sticky header
+   paint) — fade it without moving it */
+.hbims-cash-collection .popover-backdrop > .tariff-details-dialog {
+  animation: cc-fade-in 0.2s var(--ease-out) both;
+}
+.hbims-cash-collection .popover-backdrop[data-closing="true"] {
+  animation: cc-overlay-in 0.16s var(--ease-out) reverse both;
+}
+.hbims-cash-collection .popover-backdrop[data-closing="true"] > * {
+  animation: cc-dialog-in 0.16s var(--ease-out) reverse both;
+}
+.hbims-cash-collection
+  .popover-backdrop[data-closing="true"]
+  > .tariff-details-dialog {
+  animation: cc-fade-in 0.16s var(--ease-out) reverse both;
+}
+@keyframes cc-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes cc-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes cc-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ---------- sliding segmented switch (Request / Direct) ---------- */
+.hbims-cash-collection .mode-switch {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 700px;
+  margin-bottom: 20px;
+  padding: 4px;
+  border: 1px solid #dce5ef;
+  border-radius: 12px;
+  background: #e9eef5;
+}
+.hbims-cash-collection .mode-switch-thumb {
+  position: absolute;
+  z-index: 0;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  border-radius: 9px;
+  background: #fff;
+  border: 1px solid #e1e8f1;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.32s var(--ease-out);
+}
+.hbims-cash-collection .mode-switch-option {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #78879c;
+  text-align: left;
+  transition: color 0.2s ease;
+}
+.hbims-cash-collection .mode-switch-option:hover {
+  color: #4d5c72;
+}
+.hbims-cash-collection .mode-switch-option.selected {
+  color: var(--ink);
+}
+.hbims-cash-collection .mode-switch-option strong {
+  font-size: 13px;
+  font-weight: 800;
+}
+.hbims-cash-collection .mode-switch-option .tab-count {
+  margin-left: auto;
+}
+@media (max-width: 620px) {
+  .hbims-cash-collection .mode-switch-option {
+    gap: 7px;
+    padding: 6px 9px;
+    min-height: 48px;
+  }
+  .hbims-cash-collection .mode-switch-option strong {
+    font-size: 11.5px;
+  }
+}
+
+/* ---------- lighter idle text in the side rail ---------- */
+.hbims-cash-collection .rail-item:not(.active) {
+  color: rgba(11, 47, 82, 0.58);
+}
+.hbims-cash-collection .rail-item:not(.active) .rail-icon {
+  color: rgba(11, 47, 82, 0.5);
+}
+.hbims-cash-collection .rail-item:not(.active):hover {
+  color: #0a3a63;
+}
+.hbims-cash-collection .rail-item:not(.active):hover .rail-icon {
+  color: #0a3a63;
+}
+
+/* ---------- loaders, skeletons, overlay ---------- */
+.hbims-cash-collection .app-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.hbims-cash-collection .app-loader-ring {
+  position: relative;
+  display: inline-block;
+}
+.hbims-cash-collection .app-loader-ring-arc,
+.hbims-cash-collection .app-loader-ring-core {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+.hbims-cash-collection .app-loader-ring-arc {
+  border: 3px solid rgba(43, 103, 217, 0.16);
+  border-top-color: #2b67d9;
+  animation: cc-spin 0.9s linear infinite;
+}
+.hbims-cash-collection .app-loader-ring-core {
+  inset: 30%;
+  background: radial-gradient(circle at 50% 50%, #2b67d9, #1f4fae);
+  opacity: 0.9;
+  animation: cc-pulse 1.4s var(--ease-out) infinite;
+}
+.hbims-cash-collection .app-loader-label {
+  color: #5a6b85;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+@keyframes cc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes cc-pulse {
+  0%,
+  100% {
+    transform: scale(0.72);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.hbims-cash-collection .app-loader-screen,
+.hbims-cash-collection .page-loading {
+  display: grid;
+  place-items: center;
+  min-height: 320px;
+  padding: 60px 0;
+}
+.hbims-cash-collection .page-loading {
+  min-height: 52vh;
+}
+.hbims-cash-collection .app-loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: rgba(16, 36, 71, 0.28);
+  backdrop-filter: blur(3px);
+  animation: cc-overlay-in 0.18s var(--ease-out) both;
+}
+.hbims-cash-collection .app-loader-card {
+  padding: 30px 40px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--shadow-lg);
+  animation: cc-dialog-in 0.22s var(--ease-out) both;
+}
+
+/* table skeleton */
+.hbims-cash-collection .skeleton-row td {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+.hbims-cash-collection .skeleton-bar {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eef2f7 0%, #e2e8f0 22%, #eef2f7 44%);
+  background-size: 220% 100%;
+  animation: cc-shimmer 1.3s ease-in-out infinite;
+}
+.hbims-cash-collection .skeleton-row td:nth-child(3) .skeleton-bar,
+.hbims-cash-collection .skeleton-row td:nth-child(4) .skeleton-bar {
+  width: 70%;
+}
+.hbims-cash-collection .skeleton-row td.col-c .skeleton-bar {
+  width: 54%;
+  margin: 0 auto;
+}
+@keyframes cc-shimmer {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hbims-cash-collection .panel,
+  .hbims-cash-collection .stat-card,
+  .hbims-cash-collection .service-card,
+  .hbims-cash-collection .button,
+  .hbims-cash-collection .patient-result,
+  .hbims-cash-collection .back-link,
+  .hbims-cash-collection .mode-switch-thumb,
+  .hbims-cash-collection .popover-backdrop,
+  .hbims-cash-collection .popover-backdrop > *,
+  .hbims-cash-collection .app-loader-overlay,
+  .hbims-cash-collection .app-loader-card {
+    transition: none !important;
+    animation-duration: 0.01ms !important;
+  }
+  .hbims-cash-collection .app-loader-ring-arc {
+    animation-duration: 0.9s !important;
+  }
+}
