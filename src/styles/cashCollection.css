@@ -49,10 +49,12 @@
   height: 100vh;
   overflow: visible;
   background: #49b2f3;
-  color: #0b3a61;
+  color: #0b2f52;
+  border-right: 1px solid rgba(11, 47, 82, 0.12);
+  box-shadow: inset -14px 0 26px -18px rgba(6, 30, 55, 0.45);
   display: flex;
   flex-direction: column;
-  padding: 18px 10px 16px;
+  padding: 14px 12px 16px;
   transition:
     width 0.2s ease,
     flex-basis 0.2s ease,
@@ -75,26 +77,29 @@
 }
 .rail-section-label {
   padding: 6px 10px 10px;
-  color: rgba(11, 42, 71, 0.62);
+  color: rgba(11, 47, 82, 0.55);
   text-transform: uppercase;
   font-size: 9px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.14em;
 }
 .rail-toggle {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   flex: 0 0 auto;
-  border-radius: 7px;
-  color: #0b3a61;
+  border-radius: 9px;
+  color: rgba(11, 47, 82, 0.8);
+  transition:
+    color 0.18s ease,
+    background 0.18s ease;
 }
 .rail-toggle:hover {
   color: #072742;
-  background: rgba(11, 42, 71, 0.1);
+  background: rgba(255, 255, 255, 0.45);
 }
 .rail-nav {
   display: grid;
-  gap: 4.8px;
+  gap: 4px;
 }
 .side-rail > .rail-nav:last-child {
   margin-bottom: auto;
@@ -104,19 +109,22 @@
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 7px;
-  min-height: 44px;
-  padding: 0 8px;
-  color: rgba(11, 42, 71, 0.82);
+  gap: 9px;
+  min-height: 42px;
+  padding: 0 9px;
+  color: rgba(11, 47, 82, 0.78);
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: 10px;
   background: transparent;
   text-align: left;
   font-size: 12px;
+  font-weight: 600;
   white-space: nowrap;
   transition:
     background 0.18s ease,
-    color 0.18s ease;
+    color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 .rail-icon {
   display: grid;
@@ -125,39 +133,38 @@
   height: 30px;
   flex: 0 0 30px;
   border-radius: 8px;
+  color: rgba(11, 47, 82, 0.62);
   transition:
     color 0.18s ease,
     background 0.18s ease;
 }
 .rail-item:hover {
   color: #072742;
-  background: rgba(11, 42, 71, 0.08);
+  background: rgba(255, 255, 255, 0.32);
+}
+.rail-item:hover .rail-icon {
+  color: #072742;
 }
 .rail-item.active {
-  color: #072742;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.42),
-    rgba(255, 255, 255, 0.16)
-  );
-  border-color: transparent;
-  box-shadow: none;
+  color: #06243f;
+  background: #ffffff;
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 20px -8px rgba(6, 30, 55, 0.45);
   font-weight: 700;
 }
 .rail-item.active::before {
   content: "";
   position: absolute;
-  left: 0;
-  top: 10px;
-  bottom: 10px;
+  left: -12px;
+  top: 8px;
+  bottom: 8px;
   width: 3px;
-  border-radius: 0 4px 4px 0;
-  background: #0b3a61;
-  box-shadow: none;
+  border-radius: 0 3px 3px 0;
+  background: #06243f;
 }
 .rail-item.active .rail-icon {
-  color: #072742;
-  background: rgba(255, 255, 255, 0.4);
+  color: #0b64a8;
+  background: rgba(73, 178, 243, 0.16);
 }
 .live-dot {
   width: 8.4px;
@@ -4507,9 +4514,9 @@
   display: grid;
   place-items: center;
   padding: 0;
-  color: #0b3a61;
+  color: rgba(11, 47, 82, 0.8);
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 9px;
   background: transparent;
   transition:
     color 0.18s ease,
@@ -4518,8 +4525,8 @@
 }
 .rail-toggle:hover {
   color: #072742;
-  background: rgba(11, 42, 71, 0.1);
-  border-color: rgba(11, 42, 71, 0.16);
+  background: rgba(255, 255, 255, 0.45);
+  border-color: rgba(255, 255, 255, 0.6);
 }
 .rail-toggle .icon {
   transition: transform 0.22s ease;
@@ -4545,6 +4552,9 @@
   justify-content: center;
   padding: 0;
   gap: 0;
+}
+.side-rail.collapsed .rail-item.active::before {
+  left: -8px;
 }
 .side-rail.collapsed .rail-item .rail-label {
   display: none;
@@ -4583,7 +4593,7 @@
 
 .rail-item:focus-visible,
 .rail-toggle:focus-visible {
-  outline: 2px solid #0b3a61;
+  outline: 2px solid #06243f;
   outline-offset: 1px;
 }
 

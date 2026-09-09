@@ -100,20 +100,11 @@ function ConfirmDialog({
   onConfirm,
   onCancel,
 }) {
-  useEscapeToClose(onCancel);
   return (
-    <div className="popover-backdrop" onMouseDown={onCancel}>
-      <div
-        className="confirm-dialog"
-        role="dialog"
-        aria-modal="true"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
+    <div className="popover-backdrop">
+      <div className="confirm-dialog" role="dialog" aria-modal="true">
         <div className="confirm-head">
           <strong>{title}</strong>
-          <button className="plain-icon" onClick={onCancel} aria-label="Close">
-            <Icon name="close" size={16} />
-          </button>
         </div>
         <p className="confirm-lead">{lead}</p>
         <dl className="confirm-rows">
