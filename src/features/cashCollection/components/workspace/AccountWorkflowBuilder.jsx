@@ -91,8 +91,7 @@ function AccountWorkflowBuilder({
           "raisingDepartmentId",
           context.raisingDepartments,
           patient?.department,
-          "Raised Department",
-          true,
+          "Department",
         )}
         {select("episodeId", context.episodes, patient?.episode, "Episode")}
         {select(
@@ -100,18 +99,16 @@ function AccountWorkflowBuilder({
           context.patientCategories,
           patient?.category,
           "Patient Category",
-          true,
         )}
         {isSettlement && (
           <>
-            {select("wardId", context.wards, patient?.ward, "Ward Name")}
             {select(
               "roomTypeId",
               context.roomTypes,
               patient?.roomType,
-              "Ward",
-              true,
+              "Ward Type",
             )}
+            {select("wardId", context.wards, patient?.ward, "Ward Name")}
           </>
         )}
       </div>

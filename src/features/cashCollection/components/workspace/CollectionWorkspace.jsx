@@ -178,16 +178,14 @@ function CollectionWorkspace({
   const handleDetails = showTariffDetails
     ? (groupLines) => setDetailsGroup(groupLines)
     : undefined;
-  const deptWard =
-    [workflowSelections.raisingDepartmentId, workflowSelections.wardId]
-      .filter(Boolean)
-      .join(" / ") ||
+  const department =
+    workflowSelections.raisingDepartmentId ||
     selectedPatient?.department ||
     null;
   const detailsContext = {
     reqNo: request?.id || null,
     reqDate: request?.date || null,
-    deptWard,
+    department,
     paymentMode: paymentMode || null,
     channel: paymentMode === "Cash" ? "Offline" : paymentMode ? "Online" : null,
   };

@@ -39,7 +39,7 @@ function TariffDetailsDialog({ lines, context, onCancel }) {
                 <th className="col-c">S. No.</th>
                 <th className="col-c">Req No.</th>
                 <th className="col-c">Req Date</th>
-                <th>Raised Department</th>
+                <th>Department</th>
                 <th>Tariff Name</th>
                 <th className="num">Qty</th>
                 <th className="num">Actual Amt</th>
@@ -63,7 +63,7 @@ function TariffDetailsDialog({ lines, context, onCancel }) {
                     )}
                   </td>
                   <td className="col-c cell-muted">{context.reqDate || "—"}</td>
-                  <td className="cell-muted">{context.deptWard || "—"}</td>
+                  <td className="cell-muted">{context.department || "—"}</td>
                   <td>
                     <strong>{line.name}</strong>
                   </td>
