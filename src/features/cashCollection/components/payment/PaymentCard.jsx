@@ -227,6 +227,9 @@ function PaymentCard({
   const saveManualDetails = (details) => {
     setManualDetails(details);
     setDescription(details.summary);
+    setPosSession(null);
+    setApproval(null);
+    setOperationError("");
     setPosState("manual");
     setManualDetailsOpen(false);
   };
@@ -320,8 +323,7 @@ function PaymentCard({
                   type="button"
                   className="manual-details-trigger"
                   onClick={() => setManualDetailsOpen(true)}
-                  disabled={posState !== "failed"}
-                  title="Available after a failed terminal transaction"
+                  title="Enter verified payment details manually"
                   aria-label="Enter manual payment details"
                 >
                   <Icon name="edit" size={16} />

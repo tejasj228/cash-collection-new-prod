@@ -34,9 +34,11 @@ Pending requests use server-side search, filtering, sorting and pagination. The 
 
 `HashRouter` provides these stable entry points:
 
-- `/#/cash-collection`
-- `/#/overview`
-- `/#/reports`
-- `/#/estimates`
+- `/#/cash-collection/collection`
+- `/#/cash-collection/overview`
+- `/#/cash-collection/reports`
+
+The former `/#/cash-collection`, `/#/overview`, `/#/reports` and
+`/#/estimates` URLs redirect to the corresponding stable entry point.
 
 Feature drill-down state remains local because it contains loaded patient/request versions that should be discarded on a full reload.

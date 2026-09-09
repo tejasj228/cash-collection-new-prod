@@ -259,8 +259,8 @@ function ManualPaymentDialog({ paymentMode, cardType, onSave, onCancel }) {
           )}
         </div>
         <p className="manual-payment-warning">
-          Use this only after the POS terminal transaction fails and the payment
-          can be verified manually.
+          Use this when the payment can be verified independently or the POS
+          terminal status is unavailable.
         </p>
         <div className="manual-payment-actions">
           <button className="button button-ghost" onClick={onCancel}>

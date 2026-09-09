@@ -36,9 +36,13 @@ body {
 }
 .hbims-cash-collection .input-wrap .ant-input-affix-wrapper {
   min-height: 44px;
-  padding-inline: 14px;
+  padding-inline: 18px;
 }
-.hbims-cash-collection .input-wrap .ant-input {
+.hbims-cash-collection .input-wrap > .ant-input {
+  height: 44px;
+  padding-inline: 18px;
+}
+.hbims-cash-collection .input-wrap .ant-input-affix-wrapper > .ant-input {
   height: auto;
   padding: 0;
 }

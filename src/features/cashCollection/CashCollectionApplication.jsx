@@ -7,6 +7,10 @@ import {
   isRefundRequest,
   REQUEST_CHARGE_TYPE_ROUTES,
 } from "./model/workflowRoutes";
+import {
+  CASH_COLLECTION_ROUTES,
+  sectionFromPath,
+} from "./model/navigationRoutes";
 import { Icon } from "../../shared/components/Icon";
 import { SideRail, TopBar } from "./components/layout/Navigation";
 import {
@@ -43,14 +47,8 @@ export default function CashCollectionApplication({
   };
   const firstService = serviceOptions[0];
   const [mode, setMode] = useState("request");
-  const routeStage =
-    location.pathname === "/overview"
-      ? "overview"
-      : location.pathname === "/reports"
-        ? "reports"
-        : location.pathname === "/estimates"
-          ? "estimates"
-          : "home";
+  const routeSection = sectionFromPath(location.pathname);
+  const routeStage = routeSection === "collection" ? "home" : routeSection;
   const [stage, setStage] = useState(routeStage);
   useEffect(() => setStage(routeStage), [routeStage]);
   const [service, setService] = useState(firstService);
@@ -86,7 +84,7 @@ export default function CashCollectionApplication({
     });
 
   const resetHome = () => {
-    routeNavigate("/cash-collection");
+    routeNavigate(CASH_COLLECTION_ROUTES.collection);
     setStage("home");
     setMode("request");
     setConfirmationData(null);
@@ -221,7 +219,7 @@ export default function CashCollectionApplication({
     setStage("workspace");
   };
   const startEstimate = () => {
-    routeNavigate("/cash-collection");
+    routeNavigate(CASH_COLLECTION_ROUTES.collection);
     setMode("direct");
     setStage("home");
     setSelectedRequest(null);
@@ -231,18 +229,17 @@ export default function CashCollectionApplication({
     setBillingService(firstBillingOption(firstService, "Estimation"));
   };
   const navigate = (destination) => {
-    if (destination === "cash") resetHome();
+    if (destination === "collection") resetHome();
     else {
-      routeNavigate(`/${destination}`);
+      routeNavigate(CASH_COLLECTION_ROUTES[destination]);
       setStage(destination);
     }
   };
   const pageOf = {
     overview: "Overview",
-    estimates: "Estimates",
     reports: "Reports",
   };
-  const activeNav = pageOf[stage] ? stage : "cash";
+  const activeNav = pageOf[stage] ? stage : "collection";
   const continueSetup = (eligibility) => {
     setWorkflowContext(eligibility?.workflowContext || null);
     setPatientContextVersion(eligibility?.patientContextVersion || null);
@@ -273,7 +270,7 @@ export default function CashCollectionApplication({
           onToggle={toggleNav}
         />
         <div className="app-main">
-          <TopBar page={pageOf[stage] || "Cash Collection"} />
+          <TopBar page={pageOf[stage] || "Collection"} onNavigate={navigate} />
           <main className="content">
             {stage === "reports" ? (
               <Reports

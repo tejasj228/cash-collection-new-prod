@@ -1,9 +1,11 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { Icon } from "../../../../shared/components/Icon";
+import { CASH_COLLECTION_ROUTES } from "../../model/navigationRoutes";
 
 function SideRail({ active, onNavigate, collapsed, onToggle }) {
   const items = [
-    ["cash", "Cash Collection", "cash"],
+    ["collection", "Collection", "cash"],
     ["overview", "Overview", "grid"],
     ["reports", "Reports", "chart"],
   ];
@@ -40,21 +42,45 @@ function SideRail({ active, onNavigate, collapsed, onToggle }) {
   );
 }
 
-function TopBar({ page }) {
-  const trail =
-    page === "Cash Collection"
-      ? ["Billing", page]
-      : ["Billing", "Cash Collection", page];
+function TopBar({ page, onNavigate }) {
+  const trail = [
+    { label: "Billing" },
+    {
+      label: "Cash Collection",
+      to: CASH_COLLECTION_ROUTES.collection,
+      section: "collection",
+    },
+    {
+      label: page,
+      to:
+        CASH_COLLECTION_ROUTES[page.toLowerCase()] ||
+        CASH_COLLECTION_ROUTES.collection,
+      section: page.toLowerCase(),
+    },
+  ];
   return (
     <header className="topbar">
       <div className="topbar-leading">
         <div className="breadcrumb" aria-label="Current location">
           {trail.map((item, index) => (
-            <React.Fragment key={item}>
+            <React.Fragment key={`${item.label}-${index}`}>
               {index > 0 && <Icon name="chevron" size={12} />}
-              <span className={index === trail.length - 1 ? "current" : ""}>
-                {item}
-              </span>
+              {item.to ? (
+                <Link
+                  to={item.to}
+                  className={index === trail.length - 1 ? "current" : ""}
+                  aria-current={index === trail.length - 1 ? "page" : undefined}
+                  onClick={(event) => {
+                    if (!onNavigate) return;
+                    event.preventDefault();
+                    onNavigate(item.section);
+                  }}
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <span>{item.label}</span>
+              )}
             </React.Fragment>
           ))}
         </div>

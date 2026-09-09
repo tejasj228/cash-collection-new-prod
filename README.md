@@ -30,7 +30,9 @@ Set values at build time with `.env` or at deployment time before the bundle loa
 </script>
 ```
 
-Routes use hashes, for example `/#/cash-collection`, `/#/overview`, and `/#/reports`, so the hosting server does not require SPA rewrite rules.
+Routes use hashes: `/#/cash-collection/collection`,
+`/#/cash-collection/overview`, and `/#/cash-collection/reports`, so the hosting
+server does not require SPA rewrite rules.
 
 ## Structure
 
