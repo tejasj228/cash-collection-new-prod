@@ -145,6 +145,7 @@ export function ShiftEndDialog({
   return (
     <ConfirmModal
       className="shift-reconcile-modal"
+      backdropClassName="shift-reconcile-backdrop"
       icon="arrow"
       title="Count today’s cash"
       lead={

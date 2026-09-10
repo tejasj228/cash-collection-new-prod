@@ -21,6 +21,7 @@ export function ConfirmModal({
   busy = false,
   confirmDisabled = false,
   className = "",
+  backdropClassName = "",
   content,
   onConfirm,
   onCancel,
@@ -30,7 +31,7 @@ export function ConfirmModal({
   useEscapeToClose(requestClose);
   return (
     <div
-      className="popover-backdrop"
+      className={`popover-backdrop ${backdropClassName}`.trim()}
       data-closing={closing || undefined}
       onMouseDown={requestClose}
     >
