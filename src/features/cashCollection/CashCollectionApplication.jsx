@@ -13,7 +13,8 @@ import {
 } from "./model/navigationRoutes";
 import { Icon } from "../../shared/components/Icon";
 import { LoaderOverlay } from "../../shared/components/ui";
-import { SideRail, TopBar } from "./components/layout/Navigation";
+import { ConfirmModal } from "../../shared/components/ConfirmModal";
+import { TopNav } from "./components/layout/Navigation";
 import {
   ModeTabs,
   RequestWorklist,
@@ -23,23 +24,35 @@ import {
 import { DirectSetup } from "./components/patient/PatientComponents";
 import { CollectionWorkspace } from "./components/workspace/CollectionWorkspace";
 import { Confirmation } from "./pages/ConfirmationPage";
-import { Overview } from "./pages/OverviewPage";
-import Reports from "./pages/ReportsPage";
+import { Dashboard } from "./pages/DashboardPage";
+import { ShiftEndDialog } from "./components/dashboard/ShiftEndDialog";
+import { ShiftReport } from "./components/dashboard/ShiftReport";
+import { computeShiftSummary } from "./model/shiftSummary";
+import { createIdempotencyKey } from "./services/idempotency";
+
+function ShiftClosedState() {
+  return (
+    <div className="shift-ended-state">
+      <span className="shift-ended-mark">
+        <Icon name="check" size={30} strokeWidth={2.3} />
+      </span>
+      <h2>Shift ended</h2>
+      <p>Use Start Shift in the top navigation to continue cash collection.</p>
+    </div>
+  );
+}
 
 export default function CashCollectionApplication({
   integration = null,
   data,
 }) {
-  const appData = useMemo(() => normalizeCashCollectionData(data), [data]);
+  const [appData, setAppData] = useState(() =>
+    normalizeCashCollectionData(data),
+  );
+  useEffect(() => setAppData(normalizeCashCollectionData(data)), [data]);
   const location = useLocation();
   const routeNavigate = useNavigate();
-  const {
-    serviceOptions,
-    patients,
-    recentTransactions,
-    paymentOptions,
-    todayIso,
-  } = appData;
+  const { serviceOptions, patients, recentTransactions, todayIso } = appData;
   const billingOptionsFor = (hospitalService, transactionType) =>
     appData.billingByService[hospitalService?.id]?.[transactionType] || [];
   const firstBillingOption = (hospitalService, transactionType = "Receipt") => {
@@ -67,23 +80,143 @@ export default function CashCollectionApplication({
   const [patientContextVersion, setPatientContextVersion] = useState(null);
   const [toast, setToast] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [navCollapsed, setNavCollapsed] = useState(() => {
-    try {
-      return window.localStorage.getItem("hbims-nav-collapsed") === "1";
-    } catch {
-      return false;
-    }
-  });
-  const toggleNav = () =>
-    setNavCollapsed((value) => {
-      const next = !value;
-      try {
-        window.localStorage.setItem("hbims-nav-collapsed", next ? "1" : "0");
-      } catch {
-        /* private mode */
-      }
+
+  // Shift state: bill-level patches (e.g. a cancelled bill) and the current
+  // counter shift lifecycle.
+  const [txPatches, setTxPatches] = useState(() => new Map());
+  const [shiftClearedAt, setShiftClearedAt] = useState(null);
+  const [endShiftOpen, setEndShiftOpen] = useState(false);
+  const [workspaceModalOpen, setWorkspaceModalOpen] = useState(false);
+  const [shiftPreparation, setShiftPreparation] = useState(null);
+  const [shiftSnapshot, setShiftSnapshot] = useState(null);
+  const [restartShiftOpen, setRestartShiftOpen] = useState(false);
+  const [restartShiftBusy, setRestartShiftBusy] = useState(false);
+  const [restartShiftError, setRestartShiftError] = useState("");
+  const [restartIdempotencyKey, setRestartIdempotencyKey] = useState(null);
+
+  const dashboardTransactions = useMemo(
+    () =>
+      recentTransactions.map((row) =>
+        txPatches.has(row.no) ? { ...row, ...txPatches.get(row.no) } : row,
+      ),
+    [recentTransactions, txPatches],
+  );
+  const shiftSummaryNow = useMemo(
+    () =>
+      computeShiftSummary(
+        dashboardTransactions.filter((row) => row.dateIso === todayIso),
+      ),
+    [dashboardTransactions, todayIso],
+  );
+  const shiftDateLabel = useMemo(
+    () =>
+      new Date(`${todayIso}T12:00:00`).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }),
+    [todayIso],
+  );
+
+  const cancelBill = (no) =>
+    setTxPatches((current) => {
+      const next = new Map(current);
+      next.set(no, { status: "Cancelled" });
       return next;
     });
+  const openEndShift = async () => {
+    setBusy(true);
+    try {
+      const preparation = await integration.services.prepareShiftClose();
+      setShiftPreparation({
+        ...preparation,
+        closeIdempotencyKey: createIdempotencyKey(),
+      });
+      setEndShiftOpen(true);
+    } catch (error) {
+      showToast(
+        error.message || "The shift details could not be loaded.",
+        "error",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+  const confirmEndShift = async (reconciliation) => {
+    const result = await integration.services.closeShift({
+      shiftId: shiftPreparation.shiftId,
+      version: shiftPreparation.version,
+      reconciliationMode: reconciliation.reconciliationMode,
+      denominations: reconciliation.denominations.map(({ code, quantity }) => ({
+        code,
+        quantity,
+      })),
+      idempotencyKey: shiftPreparation.closeIdempotencyKey,
+    });
+    setShiftSnapshot({
+      dateLabel: shiftDateLabel,
+      summary: shiftSummaryNow,
+      reconciliation: {
+        ...reconciliation,
+        expectedCash: Number(result.expectedCash),
+        countedCash:
+          result.countedCash == null ? null : Number(result.countedCash),
+      },
+      closeResult: result,
+    });
+    setShiftClearedAt(result.closedAt || new Date().toISOString());
+    return result;
+  };
+  const requestStartNewShift = () => {
+    setRestartShiftError("");
+    setRestartIdempotencyKey(createIdempotencyKey());
+    setRestartShiftOpen(true);
+  };
+  const startNewShift = async () => {
+    setRestartShiftBusy(true);
+    setRestartShiftError("");
+    try {
+      const reopenedShift = await integration.services.reopenShift({
+        shiftId: shiftSnapshot.closeResult.shiftId,
+        version: shiftSnapshot.closeResult.version,
+        idempotencyKey: restartIdempotencyKey,
+      });
+      const closedBusinessDate =
+        shiftSnapshot.closeResult.businessDate || todayIso;
+      const reopenedBusinessDate =
+        reopenedShift.businessDate || closedBusinessDate;
+      const sameBusinessDate = reopenedBusinessDate === closedBusinessDate;
+      const refreshedData = normalizeCashCollectionData(
+        await integration.services.loadBootstrap(),
+      );
+      setAppData(
+        !sameBusinessDate && refreshedData.todayIso !== reopenedBusinessDate
+          ? normalizeCashCollectionData({
+              ...refreshedData,
+              todayIso: reopenedBusinessDate,
+              recentTransactions: [],
+              requests: [],
+              queueSummary: {
+                ...refreshedData.queueSummary,
+                pendingCount: 0,
+                todayPendingCount: 0,
+              },
+            })
+          : refreshedData,
+      );
+      if (!sameBusinessDate) setTxPatches(new Map());
+      setShiftClearedAt(null);
+      setShiftSnapshot(null);
+      setRestartShiftOpen(false);
+      resetHome();
+    } catch (error) {
+      setRestartShiftError(
+        error.message || "The shift could not be started again.",
+      );
+    } finally {
+      setRestartShiftBusy(false);
+    }
+  };
 
   const resetHome = () => {
     routeNavigate(CASH_COLLECTION_ROUTES.collection);
@@ -239,17 +372,14 @@ export default function CashCollectionApplication({
     setBillingService(firstBillingOption(firstService, "Estimation"));
   };
   const navigate = (destination) => {
-    if (destination === "collection") resetHome();
-    else {
-      routeNavigate(CASH_COLLECTION_ROUTES[destination]);
-      setStage(destination);
+    if (destination === "dashboard") {
+      routeNavigate(CASH_COLLECTION_ROUTES.dashboard);
+      setStage("dashboard");
+    } else {
+      resetHome();
     }
   };
-  const pageOf = {
-    overview: "Overview",
-    reports: "Reports",
-  };
-  const activeNav = pageOf[stage] ? stage : "collection";
+  const activeNav = stage === "dashboard" ? "dashboard" : "collection";
   const continueSetup = (eligibility) => {
     setWorkflowContext(eligibility?.workflowContext || null);
     setPatientContextVersion(eligibility?.patientContextVersion || null);
@@ -261,9 +391,46 @@ export default function CashCollectionApplication({
     ) || billingOptionsFor(service, requestType)[0];
   const confirm = (transaction) => {
     integration?.events?.onTransactionConfirmed?.(transaction);
+    if (transaction?.dashboardTransaction || transaction?.resolvedRequestId) {
+      setAppData((current) => {
+        const requests = transaction.resolvedRequestId
+          ? current.requests.filter(
+              (request) => request.id !== transaction.resolvedRequestId,
+            )
+          : current.requests;
+        return normalizeCashCollectionData({
+          ...current,
+          requests,
+          recentTransactions: transaction.dashboardTransaction
+            ? [
+                transaction.dashboardTransaction,
+                ...current.recentTransactions.filter(
+                  (row) => row.no !== transaction.dashboardTransaction.no,
+                ),
+              ]
+            : current.recentTransactions,
+          queueSummary: {
+            ...current.queueSummary,
+            pendingCount: requests.length,
+            todayPendingCount: requests.filter(
+              (request) => request.dateIso === current.todayIso,
+            ).length,
+          },
+        });
+      });
+    }
     resetHome();
     setSelectedPatient(null);
     setCrQuery("");
+    void integration?.services
+      ?.loadBootstrap?.()
+      .then((nextData) => setAppData(normalizeCashCollectionData(nextData)))
+      .catch(() => {
+        showToast(
+          "The transaction was completed, but the latest dashboard data could not be refreshed.",
+          "error",
+        );
+      });
   };
   const showToast = (message, tone = "success") => {
     setToast({ message, tone });
@@ -272,30 +439,30 @@ export default function CashCollectionApplication({
 
   return (
     <AppDataProvider value={appData}>
-      <div className="hbims-cash-collection app-shell">
-        <SideRail
+      <div
+        className={`hbims-cash-collection app-shell ${endShiftOpen || workspaceModalOpen ? "shift-dialog-open" : ""}`}
+      >
+        <TopNav
           active={activeNav}
           onNavigate={navigate}
-          collapsed={navCollapsed}
-          onToggle={toggleNav}
+          onEndShift={shiftClearedAt ? requestStartNewShift : openEndShift}
+          shiftEnded={Boolean(shiftClearedAt)}
         />
         <div className="app-main">
-          <TopBar page={pageOf[stage] || "Collection"} onNavigate={navigate} />
           <main className="content">
-            {stage === "reports" ? (
-              <Reports
-                transactions={recentTransactions}
-                modes={paymentOptions.modes}
-                todayIso={todayIso}
+            {stage === "dashboard" ? (
+              <Dashboard
+                transactions={dashboardTransactions}
+                onCancelBill={cancelBill}
               />
+            ) : shiftClearedAt ? (
+              <ShiftClosedState />
             ) : stage === "confirmation" ? (
               <Confirmation
                 data={confirmationData}
                 onNew={resetHome}
                 onPrint={() => window.print()}
               />
-            ) : stage === "overview" ? (
-              <Overview />
             ) : stage === "estimates" ? (
               <EstimatesHome onCreate={startEstimate} />
             ) : stage === "setup" ? (
@@ -312,6 +479,7 @@ export default function CashCollectionApplication({
                 selectedPatient={selectedPatient}
                 setSelectedPatient={setSelectedPatient}
                 services={integration?.services}
+                onModalVisibilityChange={setWorkspaceModalOpen}
               />
             ) : stage === "workspace" && selectedWorkflow ? (
               <CollectionWorkspace
@@ -329,6 +497,7 @@ export default function CashCollectionApplication({
                 }
                 onConfirm={confirm}
                 services={integration?.services}
+                onModalVisibilityChange={setWorkspaceModalOpen}
               />
             ) : (
               <>
@@ -357,6 +526,44 @@ export default function CashCollectionApplication({
             {toast.message}
           </div>
         )}
+        {endShiftOpen && (
+          <ShiftEndDialog
+            summary={shiftSummaryNow}
+            dateLabel={shiftDateLabel}
+            preparation={shiftPreparation}
+            onConfirm={confirmEndShift}
+            onClose={() => {
+              setEndShiftOpen(false);
+              setShiftPreparation(null);
+            }}
+          />
+        )}
+        {restartShiftOpen && (
+          <ConfirmModal
+            icon="power"
+            title="Start shift again?"
+            lead={`You already ended a shift for ${shiftDateLabel}. Start another segment for emergency or additional same-day collections.`}
+            rows={[
+              [
+                "Previously submitted cash",
+                `₹${Number(shiftSnapshot?.closeResult?.cumulativeCash || shiftSnapshot?.closeResult?.expectedCash || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              ],
+            ]}
+            confirmLabel={restartShiftBusy ? "Starting…" : "Yes, start shift"}
+            cancelLabel="Cancel"
+            busy={restartShiftBusy}
+            onConfirm={startNewShift}
+            onCancel={() => setRestartShiftOpen(false)}
+            content={
+              restartShiftError ? (
+                <p className="cash-reconcile-message error" role="alert">
+                  {restartShiftError}
+                </p>
+              ) : null
+            }
+          />
+        )}
+        <ShiftReport snapshot={shiftSnapshot} />
       </div>
     </AppDataProvider>
   );

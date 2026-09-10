@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   WorkflowFamily,
   RequestChargeType,
@@ -32,6 +32,7 @@ function CollectionWorkspace({
   onBack,
   onConfirm,
   services,
+  onModalVisibilityChange,
 }) {
   const { paymentOptions } = useAppData();
   const [paymentMode, setPaymentMode] = useState(paymentOptions.modes[0] || "");
@@ -170,6 +171,14 @@ function CollectionWorkspace({
   );
   const total = Math.max(0, gross - discount);
   const [detailsGroup, setDetailsGroup] = useState(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  useEffect(() => {
+    onModalVisibilityChange?.(Boolean(detailsGroup) || paymentModalOpen);
+  }, [detailsGroup, paymentModalOpen, onModalVisibilityChange]);
+  useEffect(
+    () => () => onModalVisibilityChange?.(false),
+    [onModalVisibilityChange],
+  );
   // Legacy Tariff Details popup only exists for an IPD Final Adjustment
   // (bill settlement) request raised through the queue — check the request's
   // own Charge Type enum directly rather than the resolved workflow.
@@ -248,6 +257,7 @@ function CollectionWorkspace({
           patient={selectedPatient}
           onConfirm={postAndPrint}
           services={services}
+          onModalVisibilityChange={setPaymentModalOpen}
         />
       </div>
 

@@ -1,92 +1,57 @@
 import React from "react";
-import { Link } from "react-router-dom";
 import { Icon } from "../../../../shared/components/Icon";
-import { CASH_COLLECTION_ROUTES } from "../../model/navigationRoutes";
 
-function SideRail({ active, onNavigate, collapsed, onToggle }) {
-  const items = [
-    ["collection", "Collection", "cash"],
-    ["overview", "Overview", "grid"],
-    ["reports", "Reports", "chart"],
-  ];
-  return (
-    <aside className={`side-rail ${collapsed ? "collapsed" : ""}`}>
-      <div className="rail-head">
-        <button
-          className="rail-toggle"
-          aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
-          aria-expanded={!collapsed}
-          onClick={onToggle}
-        >
-          <Icon name="menu" size={17} />
-        </button>
-      </div>
-      <nav className="rail-nav">
-        {items.map(([id, label, icon]) => (
-          <button
-            key={id}
-            data-label={label}
-            aria-label={label}
-            aria-current={active === id ? "page" : undefined}
-            className={`rail-item ${active === id ? "active" : ""}`}
-            onClick={() => onNavigate?.(id)}
-          >
-            <span className="rail-icon">
-              <Icon name={icon} size={18} />
-            </span>
-            <span className="rail-label">{label}</span>
-          </button>
-        ))}
-      </nav>
-    </aside>
+const LINKS = [
+  ["collection", "Collection"],
+  ["dashboard", "Dashboard"],
+];
+
+// A flat product header: brand on the left, section links in the middle with a
+// sliding underline, End Shift on the right. Not the pill segmented control
+// used for Request / Direct collection.
+function TopNav({ active, onNavigate, onEndShift, shiftEnded = false }) {
+  const activeIndex = Math.max(
+    0,
+    LINKS.findIndex(([id]) => id === active),
   );
-}
-
-function TopBar({ page, onNavigate }) {
-  const trail = [
-    { label: "Billing" },
-    {
-      label: "Cash Collection",
-      to: CASH_COLLECTION_ROUTES.collection,
-      section: "collection",
-    },
-    {
-      label: page,
-      to:
-        CASH_COLLECTION_ROUTES[page.toLowerCase()] ||
-        CASH_COLLECTION_ROUTES.collection,
-      section: page.toLowerCase(),
-    },
-  ];
   return (
-    <header className="topbar">
-      <div className="topbar-leading">
-        <div className="breadcrumb" aria-label="Current location">
-          {trail.map((item, index) => (
-            <React.Fragment key={`${item.label}-${index}`}>
-              {index > 0 && <Icon name="chevron" size={12} />}
-              {item.to ? (
-                <Link
-                  to={item.to}
-                  className={index === trail.length - 1 ? "current" : ""}
-                  aria-current={index === trail.length - 1 ? "page" : undefined}
-                  onClick={(event) => {
-                    if (!onNavigate) return;
-                    event.preventDefault();
-                    onNavigate(item.section);
-                  }}
-                >
-                  {item.label}
-                </Link>
-              ) : (
-                <span>{item.label}</span>
-              )}
-            </React.Fragment>
-          ))}
+    <header className="top-nav">
+      <div className="top-nav-inner">
+        <div className="top-nav-brand">
+          <span className="top-nav-mark">
+            <Icon name="wallet" size={15} />
+          </span>
+          Cash Collection
         </div>
+        <nav
+          className="top-nav-links"
+          aria-label="Section"
+          style={{ "--nav-active": activeIndex }}
+        >
+          <span className="top-nav-underline" aria-hidden="true" />
+          {LINKS.map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              className={active === id ? "is-active" : ""}
+              aria-current={active === id ? "page" : undefined}
+              onClick={() => onNavigate?.(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+        <button
+          type="button"
+          className={`button top-nav-end-shift ${shiftEnded ? "is-start-shift" : ""}`}
+          onClick={onEndShift}
+        >
+          <Icon name="power" size={15} />
+          {shiftEnded ? "Start Shift" : "End Shift"}
+        </button>
       </div>
     </header>
   );
 }
 
-export { SideRail, TopBar };
+export { TopNav };

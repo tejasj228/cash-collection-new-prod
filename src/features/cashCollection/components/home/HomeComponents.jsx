@@ -148,7 +148,7 @@ function RequestWorklist({ onCollect, search, setSearch, services }) {
   };
   return (
     <section className="panel worklist-panel">
-      <div className="panel-header">
+      <div className="panel-header worklist-header">
         <div>
           <h2 className="tariff-details-title pending-details-title">
             <span className="tariff-title-icon pending-title-icon">
@@ -157,64 +157,63 @@ function RequestWorklist({ onCollect, search, setSearch, services }) {
             Pending Requests
           </h2>
         </div>
-        <span className="page-size-note">10 per page</span>
-      </div>
-      <div className="table-tools">
-        <div className="search-field compact">
-          <Icon name="search" size={16} />
-          <input
-            value={search}
-            onChange={(event) => changeSearch(event.target.value)}
-            placeholder="Search patient, CR No. or Req No."
-          />
-        </div>
-        <div className="filter-wrap">
-          <button
-            className={`filter-button ${activeFilters ? "on" : ""}`}
-            aria-expanded={filterOpen}
-            onClick={() => setFilterOpen((open) => !open)}
-          >
-            <Icon name="filter" size={15} /> Filter
-            {activeFilters > 0 && <em>{activeFilters}</em>}
-          </button>
-          {filterOpen && (
-            <>
-              <div
-                className="filter-backdrop"
-                onMouseDown={() => setFilterOpen(false)}
-              />
-              <div className="filter-panel">
-                <div className="filter-panel-head">
-                  <strong>Filter Requests</strong>
-                  <button
-                    className="plain-icon"
-                    onClick={() => setFilterOpen(false)}
-                    aria-label="Close filters"
-                  >
-                    <Icon name="close" size={15} />
-                  </button>
-                </div>
-                <SelectField
-                  label="Charge Type"
-                  value={typeFilter}
-                  onChange={applyFilter(setTypeFilter)}
-                  options={typeOptions}
+        <div className="worklist-tools">
+          <div className="search-field compact worklist-search">
+            <Icon name="search" size={15} />
+            <input
+              value={search}
+              onChange={(event) => changeSearch(event.target.value)}
+              placeholder="Search patient, CR No. or Req No."
+            />
+          </div>
+          <div className="filter-wrap">
+            <button
+              className={`filter-button ${activeFilters ? "on" : ""}`}
+              aria-expanded={filterOpen}
+              onClick={() => setFilterOpen((open) => !open)}
+            >
+              <Icon name="filter" size={15} /> Filter
+              {activeFilters > 0 && <em>{activeFilters}</em>}
+            </button>
+            {filterOpen && (
+              <>
+                <div
+                  className="filter-backdrop"
+                  onMouseDown={() => setFilterOpen(false)}
                 />
-                <SelectField
-                  label="Department"
-                  value={deptFilter}
-                  onChange={applyFilter(setDeptFilter)}
-                  options={deptOptions}
-                />
-                <div className="filter-panel-foot">
-                  <button className="text-button" onClick={clearFilters}>
-                    Clear Filters
-                  </button>
-                  <span>{pageData.total} matching</span>
+                <div className="filter-panel">
+                  <div className="filter-panel-head">
+                    <strong>Filter Requests</strong>
+                    <button
+                      className="plain-icon"
+                      onClick={() => setFilterOpen(false)}
+                      aria-label="Close filters"
+                    >
+                      <Icon name="close" size={15} />
+                    </button>
+                  </div>
+                  <SelectField
+                    label="Charge Type"
+                    value={typeFilter}
+                    onChange={applyFilter(setTypeFilter)}
+                    options={typeOptions}
+                  />
+                  <SelectField
+                    label="Department"
+                    value={deptFilter}
+                    onChange={applyFilter(setDeptFilter)}
+                    options={deptOptions}
+                  />
+                  <div className="filter-panel-foot">
+                    <button className="text-button" onClick={clearFilters}>
+                      Clear Filters
+                    </button>
+                    <span>{pageData.total} matching</span>
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
         </div>
       </div>
       <div className="table-wrap">
@@ -246,7 +245,12 @@ function RequestWorklist({ onCollect, search, setSearch, services }) {
             {loading && <SkeletonRows rows={pageSize} cols={8} />}
             {!loading &&
               visible.map((request) => (
-                <tr key={request.id}>
+                <tr
+                  key={request.id}
+                  className={
+                    isRefundRequest(request) ? "row-refund" : "row-collect"
+                  }
+                >
                   <td className="col-c">
                     <span className="request-id">
                       {compactIdentifier(request.id)}

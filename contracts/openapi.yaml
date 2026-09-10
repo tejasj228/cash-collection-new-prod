@@ -58,6 +58,12 @@ paths:
         - name: department
           in: query
           schema: { type: string }
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: date
+          in: query
+          schema: { type: string, format: date }
         - name: sort
           in: query
           description: Whitelisted sort, for example date,desc or amount,asc.
@@ -68,6 +74,76 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/RequestPageEnvelope" }
+        default: { $ref: "#/components/responses/Error" }
+  /dashboard/pending-metrics:
+    get:
+      summary: Aggregate pending requests for the current counter dashboard
+      operationId: getPendingRequestMetrics
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: department
+          in: query
+          schema: { type: string }
+        - name: chargeType
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Server-side pending request aggregates
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/SuccessEnvelope" }
+                  - properties:
+                      data:
+                        { $ref: "#/components/schemas/PendingRequestMetrics" }
+        default: { $ref: "#/components/responses/Error" }
+  /dashboard:
+    get:
+      summary: Load the server-authoritative same-day dashboard read model
+      description: >-
+        All values are scoped from the authenticated HBIMS hospital, seat and
+        counter. Every KPI and breakdown is calculated from the same business
+        date and transaction population so totals reconcile. Cash in drawer is
+        the unfiltered cash-payment net and is not recalculated by dashboard filters.
+      operationId: getDashboard
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: paymentMode
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: hour
+          in: query
+          schema: { type: integer, minimum: 0, maximum: 23 }
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: group
+          in: query
+          description: Display label for the legacy raising department dimension.
+          schema: { type: string }
+        - name: requestType
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Filtered same-day dashboard snapshot
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DashboardEnvelope" }
         default: { $ref: "#/components/responses/Error" }
   /requests/{requestId}:
     get:
@@ -243,6 +319,84 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/PostedTransactionEnvelope" }
         default: { $ref: "#/components/responses/Error" }
+  /shifts/current/close-preparation:
+    get:
+      summary: Prepare the authenticated counter shift for cash reconciliation
+      description: >-
+        Re-reads the current shift, authoritative cash amount, close blockers
+        and enabled denomination master. No state is changed.
+      operationId: prepareShiftClose
+      responses:
+        "200":
+          description: Current close preparation and concurrency version
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/ShiftClosePreparationEnvelope" }
+        default: { $ref: "#/components/responses/Error" }
+  /shifts/{shiftId}/close:
+    post:
+      summary: Revalidate and atomically close the authenticated counter shift
+      operationId: closeShift
+      parameters:
+        - name: shiftId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, minLength: 16, maxLength: 128 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ShiftCloseCommand" }
+      responses:
+        "200":
+          description: Existing or newly closed shift result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClosedShiftEnvelope" }
+        default: { $ref: "#/components/responses/Error" }
+  /shifts/{shiftId}/reopen:
+    post:
+      summary: Start another shift segment for the same counter and business date
+      description: >-
+        Preserves prior submitted cash and denomination totals for the next
+        cumulative day-end submission.
+      operationId: reopenShift
+      parameters:
+        - name: shiftId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, minLength: 16, maxLength: 128 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version]
+              properties:
+                version: { type: string }
+              additionalProperties: false
+      responses:
+        "200":
+          description: Existing result for a safely replayed request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OpenShiftEnvelope" }
+        "201":
+          description: New same-day shift segment opened
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OpenShiftEnvelope" }
+        default: { $ref: "#/components/responses/Error" }
 components:
   securitySchemes:
     sessionCookie:
@@ -330,7 +484,15 @@ components:
                 paymentOptions: { $ref: "#/components/schemas/PaymentOptions" }
                 queueSummary:
                   type: object
-                  properties: { pendingCount: { type: integer, format: int64 } }
+                  required: [pendingCount, todayPendingCount, cashInDrawer]
+                  properties:
+                    pendingCount: { type: integer, format: int64 }
+                    todayPendingCount: { type: integer, format: int64 }
+                    cashInDrawer:
+                      {
+                        type: string,
+                        description: Same-day cash-payment collections minus cash-payment refunds,
+                      }
                 requestFilterOptions:
                   { type: object, additionalProperties: true }
                 patients:
@@ -341,7 +503,7 @@ components:
                 requests:
                   {
                     type: array,
-                    items: { $ref: "#/components/schemas/BillingRequest" },
+                    items: { $ref: "#/components/schemas/PendingRequestRow" },
                   }
                 tariffGroups: { type: array, items: { type: string } }
                 tariffCatalog:
@@ -372,6 +534,274 @@ components:
         cr: { type: string }
         name: { type: string }
       additionalProperties: true
+    PendingRequestRow:
+      type: object
+      required:
+        [
+          req_id,
+          version,
+          req_date,
+          pat_name,
+          department_name,
+          category_name,
+          cr_num,
+          charge_type,
+          amount,
+        ]
+      properties:
+        req_id:
+          {
+            type: string,
+            description: Unique request number used to open the request,
+          }
+        req_date:
+          {
+            type: string,
+            pattern: '^\d{2}/\d{2}/\d{4}$',
+            example: "09/09/2026",
+          }
+        pat_name: { type: string }
+        department_name: { type: string }
+        category_name: { type: string }
+        cr_num: { type: string }
+        charge_type: { type: string }
+        amount:
+          {
+            type: string,
+            example: "480.00",
+            description: Decimal amount without currency symbol,
+          }
+        version: { type: string, description: Opaque concurrency version }
+    PendingRequestMetrics:
+      type: object
+      required: [total, byChargeType]
+      properties:
+        total: { type: integer, format: int64 }
+        byChargeType:
+          type: array
+          items:
+            type: object
+            required: [chargeType, count]
+            properties:
+              chargeType: { type: string }
+              count: { type: integer, format: int64 }
+    DashboardEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/SuccessEnvelope" }
+        - properties:
+            data: { $ref: "#/components/schemas/DashboardSnapshot" }
+    DashboardSnapshot:
+      type: object
+      required:
+        [
+          businessDate,
+          version,
+          generatedAt,
+          kpis,
+          breakdowns,
+          hourlyCollections,
+          recentTransactions,
+        ]
+      properties:
+        businessDate: { type: string, format: date }
+        version: { type: string, description: Opaque dashboard/shift version }
+        generatedAt: { type: string, format: date-time }
+        kpis:
+          type: object
+          required:
+            [
+              totalCollected,
+              refunds,
+              netCollection,
+              bills,
+              cashInDrawer,
+              largestCollection,
+            ]
+          properties:
+            totalCollected: { type: string }
+            refunds: { type: string }
+            netCollection: { type: string }
+            bills: { type: string }
+            cashInDrawer:
+              type: string
+              description: Same-day cash-payment collections minus cash-payment refunds; dashboard filters do not change it.
+            largestCollection: { type: string }
+        breakdowns:
+          type: object
+          required: [paymentModes, categories, groups, requestTypes]
+          properties:
+            paymentModes:
+              {
+                type: array,
+                items: { $ref: "#/components/schemas/DashboardBucket" },
+              }
+            categories:
+              {
+                type: array,
+                items: { $ref: "#/components/schemas/DashboardBucket" },
+              }
+            groups:
+              {
+                type: array,
+                items: { $ref: "#/components/schemas/DashboardBucket" },
+              }
+            requestTypes:
+              {
+                type: array,
+                items: { $ref: "#/components/schemas/DashboardBucket" },
+              }
+        hourlyCollections:
+          type: array
+          items:
+            allOf:
+              - { $ref: "#/components/schemas/DashboardBucket" }
+              - type: object
+                required: [hour]
+                properties:
+                  hour: { type: integer, minimum: 0, maximum: 23 }
+        recentTransactions: { $ref: "#/components/schemas/Page" }
+    DashboardBucket:
+      type: object
+      required: [id, label, amount, count, percentage]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        amount: { type: string }
+        count: { type: string }
+        percentage: { type: string }
+    DenominationOption:
+      type: object
+      required: [code, kind, value, label]
+      properties:
+        code:
+          { type: string, description: Server-owned stable denomination code }
+        kind: { type: string, enum: [NOTE, COIN] }
+        value: { type: string, pattern: '^\d+(\.\d{2})?$' }
+        label: { type: string }
+    ShiftBlocker:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        count: { type: string }
+    ShiftClosePreparationEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/SuccessEnvelope" }
+        - properties:
+            data:
+              type: object
+              required:
+                [
+                  shiftId,
+                  version,
+                  businessDate,
+                  status,
+                  canClose,
+                  blockers,
+                  expectedCash,
+                  previousSubmittedCash,
+                  cumulativeExpectedCash,
+                  segmentNumber,
+                  denominations,
+                ]
+              properties:
+                shiftId: { type: string }
+                version:
+                  { type: string, description: Opaque concurrency version }
+                businessDate: { type: string, format: date }
+                status: { type: string, enum: [OPEN] }
+                canClose: { type: boolean }
+                blockers:
+                  {
+                    type: array,
+                    items: { $ref: "#/components/schemas/ShiftBlocker" },
+                  }
+                expectedCash: { type: string, pattern: '^-?\d+\.\d{2}$' }
+                previousSubmittedCash:
+                  { type: string, pattern: '^-?\d+\.\d{2}$' }
+                cumulativeExpectedCash:
+                  { type: string, pattern: '^-?\d+\.\d{2}$' }
+                segmentNumber: { type: string }
+                denominations:
+                  {
+                    type: array,
+                    items: { $ref: "#/components/schemas/DenominationOption" },
+                  }
+    ShiftCloseCommand:
+      type: object
+      required: [version, reconciliationMode, denominations]
+      properties:
+        version: { type: string }
+        reconciliationMode: { type: string, enum: [DENOMINATION, SKIPPED] }
+        denominations:
+          type: array
+          items:
+            type: object
+            required: [code, quantity]
+            properties:
+              code: { type: string }
+              quantity: { type: integer, minimum: 0, maximum: 9999 }
+      additionalProperties: false
+    ClosedShiftEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/SuccessEnvelope" }
+        - properties:
+            data:
+              type: object
+              required:
+                [
+                  shiftId,
+                  version,
+                  status,
+                  businessDate,
+                  closedAt,
+                  expectedCash,
+                  reconciliationMode,
+                  cumulativeCash,
+                  segmentNumber,
+                  summaryNumber,
+                ]
+              properties:
+                shiftId: { type: string }
+                version:
+                  {
+                    type: string,
+                    description: Opaque version required to reopen,
+                  }
+                status: { type: string, enum: [CLOSED] }
+                businessDate: { type: string, format: date }
+                closedAt: { type: string, format: date-time }
+                expectedCash: { type: string }
+                countedCash: { type: string, nullable: true }
+                reconciliationMode:
+                  { type: string, enum: [DENOMINATION, SKIPPED] }
+                previousSubmittedCash: { type: string }
+                cumulativeCash: { type: string }
+                segmentNumber: { type: string }
+                summaryNumber: { type: string }
+    OpenShiftEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/SuccessEnvelope" }
+        - properties:
+            data:
+              type: object
+              required:
+                [
+                  shiftId,
+                  version,
+                  businessDate,
+                  status,
+                  segmentNumber,
+                  previousSubmittedCash,
+                ]
+              properties:
+                shiftId: { type: string }
+                version: { type: string }
+                businessDate: { type: string, format: date }
+                status: { type: string, enum: [OPEN] }
+                segmentNumber: { type: string }
+                previousSubmittedCash: { type: string }
     BillingRequest:
       type: object
       required: [id, version, patient, cr, type, dateIso, amount, department]
@@ -408,7 +838,8 @@ components:
                     items:
                       {
                         type: array,
-                        items: { $ref: "#/components/schemas/BillingRequest" },
+                        items:
+                          { $ref: "#/components/schemas/PendingRequestRow" },
                       }
     Tariff:
       type: object
@@ -538,15 +969,42 @@ components:
                 printableData: { type: object, additionalProperties: true }
     Transaction:
       type: object
-      required: [no, patient, cr, dateIso, mode, amount, status]
+      required:
+        [
+          no,
+          patient,
+          cr,
+          dateIso,
+          time,
+          mode,
+          amount,
+          status,
+          department,
+          category,
+          requestType,
+        ]
       properties:
         no: { type: string }
         patient: { type: string }
         cr: { type: string }
         dateIso: { type: string, format: date }
+        time: { type: string }
         mode: { type: string }
         amount: { type: string }
-        status: { type: string }
+        status:
+          {
+            type: string,
+            description: "Completed | Refunded | Cancelled | Failed | Unposted",
+          }
+        department:
+          { type: string, description: Raising department of the patient }
+        category:
+          { type: string, description: Patient category, e.g. General or CGHS }
+        requestType:
+          {
+            type: string,
+            description: Request or charge type for the transaction,
+          }
       additionalProperties: true
     TransactionPageEnvelope:
       allOf:

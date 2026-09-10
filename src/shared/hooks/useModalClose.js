@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * returned `requestClose`, and put `data-closing={closing}` on the backdrop so
  * the stylesheet can play the reverse animation.
  */
-export function useModalClose(onClose, durationMs = 180) {
+export function useModalClose(onClose, durationMs = 200) {
   const [closing, setClosing] = useState(false);
   const timer = useRef(null);
 

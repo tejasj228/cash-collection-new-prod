@@ -26,6 +26,7 @@ function PaymentCard({
   patient,
   onConfirm,
   services,
+  onModalVisibilityChange,
 }) {
   const { paymentOptions } = useAppData();
   const {
@@ -45,6 +46,9 @@ function PaymentCard({
   const [approval, setApproval] = useState(null);
   const [manualDetails, setManualDetails] = useState(null);
   const [operationError, setOperationError] = useState("");
+  useEffect(() => {
+    onModalVisibilityChange?.(confirming || manualDetailsOpen);
+  }, [confirming, manualDetailsOpen, onModalVisibilityChange]);
   const isRefund = requestType === "Refund";
   const isEstimate = requestType === "Estimation";
   const blocked = blockedModes(
@@ -263,29 +267,17 @@ function PaymentCard({
           <div
             className={`payment-row ${usesTerminal ? (paymentMode === "Card" ? "with-card" : "with-upi") : "with-note"}`}
           >
-            <label className="field">
-              <span className="field-label">
-                Payment Mode<em>*</em>
-              </span>
-              <span className="select-wrap">
-                <select
-                  value={paymentMode}
-                  onChange={(event) => changeMode(event.target.value)}
-                >
-                  {allPaymentModes.map((mode) => (
-                    <option
-                      key={mode}
-                      value={mode}
-                      disabled={Boolean(blocked[mode])}
-                    >
-                      {mode}
-                      {blocked[mode] ? " — not permitted" : ""}
-                    </option>
-                  ))}
-                </select>
-                <Icon name="down" size={15} />
-              </span>
-            </label>
+            <SelectField
+              label="Payment Mode"
+              required
+              value={paymentMode}
+              onChange={changeMode}
+              options={allPaymentModes.map((mode) => ({
+                id: mode,
+                label: blocked[mode] ? `${mode} — not permitted` : mode,
+                disabled: Boolean(blocked[mode]),
+              }))}
+            />
             {paymentMode === "Card" && (
               <SelectField
                 label="Card Type"
@@ -347,7 +339,7 @@ function PaymentCard({
                   icon={posState === "approved" ? "check" : "arrow"}
                 >
                   {posState === "processing"
-                    ? `Waiting ${formatTimer(remainingSeconds)}`
+                    ? "Waiting"
                     : posState === "approved"
                       ? "Approved"
                       : posState === "failed"
@@ -378,10 +370,7 @@ function PaymentCard({
               </span>
               <div>
                 <strong>Waiting for terminal</strong>
-                <span>
-                  Status is checked every 10 seconds. This request expires in{" "}
-                  {formatTimer(remainingSeconds)}.
-                </span>
+                <span>Status is checked every 10 seconds.</span>
               </div>
               <span className="pos-timer">{formatTimer(remainingSeconds)}</span>
             </div>
@@ -427,9 +416,9 @@ function PaymentCard({
         </div>
       )}
       <div className="payment-actions">
-        <button className="link-button" onClick={() => window.history.back()}>
+        <Button variant="ghost" onClick={() => window.history.back()}>
           Cancel
-        </button>
+        </Button>
         {!usesTerminal && (
           <Button
             onClick={() => setConfirming(true)}
@@ -491,6 +480,7 @@ function PaymentCard({
                 : "Yes, collect & print"
           }
           onConfirm={confirmAndPrint}
+          dismissible={!usesTerminal}
           onCancel={() => setConfirming(false)}
         />
       )}

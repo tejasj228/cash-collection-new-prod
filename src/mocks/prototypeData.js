@@ -487,12 +487,34 @@ const fixtureDepartments = [
   "Neurology",
   "ENT",
   "Ophthalmology",
+  "Nephrology",
+  "Dermatology",
+  "Pulmonology",
+  "Gastroenterology",
+  "Urology",
+  "Oncology",
+];
+const fixtureCategories = [
+  "General",
+  "General — CGHS",
+  "ESIC",
+  "Ayushman Bharat",
+  "Corporate",
+  "BPL",
+  "Private",
+  "Staff / Dependant",
+  "Railway",
+  "Defence — ECHS",
+  "Insurance — TPA",
+  "State Scheme",
+  "Senior Citizen",
 ];
 patients.push(
   ...fixturePatientNames.map((name, index) => {
     const number = index + 4;
     const inpatient = index % 3 === 0;
     const department = fixtureDepartments[index % fixtureDepartments.length];
+    const category = fixtureCategories[(index * 3) % fixtureCategories.length];
     return {
       id: String(number),
       name,
@@ -510,7 +532,7 @@ patients.push(
       roomType: inpatient ? "General ward" : "—",
       consultant: `Dr ${String.fromCharCode(65 + (index % 20))}. Kumar`,
       admittedOn: inpatient ? "02/09/2024 · 08:30" : "—",
-      category: index % 5 === 0 ? "General — CGHS" : "General",
+      category,
       mobile: `9${6 + (index % 4)}xxx ${String(21000 + index * 193).slice(-5)}`,
       eligibleChargeTypeIds: inpatient ? ["2"] : ["1", "4"],
       accountOpen: inpatient,
@@ -542,6 +564,7 @@ const requests = [
     waiting: "1h 04m",
     raisedBy: "Ward 4B nursing station",
     department: "General Medicine",
+    category: patients[0].category,
     lines: rajeshSettlementBreakdown,
   },
   {
@@ -556,6 +579,7 @@ const requests = [
     waiting: "2h 21m",
     raisedBy: "OPD Cardiology desk",
     department: "Cardiology",
+    category: patients[1].category,
     lines: [
       {
         code: "CONS-101",
@@ -585,16 +609,17 @@ const requests = [
   },
   {
     id: "BIL-2024-1142",
-    dateIso: isoMinus(1),
+    dateIso: isoMinus(0),
     patient: "Ajay Deshmukh",
     cr: crNo(4),
     type: RequestChargeType.IPD_ADVANCE_DEPOSIT,
     location: "Ward 2A",
-    date: "02/09/2024",
+    date: "03/09/2024",
     amount: "8,000.00",
-    waiting: "1d 03h",
+    waiting: "3h 18m",
     raisedBy: "Ward 2A nursing station",
     department: "Orthopaedics",
+    category: patients[3].category,
     lines: [
       {
         code: "ADV-0001",
@@ -608,16 +633,17 @@ const requests = [
   },
   {
     id: "REF-2024-0182",
-    dateIso: isoMinus(1),
+    dateIso: isoMinus(0),
     patient: "Meena Kumari",
     cr: crNo(5),
     type: RequestChargeType.IPD_ADVANCE_REFUND,
     location: "Ward 1B",
-    date: "02/09/2024",
+    date: "03/09/2024",
     amount: "2,450.00",
-    waiting: "1d 05h",
+    waiting: "5h 06m",
     raisedBy: "Ward 1B nursing station",
     department: "Gynaecology",
+    category: patients[4].category,
     lines: [
       {
         code: "ADV-0002",
@@ -692,7 +718,8 @@ requests.push(
     const requestType = isRefund
       ? RequestChargeType.OPD_REFUND
       : fixtureRequestTypes[index % (fixtureRequestTypes.length - 1)];
-    const offset = index < 5 ? 0 : (index * 3) % 29;
+    const offset = 0;
+    const elapsedMinutes = 20 + index * 37;
     const lineOptions = requestLineOptions[requestType];
     const linePick = lineOptions[index % lineOptions.length];
     return {
@@ -707,12 +734,10 @@ requests.push(
       dateIso: isoMinus(offset),
       date: displayDate(isoMinus(offset)),
       amount: amount.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
-      waiting:
-        offset === 0
-          ? `${3 + index}h ${String(8 + index * 6).padStart(2, "0")}m`
-          : `${offset}d ${String((index * 3) % 12).padStart(2, "0")}h`,
+      waiting: `${Math.floor(elapsedMinutes / 60)}h ${String(elapsedMinutes % 60).padStart(2, "0")}m`,
       raisedBy: `${patient.department} desk`,
       department: patient.department,
+      category: patient.category,
       lines: [
         {
           code: `${linePick.code}-${String(1800 + index)}`,
@@ -857,6 +882,19 @@ const collectionModes = [
   },
 ];
 
+// Transactions carry the patient's department + category so the shift
+// dashboard can break collections down by, and cross-filter on, those
+// dimensions. Derived from the patient record here; the real backend returns
+// them on the transaction row directly (see TRANSACTION-TABLES-API.md).
+const patientByCr = new Map(patients.map((row) => [row.cr, row]));
+const segmentFor = (cr) => {
+  const patient = patientByCr.get(cr);
+  return {
+    department: patient?.department || "General Medicine",
+    category: patient?.category || "General",
+  };
+};
+
 const recentTransactions = [
   {
     no: "REC-2024-088241",
@@ -867,6 +905,8 @@ const recentTransactions = [
     amount: "4,280.00",
     time: "10:38 AM",
     status: "Completed",
+    requestType: RequestChargeType.IPD_FINAL_ADJUSTMENT,
+    ...segmentFor(crNo(1)),
   },
   {
     no: "REC-2024-088240",
@@ -877,6 +917,8 @@ const recentTransactions = [
     amount: "860.00",
     time: "10:31 AM",
     status: "Completed",
+    requestType: RequestChargeType.OPD_SERVICE,
+    ...segmentFor(crNo(6)),
   },
   {
     no: "REF-2024-000912",
@@ -887,6 +929,8 @@ const recentTransactions = [
     amount: "2,450.00",
     time: "10:12 AM",
     status: "Refunded",
+    requestType: RequestChargeType.OPD_REFUND,
+    ...segmentFor(crNo(5)),
   },
   {
     no: "REC-2024-088239",
@@ -897,6 +941,8 @@ const recentTransactions = [
     amount: "11,400.00",
     time: "09:57 AM",
     status: "Completed",
+    requestType: RequestChargeType.INVESTIGATION_CHARGES,
+    ...segmentFor(crNo(7)),
   },
   {
     no: "REC-2024-088238",
@@ -907,26 +953,65 @@ const recentTransactions = [
     amount: "1,240.00",
     time: "09:44 AM",
     status: "Completed",
+    requestType: RequestChargeType.OPD_SERVICE,
+    ...segmentFor(crNo(2)),
   },
 ];
 
 const fixturePaymentModes = ["Cash", "UPI", "Card", "Cheque"];
+const to12Time = (hour24, minute) => {
+  const suffix = hour24 < 12 ? "AM" : "PM";
+  const h = (hour24 % 12 || 12).toString().padStart(2, "0");
+  return `${h}:${String(minute).padStart(2, "0")} ${suffix}`;
+};
+
+// A full day of today's counter activity: ~72 transactions spread across
+// 08:00–20:00, every payment mode, and a wide spread of patient categories
+// and departments (rotated independently of the patient so every segment
+// slice is represented), with a handful of refunds so the dashboard has
+// something to break down.
+const todayPatients = patients.slice(3);
 recentTransactions.push(
-  ...patients.slice(3, 28).map((patient, index) => {
-    const refunded = index % 9 === 8;
-    const value = 350 + ((index * 925) % 14600);
-    const offset = index < 8 ? 0 : (index * 3) % 30;
-    const hour = 9 - Math.floor(index / 6);
-    const minute = 41 - (index % 6) * 7;
+  ...Array.from({ length: 72 }, (_, index) => {
+    const patient = todayPatients[(index * 5) % todayPatients.length];
+    const refunded = index % 9 === 4;
+    const value = 300 + ((index * 1373) % 15200);
+    const hour = 8 + Math.floor((index * 12) / 72); // 08 → 19
+    const minute = (index * 17) % 60;
     return {
-      no: `${refunded ? "REF" : "REC"}-2024-${String(refunded ? 950 + index : 88237 - index).padStart(6, "0")}`,
-      dateIso: isoMinus(offset),
+      no: `${refunded ? "REF" : "REC"}-2024-${String((refunded ? 970 : 88190) + index).padStart(6, "0")}`,
+      dateIso: isoMinus(0),
+      patient: patient.name,
+      cr: patient.cr,
+      mode: fixturePaymentModes[(index * 3) % fixturePaymentModes.length],
+      amount: value.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      time: to12Time(hour, minute),
+      status: refunded ? "Refunded" : "Completed",
+      requestType: refunded
+        ? Math.floor(index / 9) % 2 === 0
+          ? RequestChargeType.OPD_REFUND
+          : RequestChargeType.IPD_ADVANCE_REFUND
+        : fixtureRequestTypes[index % (fixtureRequestTypes.length - 1)],
+      department: fixtureDepartments[(index * 5) % fixtureDepartments.length],
+      category: fixtureCategories[(index * 4 + 1) % fixtureCategories.length],
+    };
+  }),
+);
+// Keep a short trail of earlier days for context in future date filters.
+recentTransactions.push(
+  ...patients.slice(6, 20).map((patient, index) => {
+    const value = 450 + ((index * 811) % 9200);
+    return {
+      no: `REC-2024-${String(87990 - index).padStart(6, "0")}`,
+      dateIso: isoMinus(1 + (index % 12)),
       patient: patient.name,
       cr: patient.cr,
       mode: fixturePaymentModes[index % fixturePaymentModes.length],
       amount: value.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
-      time: `${String(Math.max(5, hour)).padStart(2, "0")}:${String(Math.max(0, minute)).padStart(2, "0")} AM`,
-      status: refunded ? "Refunded" : "Completed",
+      time: to12Time(10 + (index % 6), (index * 13) % 60),
+      status: index % 10 === 9 ? "Refunded" : "Completed",
+      department: patient.department,
+      category: patient.category,
     };
   }),
 );
@@ -964,6 +1049,18 @@ const recentEstimates = [
 const allPaymentModes = ["Cash", "Card", "UPI", "Cheque"];
 const cardTypes = ["Debit Card", "Credit Card"];
 const posTerminals = ["T1", "T2", "T3"];
+const prototypeCashInDrawer = recentTransactions
+  .filter((row) => row.dateIso === TODAY_ISO && row.mode === "Cash")
+  .reduce(
+    (total, row) =>
+      total +
+      (row.status === "Completed"
+        ? Number(String(row.amount).replace(/,/g, ""))
+        : row.status === "Refunded"
+          ? -Number(String(row.amount).replace(/,/g, ""))
+          : 0),
+    0,
+  );
 
 /** Standalone review data. HBIMS mounting requires an explicitly injected model. */
 export const PROTOTYPE_DATA = Object.freeze({
@@ -972,7 +1069,12 @@ export const PROTOTYPE_DATA = Object.freeze({
     name: "HBIMS Hospital",
     subtitle: "Hospital Billing & Information Management",
   }),
-  queueSummary: Object.freeze({ pendingCount: requests.length }),
+  queueSummary: Object.freeze({
+    pendingCount: requests.length,
+    todayPendingCount: requests.filter((row) => row.dateIso === TODAY_ISO)
+      .length,
+    cashInDrawer: prototypeCashInDrawer.toFixed(2),
+  }),
   requestFilterOptions: Object.freeze({
     chargeTypes: Object.freeze(
       [...new Set(requests.map((row) => row.type))].sort(),

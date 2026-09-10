@@ -338,6 +338,10 @@
   color: #9d6817;
   background: #fff3d9;
 }
+.status-pill.red {
+  color: #b6433b;
+  background: #fff0ee;
+}
 .status-dot {
   width: 7.2px;
   height: 7.2px;
@@ -700,13 +704,17 @@
   opacity: 0.45;
 }
 .button-primary {
-  color: #fff;
-  background: #0a8a8e;
-  box-shadow: 0 6px 14.4px rgba(10, 138, 142, 0.17);
+  color: #06243f;
+  background: #49b2f3;
+  box-shadow: 0 6px 14.4px rgba(73, 178, 243, 0.28);
 }
 .button-primary:hover:not(:disabled) {
-  background: #08797d;
-  box-shadow: 0 8.4px 16.8px rgba(10, 138, 142, 0.22);
+  background: #33a6ef;
+  box-shadow: 0 8.4px 16.8px rgba(73, 178, 243, 0.34);
+}
+.button-primary .icon,
+.button-primary svg {
+  color: #06243f;
 }
 .button-soft {
   color: #2b67c8;
@@ -943,9 +951,10 @@
 }
 .flow-screen {
   position: relative;
-  max-width: 1404px;
+  width: 100%;
+  max-width: none;
   min-width: 0;
-  margin: 0 auto;
+  margin: 0;
 }
 .flow-top {
   display: flex;
@@ -1404,7 +1413,8 @@
   flex: 0 0 auto;
 }
 .workspace-screen {
-  max-width: 1476px;
+  width: 100%;
+  max-width: none;
 }
 .workspace-context {
   display: flex;
@@ -3040,9 +3050,14 @@
   background: #f4f7fd;
 }
 .table-pagination button.active {
-  color: #fff;
-  border-color: #078a8f;
-  background: #078a8f;
+  color: #06243f;
+  border-color: #49b2f3;
+  background: #49b2f3;
+}
+.table-pagination button.active:hover:not(:disabled) {
+  color: #06243f;
+  border-color: #33a6ef;
+  background: #33a6ef;
 }
 .table-pagination button:disabled {
   opacity: 0.35;
@@ -4094,10 +4109,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* Not sticky: a pinned header on a table with per-cell borders let scrolled
-   row content show through the seams between header cells as it passed
-   underneath. It's a normal (non-scrolling) header row instead. */
 .tariff-details-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   background: #fff;
   box-shadow: 0 1px 0 #edf1f5;
 }
@@ -4476,25 +4491,27 @@
 .hbims-cash-collection .setup-layout-single {
   grid-template-columns: minmax(0, 1fr);
 }
+/* action buttons echo the row-kind: collection = neutral grey,
+   refund = periwinkle (the exception that should catch the eye) */
 .hbims-cash-collection .action-collect {
-  color: #087c78;
-  border-color: #b8e2dd;
-  background: #edf9f7;
+  color: #4a5a72;
+  border-color: #dbe1ea;
+  background: #f3f5f9;
 }
 .hbims-cash-collection .action-collect:hover:not(:disabled) {
-  color: #066b67;
-  border-color: #82cbc3;
-  background: #dff4f1;
+  color: #35435a;
+  border-color: #c3ccd9;
+  background: #e9edf3;
 }
 .hbims-cash-collection .action-refund {
-  color: #bf5148;
-  border-color: #f0c7c3;
-  background: #fff3f1;
+  color: #4451c4;
+  border-color: #c6ccf3;
+  background: #eef0fc;
 }
 .hbims-cash-collection .action-refund:hover:not(:disabled) {
-  color: #a83f37;
-  border-color: #df9e98;
-  background: #ffe9e6;
+  color: #3742a8;
+  border-color: #a7b0ec;
+  background: #e2e5f9;
 }
 
 /* ---------- collapsible icon rail ---------- */
@@ -4534,27 +4551,14 @@
 }
 
 .side-rail.collapsed {
-  width: 64px;
-  flex-basis: 64px;
-  padding-left: 8px;
-  padding-right: 8px;
+  width: 72px;
+  flex-basis: 72px;
 }
 .side-rail.collapsed .rail-section-label {
   display: none;
 }
-.side-rail.collapsed .rail-head {
-  justify-content: center;
-}
 .side-rail.collapsed .rail-toggle .icon {
   transform: rotate(0deg);
-}
-.side-rail.collapsed .rail-item {
-  justify-content: center;
-  padding: 0;
-  gap: 0;
-}
-.side-rail.collapsed .rail-item.active::before {
-  left: -8px;
 }
 .side-rail.collapsed .rail-item .rail-label {
   display: none;
@@ -5486,18 +5490,34 @@
   }
 }
 
-/* Subtle zebra rows improve scanning without making tables look busy. */
-.hbims-cash-collection .table-wrap tbody tr:nth-child(odd) {
-  background: #fff;
-}
+/* No zebra: rows are tinted by what they are — a collection or a refund. */
+.hbims-cash-collection .table-wrap tbody tr:nth-child(odd),
 .hbims-cash-collection .table-wrap tbody tr:nth-child(even) {
-  background: #f7f9fc;
+  background: #fff;
 }
 .hbims-cash-collection .table-wrap tbody tr {
   transition: background-color 0.16s ease;
 }
+/* Collections are the bulk of the list — plain, same as the table. Only
+   refunds (the exception) carry a blue tint + marker. */
+.hbims-cash-collection .table-wrap tbody tr.row-collect {
+  background: #fff;
+}
+.hbims-cash-collection .table-wrap tbody tr.row-refund {
+  background: #eef1fb;
+  box-shadow: inset 3px 0 0 rgba(91, 110, 224, 0.65);
+}
 .hbims-cash-collection .table-wrap tbody tr:hover {
-  background: #eef4fa;
+  background: #eef2f7;
+}
+.hbims-cash-collection .table-wrap tbody tr.row-refund:hover {
+  background: #e3e7f8;
+}
+/* the row-kind tint already reads as a left marker — drop the hover edge
+   wipe on these tables so the two don't fight */
+.hbims-cash-collection .table-wrap tbody tr.row-collect::after,
+.hbims-cash-collection .table-wrap tbody tr.row-refund::after {
+  display: none;
 }
 
 /* Give typed values and placeholders a consistent, comfortable inset. */
@@ -5647,6 +5667,230 @@
   transform: translateY(0);
   box-shadow: none;
 }
+
+/* clean "reflection" sweep: a soft light band crosses the control once on
+   hover. Applied to every clickable button/card, kept subtle. Filled
+   buttons get a white glare; light surfaces get a faint blue one so it
+   still reads on white. */
+.hbims-cash-collection .button,
+.hbims-cash-collection .filter-button,
+.hbims-cash-collection .table-pagination button,
+.hbims-cash-collection .service-card,
+.hbims-cash-collection .manual-details-trigger {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.hbims-cash-collection .button::after,
+.hbims-cash-collection .filter-button::after,
+.hbims-cash-collection .table-pagination button::after,
+.hbims-cash-collection .service-card::after,
+.hbims-cash-collection .manual-details-trigger::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 45%;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    rgba(43, 103, 217, 0.12),
+    transparent
+  );
+  transform: skewX(-18deg);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.hbims-cash-collection .button.button-primary::after {
+  background: linear-gradient(
+    100deg,
+    transparent,
+    rgba(255, 255, 255, 0.5),
+    transparent
+  );
+}
+.hbims-cash-collection .button:not(:disabled):hover::after,
+.hbims-cash-collection .filter-button:not(:disabled):hover::after,
+.hbims-cash-collection .table-pagination button:not(:disabled):hover::after,
+.hbims-cash-collection .service-card:hover::after,
+.hbims-cash-collection .manual-details-trigger:not(:disabled):hover::after {
+  animation: cc-btn-sheen 0.6s var(--ease-out);
+}
+@keyframes cc-btn-sheen {
+  from {
+    left: -60%;
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  to {
+    left: 120%;
+    opacity: 0;
+  }
+}
+
+/* ---------- Pending Requests header: title left, narrow search + filter
+   right (no separate tools row). Frees the vertical space so all 10 rows
+   fit without scrolling. ---------- */
+.hbims-cash-collection .worklist-header {
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.hbims-cash-collection .worklist-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-top: -4px;
+}
+.hbims-cash-collection .worklist-search.search-field.compact {
+  flex: 0 1 300px;
+  width: 300px;
+  height: 38px;
+  padding: 0 12px;
+}
+@media (max-width: 720px) {
+  .hbims-cash-collection .worklist-tools {
+    flex: 1 1 100%;
+  }
+  .hbims-cash-collection .worklist-search.search-field.compact {
+    flex: 1;
+    width: auto;
+  }
+}
+
+/* ---------- animated hamburger ⇆ close ---------- */
+.hbims-cash-collection .rail-burger {
+  position: relative;
+  width: 17px;
+  height: 12px;
+  transition: transform 0.34s var(--ease-out);
+}
+.hbims-cash-collection .rail-burger span {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transition:
+    transform 0.3s var(--ease-out),
+    opacity 0.18s ease;
+}
+.hbims-cash-collection .rail-burger span:nth-child(1) {
+  top: 0;
+}
+.hbims-cash-collection .rail-burger span:nth-child(2) {
+  top: 5px;
+}
+.hbims-cash-collection .rail-burger span:nth-child(3) {
+  top: 10px;
+}
+/* nav expanded (toggle aria-expanded="true") → spin into an X */
+.hbims-cash-collection .rail-toggle[aria-expanded="true"] .rail-burger {
+  transform: rotate(180deg);
+}
+.hbims-cash-collection
+  .rail-toggle[aria-expanded="true"]
+  .rail-burger
+  span:nth-child(1) {
+  transform: translateY(5px) rotate(45deg);
+}
+.hbims-cash-collection
+  .rail-toggle[aria-expanded="true"]
+  .rail-burger
+  span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0.2);
+}
+.hbims-cash-collection
+  .rail-toggle[aria-expanded="true"]
+  .rail-burger
+  span:nth-child(3) {
+  transform: translateY(-5px) rotate(-45deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hbims-cash-collection .rail-burger,
+  .hbims-cash-collection .rail-burger span {
+    transition: none !important;
+  }
+}
+
+/* tariff-group select drops the field wrapper's label spacing so it sits
+   inline in the tariff bar */
+.hbims-cash-collection .tariff-bar > .field {
+  margin: 0;
+  gap: 0;
+  flex: 0 0 auto;
+}
+.hbims-cash-collection .tariff-group-select {
+  min-width: 190px;
+}
+
+/* Antd's default-button hover turns the control white with a thin coloured
+   border, which makes our filled buttons vanish against a white panel.
+   Pin every state of our button variants to explicit colours. */
+.hbims-cash-collection .button.button-primary,
+.hbims-cash-collection .button.button-primary:hover:not(:disabled),
+.hbims-cash-collection .button.button-primary:focus,
+.hbims-cash-collection .button.button-primary:focus-visible,
+.hbims-cash-collection .button.button-primary:active:not(:disabled) {
+  color: #06243f;
+  border-color: transparent;
+}
+.hbims-cash-collection .button.button-primary {
+  background: #49b2f3;
+}
+.hbims-cash-collection .button.button-primary:hover:not(:disabled) {
+  background: #37a7ef;
+}
+.hbims-cash-collection .button.button-primary:active:not(:disabled) {
+  background: #2f9ee7;
+}
+.hbims-cash-collection .button.button-primary .icon,
+.hbims-cash-collection .button.button-primary svg {
+  color: #06243f;
+}
+
+.hbims-cash-collection .button.button-soft,
+.hbims-cash-collection .button.button-soft:focus,
+.hbims-cash-collection .button.button-soft:focus-visible {
+  color: #245ebc;
+  border-color: #d8e3f2;
+  background: #f4f7fd;
+}
+.hbims-cash-collection .button.button-soft:hover:not(:disabled) {
+  color: #1b4fa6;
+  border-color: #b6ccec;
+  background: #e9f1fd;
+}
+.hbims-cash-collection .button.button-soft:active:not(:disabled) {
+  background: #dfeafb;
+}
+
+/* "ghost" is the Cancel / secondary button — give it a visible pill so it
+   reads as a button next to the primary action, not a faint link. */
+.hbims-cash-collection .button.button-ghost,
+.hbims-cash-collection .button.button-ghost:focus,
+.hbims-cash-collection .button.button-ghost:focus-visible {
+  color: #45566f;
+  border-color: #d5dde8;
+  background: #eef1f6;
+}
+.hbims-cash-collection .button.button-ghost:hover:not(:disabled) {
+  color: #313f54;
+  border-color: #c1cbda;
+  background: #e3e8f0;
+}
+.hbims-cash-collection .button.button-ghost:active:not(:disabled) {
+  background: #d9e0ea;
+}
 .hbims-cash-collection .patient-result:hover {
   transform: translateX(2px);
 }
@@ -5654,12 +5898,248 @@
   transform: translateX(-2px);
 }
 
-/* ---------- popup open / close transition ---------- */
+/* ---------- extra micro-interactions ---------- */
+/* table rows: gentle wash + a hairline blue edge that wipes in */
+.hbims-cash-collection .table-wrap tbody tr:not(.skeleton-row) {
+  position: relative;
+  transition: background 0.15s ease;
+}
+.hbims-cash-collection .table-wrap tbody tr:not(.skeleton-row)::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #2b67d9;
+  transform: scaleY(0);
+  transition: transform 0.16s var(--ease-out);
+}
+.hbims-cash-collection .table-wrap tbody tr:not(.skeleton-row):hover::after {
+  transform: scaleY(1);
+}
+
+/* icons inside cards give a tiny nod on hover */
+.hbims-cash-collection .stat-icon,
+.hbims-cash-collection .service-icon,
+.hbims-cash-collection .service-open,
+.hbims-cash-collection .tab-icon {
+  transition:
+    transform 0.2s var(--ease-out),
+    background 0.2s ease;
+}
+.hbims-cash-collection .stat-card:hover .stat-icon {
+  transform: translateY(-2px);
+}
+.hbims-cash-collection .service-card:hover .service-icon {
+  transform: scale(1.06);
+}
+.hbims-cash-collection .service-card:hover .service-open {
+  transform: translateX(4px);
+}
+
+/* trailing-arrow buttons: nudge the chevron, not the whole control */
+.hbims-cash-collection .text-button svg,
+.hbims-cash-collection .action-cell .button svg {
+  transition: transform 0.16s var(--ease-out);
+}
+.hbims-cash-collection .text-button:hover svg,
+.hbims-cash-collection .action-cell .button:not(:disabled):hover svg {
+  transform: translateX(3px);
+}
+
+/* pagination + small controls */
+.hbims-cash-collection .table-pagination button,
+.hbims-cash-collection .filter-button,
+.hbims-cash-collection .plain-icon,
+.hbims-cash-collection .chip {
+  transition:
+    transform 0.14s var(--ease-out),
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.hbims-cash-collection .table-pagination button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-xs);
+}
+.hbims-cash-collection .filter-button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-xs);
+}
+.hbims-cash-collection .plain-icon:hover {
+  transform: scale(1.1);
+}
+.hbims-cash-collection .chip:hover {
+  transform: translateY(-1px);
+}
+
+/* inputs lift softly when focused */
+.hbims-cash-collection .search-field,
+.hbims-cash-collection .overview-cr-search {
+  transition:
+    box-shadow 0.16s var(--ease-out),
+    border-color 0.16s ease;
+}
+.hbims-cash-collection .search-field:focus-within,
+.hbims-cash-collection .overview-cr-search:focus-within {
+  box-shadow: var(--shadow-sm);
+}
+
+/* donut legend rows */
+.hbims-cash-collection .donut-legend li {
+  transition:
+    transform 0.14s var(--ease-out),
+    opacity 0.14s ease;
+}
+.hbims-cash-collection .donut-legend li:hover {
+  transform: translateX(2px);
+}
+
+/* donut assembles on load: the svg fades + settles, each arc draws in */
+.hbims-cash-collection .donut {
+  transition:
+    transform 0.55s var(--ease-out),
+    opacity 0.45s ease;
+}
+.hbims-cash-collection .donut:not(.is-drawn) {
+  transform: scale(0.9);
+  opacity: 0;
+}
+.hbims-cash-collection .donut-seg {
+  transition:
+    opacity 0.18s ease,
+    stroke-width 0.18s ease,
+    stroke-dasharray 0.9s var(--ease-out);
+}
+.hbims-cash-collection .donut-legend li {
+  animation: cc-legend-in 0.4s var(--ease-out) backwards;
+}
+.hbims-cash-collection .donut-legend li:nth-child(2) {
+  animation-delay: 0.06s;
+}
+.hbims-cash-collection .donut-legend li:nth-child(3) {
+  animation-delay: 0.12s;
+}
+.hbims-cash-collection .donut-legend li:nth-child(4) {
+  animation-delay: 0.18s;
+}
+.hbims-cash-collection .donut-legend li:nth-child(5) {
+  animation-delay: 0.24s;
+}
+@keyframes cc-legend-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ---------- side rail: sliding active indicator ---------- */
+.hbims-cash-collection .rail-nav {
+  position: relative;
+  --rail-step: 46px; /* 42px item + 4px gap */
+}
+.hbims-cash-collection .rail-thumb {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 42px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 20px -8px rgba(6, 30, 55, 0.45);
+  transform: translateY(calc(var(--rail-active, 0) * var(--rail-step)));
+  transition: transform 0.32s var(--ease-out);
+  pointer-events: none;
+  z-index: 0;
+}
+.hbims-cash-collection .rail-item {
+  z-index: 1;
+}
+.hbims-cash-collection .rail-item.active {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.hbims-cash-collection .rail-item.active::before {
+  display: none;
+}
+/* Keep the icon column and the toggle at a fixed x in both states so
+   collapsing/expanding only changes width — nothing slides sideways. The
+   collapsed rail (72px) with the same 12px + 9px insets centres the 30px
+   icon exactly. */
+.hbims-cash-collection .rail-head,
+.hbims-cash-collection .side-rail.collapsed .rail-head {
+  justify-content: flex-start;
+}
+.hbims-cash-collection .rail-toggle {
+  margin-left: 4px;
+}
+.hbims-cash-collection .side-rail.collapsed .rail-item {
+  justify-content: flex-start;
+  padding: 0 9px;
+  gap: 9px;
+}
+.hbims-cash-collection .side-rail.collapsed .rail-item.active::before {
+  left: -12px;
+}
+/* When the rail expands from collapsed, hold the labels back until the bar
+   has widened, then fade them in — otherwise the text pops out over a
+   still-narrow rail. Only above the small-screen breakpoint, where the
+   rail auto-collapses to an icon strip and labels stay hidden. */
+@media (min-width: 861px) {
+  .hbims-cash-collection .rail-label {
+    display: inline-block;
+    max-width: 140px;
+    overflow: hidden;
+    white-space: nowrap;
+    opacity: 1;
+    transition:
+      opacity 0.16s ease 0.16s,
+      max-width 0.22s var(--ease-out) 0.02s;
+  }
+  .hbims-cash-collection .side-rail.collapsed .rail-item .rail-label {
+    display: inline-block;
+    max-width: 0;
+    opacity: 0;
+    transition:
+      opacity 0.1s ease,
+      max-width 0.18s var(--ease-out);
+  }
+}
+
+/* ---------- reports: Collections / Refunds sliding switch ---------- */
+.hbims-cash-collection .report-switch {
+  margin-bottom: 0;
+  max-width: 300px;
+}
+.hbims-cash-collection .report-switch .mode-switch-option {
+  min-height: 40px;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 12px;
+}
+.hbims-cash-collection .report-switch .tab-icon {
+  width: auto;
+  height: auto;
+  background: none;
+}
+
+/* ---------- popup open / close transition ----------
+   Open and close use the same duration (0.2s), the same easing and mirror
+   keyframes, so dismissing a dialog reads as the exact reverse of opening it.
+   useModalClose holds the unmount for the same 200ms. */
 .hbims-cash-collection .popover-backdrop {
-  animation: cc-overlay-in 0.18s var(--ease-out) both;
+  animation: cc-overlay-in 0.2s var(--ease-out) both;
 }
 .hbims-cash-collection .popover-backdrop > * {
-  animation: cc-dialog-in 0.22s var(--ease-out) both;
+  animation: cc-dialog-in 0.2s var(--ease-out) both;
 }
 /* the tariff popup must not keep a transform (breaks its sticky header
    paint) — fade it without moving it */
@@ -5667,15 +6147,15 @@
   animation: cc-fade-in 0.2s var(--ease-out) both;
 }
 .hbims-cash-collection .popover-backdrop[data-closing="true"] {
-  animation: cc-overlay-in 0.16s var(--ease-out) reverse both;
+  animation: cc-overlay-out 0.2s var(--ease-out) both;
 }
 .hbims-cash-collection .popover-backdrop[data-closing="true"] > * {
-  animation: cc-dialog-in 0.16s var(--ease-out) reverse both;
+  animation: cc-dialog-out 0.2s var(--ease-out) both;
 }
 .hbims-cash-collection
   .popover-backdrop[data-closing="true"]
   > .tariff-details-dialog {
-  animation: cc-fade-in 0.16s var(--ease-out) reverse both;
+  animation: cc-fade-out 0.2s var(--ease-out) both;
 }
 @keyframes cc-overlay-in {
   from {
@@ -5683,6 +6163,14 @@
   }
   to {
     opacity: 1;
+  }
+}
+@keyframes cc-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
   }
 }
 @keyframes cc-fade-in {
@@ -5693,14 +6181,32 @@
     opacity: 1;
   }
 }
+@keyframes cc-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
 @keyframes cc-dialog-in {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.985);
+    transform: translateY(8px) scale(0.98);
   }
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+@keyframes cc-dialog-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
   }
 }
 
@@ -5710,7 +6216,8 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   max-width: 700px;
-  margin-bottom: 20px;
+  margin-top: -8px;
+  margin-bottom: 12px;
   padding: 4px;
   border: 1px solid #dce5ef;
   border-radius: 12px;
@@ -5768,18 +6275,38 @@
   }
 }
 
-/* ---------- lighter idle text in the side rail ---------- */
+/* ---------- side rail: readable idle state on the light-blue ground ---------- */
+/* Selected item sits in a white pill and keeps its dark ink; everything
+   outside the pill (idle items, their icons, the section label and the
+   hamburger) needs a solid dark colour to stay legible on #49B2F3. */
 .hbims-cash-collection .rail-item:not(.active) {
-  color: rgba(11, 47, 82, 0.58);
+  color: #0a3a63;
 }
 .hbims-cash-collection .rail-item:not(.active) .rail-icon {
-  color: rgba(11, 47, 82, 0.5);
+  color: #0a3a63;
+}
+.hbims-cash-collection .rail-item {
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s var(--ease-out);
 }
 .hbims-cash-collection .rail-item:not(.active):hover {
-  color: #0a3a63;
+  color: #052740;
+  transform: translateX(2px);
 }
 .hbims-cash-collection .rail-item:not(.active):hover .rail-icon {
+  color: #052740;
+}
+.hbims-cash-collection .rail-section-label {
+  color: rgba(10, 58, 99, 0.72);
+}
+.hbims-cash-collection .rail-toggle {
   color: #0a3a63;
+}
+.hbims-cash-collection .rail-toggle:hover {
+  color: #052740;
 }
 
 /* ---------- loaders, skeletons, overlay ---------- */
@@ -5834,13 +6361,19 @@
 }
 .hbims-cash-collection .app-loader-screen,
 .hbims-cash-collection .page-loading {
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
   min-height: 320px;
   padding: 60px 0;
 }
 .hbims-cash-collection .page-loading {
-  min-height: 52vh;
+  min-height: calc(100vh - 220px);
+}
+.hbims-cash-collection .app-loader {
+  text-align: center;
 }
 .hbims-cash-collection .app-loader-overlay {
   position: fixed;
@@ -5891,21 +6424,209 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hbims-cash-collection .panel,
-  .hbims-cash-collection .stat-card,
-  .hbims-cash-collection .service-card,
-  .hbims-cash-collection .button,
-  .hbims-cash-collection .patient-result,
-  .hbims-cash-collection .back-link,
-  .hbims-cash-collection .mode-switch-thumb,
-  .hbims-cash-collection .popover-backdrop,
-  .hbims-cash-collection .popover-backdrop > *,
-  .hbims-cash-collection .app-loader-overlay,
-  .hbims-cash-collection .app-loader-card {
-    transition: none !important;
+  .hbims-cash-collection *,
+  .hbims-cash-collection *::before,
+  .hbims-cash-collection *::after {
+    transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+  .hbims-cash-collection *:hover {
+    transform: none !important;
   }
   .hbims-cash-collection .app-loader-ring-arc {
     animation-duration: 0.9s !important;
   }
+}
+
+/* ============================================================
+   Shift dashboard — floating top nav, table + modal shared bits
+   ============================================================ */
+
+/* ---------- shell: no side rail, no breadcrumb ---------- */
+.hbims-cash-collection.app-shell {
+  display: block;
+  min-height: 100vh;
+}
+.hbims-cash-collection .app-main {
+  width: 100%;
+  min-height: auto;
+  display: block;
+}
+.hbims-cash-collection .side-rail,
+.hbims-cash-collection .topbar {
+  display: none !important;
+}
+.hbims-cash-collection .content {
+  width: min(1280px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 6px 0 48px;
+}
+/* ---------- product header nav ---------- */
+.hbims-cash-collection .top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  width: min(1280px, calc(100% - 32px));
+  margin: 14px auto 18px;
+}
+.hbims-cash-collection .top-nav-inner {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 20px;
+  height: 56px;
+  padding: 0 12px 0 16px;
+  border: 1px solid rgba(16, 36, 71, 0.07);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 6px 22px -12px rgba(16, 36, 71, 0.28);
+}
+.hbims-cash-collection .top-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #2a3a52;
+}
+.hbims-cash-collection .top-nav-mark {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: #1f6fd0;
+  background: linear-gradient(135deg, #e6f1fd, #d7e8fb);
+}
+.hbims-cash-collection .top-nav-links {
+  position: relative;
+  display: flex;
+  justify-self: center;
+  align-items: stretch;
+  height: 56px;
+}
+.hbims-cash-collection .top-nav-links button {
+  width: 112px;
+  height: 100%;
+  border: 0;
+  background: none;
+  color: #7180923;
+  color: #71809a;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.18s ease;
+}
+.hbims-cash-collection .top-nav-links button:hover {
+  color: #445068;
+}
+.hbims-cash-collection .top-nav-links button.is-active {
+  color: var(--ink);
+}
+.hbims-cash-collection .top-nav-underline {
+  position: absolute;
+  left: 18px;
+  bottom: 0;
+  width: 76px;
+  height: 2.5px;
+  border-radius: 2px 2px 0 0;
+  background: #2b7fd6;
+  transform: translateX(calc(var(--nav-active, 0) * 112px));
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hbims-cash-collection .top-nav-end-shift {
+  justify-self: end;
+  flex: 0 0 auto;
+  height: 36px;
+  color: #fff;
+  background: #dc4c3e;
+  border-color: transparent;
+}
+.hbims-cash-collection .top-nav-end-shift:hover:not(:disabled) {
+  background: #c53f32;
+  color: #fff;
+}
+.hbims-cash-collection .top-nav-end-shift.is-start-shift {
+  background: #16845f;
+}
+.hbims-cash-collection .top-nav-end-shift.is-start-shift:hover:not(:disabled) {
+  background: #116e4e;
+}
+.hbims-cash-collection .top-nav-end-shift .icon,
+.hbims-cash-collection .top-nav-end-shift svg {
+  color: #fff;
+}
+.hbims-cash-collection.shift-dialog-open .top-nav {
+  visibility: hidden;
+}
+@media (max-width: 640px) {
+  .hbims-cash-collection .top-nav-inner {
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+  }
+  .hbims-cash-collection .top-nav-brand {
+    display: none;
+  }
+  .hbims-cash-collection .top-nav-links {
+    justify-self: start;
+  }
+  .hbims-cash-collection .top-nav-links button {
+    padding: 0 10px;
+  }
+}
+
+/* ---------- transactions table: cancelled rows + grey pill ---------- */
+.hbims-cash-collection .status-pill.grey {
+  color: #5a6b83;
+  background: #eef1f6;
+}
+.hbims-cash-collection .table-wrap tbody tr.row-cancelled {
+  background: #f5f6f8;
+  box-shadow: inset 3px 0 0 rgba(120, 135, 160, 0.55);
+  color: #8a93a3;
+}
+.hbims-cash-collection .table-wrap tbody tr.row-cancelled .request-id,
+.hbims-cash-collection .table-wrap tbody tr.row-cancelled strong,
+.hbims-cash-collection .table-wrap tbody tr.row-cancelled .amount-cell {
+  color: #8a93a3;
+  text-decoration: line-through;
+}
+.hbims-cash-collection .table-wrap tbody tr.row-cancelled:hover {
+  background: #eef0f3;
+}
+.hbims-cash-collection .dash-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+.hbims-cash-collection .action-cancel-bill {
+  color: #b4534a;
+}
+.hbims-cash-collection .action-cancel-bill:hover {
+  color: #97372e;
+}
+
+/* ---------- ConfirmModal tones ---------- */
+.hbims-cash-collection .confirm-modal.tone-danger .confirm-head strong {
+  color: #a5392f;
+}
+.hbims-cash-collection .confirm-modal.tone-danger .button-primary {
+  background: #d9584d;
+  color: #fff;
+}
+.hbims-cash-collection
+  .confirm-modal.tone-danger
+  .button-primary:hover:not(:disabled) {
+  background: #c9473c;
+}
+.hbims-cash-collection .confirm-modal.tone-danger .button-primary .icon,
+.hbims-cash-collection .confirm-modal.tone-danger .button-primary svg {
+  color: #fff;
+}
+.hbims-cash-collection .confirm-modal.tone-success .confirm-head strong {
+  color: #1c7c5b;
 }

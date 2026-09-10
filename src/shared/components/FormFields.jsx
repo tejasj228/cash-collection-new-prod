@@ -1,6 +1,7 @@
-import React from "react";
-import { Input, Select } from "antd";
+import React, { useId } from "react";
+import { Input } from "antd";
 import { optionLabel, optionValue } from "../utils/formatters";
+import { SelectControl } from "./SelectControl";
 
 export function SelectField({
   label,
@@ -9,26 +10,42 @@ export function SelectField({
   options,
   hint,
   required = false,
+  disabled = false,
+  className = "",
+  ariaLabel,
 }) {
+  const controlId = useId();
   const normalized = options.map((option) => ({
     value: optionValue(option),
     label: optionLabel(option),
+    disabled:
+      option && typeof option === "object" ? Boolean(option.disabled) : false,
   }));
   return (
-    <label className="field">
-      <span className="field-label">
-        {label}
-        {required && <em>*</em>}
-      </span>
-      <Select
-        className="select-wrap antd-select"
+    <div className="field">
+      {label && (
+        <label className="field-label" htmlFor={controlId}>
+          {label}
+          {required && <em>*</em>}
+        </label>
+      )}
+      <SelectControl
+        id={controlId}
+        aria-label={ariaLabel}
+        aria-describedby={hint ? `${controlId}-hint` : undefined}
+        required={required}
+        className={className}
         value={String(value ?? "")}
         onChange={onChange}
         options={normalized}
-        popupMatchSelectWidth={false}
+        disabled={disabled}
       />
-      {hint && <small className="field-hint">{hint}</small>}
-    </label>
+      {hint && (
+        <small id={`${controlId}-hint`} className="field-hint">
+          {hint}
+        </small>
+      )}
+    </div>
   );
 }
 

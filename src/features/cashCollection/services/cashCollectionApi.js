@@ -1,4 +1,10 @@
 import { createHttpClient } from "../../../services/httpClient";
+import { mapPendingRequest } from "./pendingRequestMapper";
+import { mapTransactionRow } from "./transactionRowMapper";
+import {
+  normalizeClosedShift,
+  normalizeShiftClosePreparation,
+} from "./shiftApiModels";
 
 export function createCashCollectionApi(config) {
   const http = createHttpClient({
@@ -7,13 +13,33 @@ export function createCashCollectionApi(config) {
     timeoutMs: config.requestTimeoutMs,
   });
   return Object.freeze({
-    loadBootstrap: () => http.request("/bootstrap"),
+    loadBootstrap: async () => {
+      const data = await http.request("/bootstrap");
+      return {
+        ...data,
+        ...(Array.isArray(data.requests)
+          ? { requests: data.requests.map(mapPendingRequest) }
+          : {}),
+        ...(Array.isArray(data.recentTransactions)
+          ? {
+              recentTransactions:
+                data.recentTransactions.map(mapTransactionRow),
+            }
+          : {}),
+      };
+    },
     searchPatients: (query) =>
       http.request("/patients", {
         query: typeof query === "object" ? query : { query },
       }),
-    listPendingRequests: (filters = {}) =>
-      http.request("/requests", { query: filters }),
+    listPendingRequests: async (filters = {}) => {
+      const data = await http.request("/requests", { query: filters });
+      return { ...data, items: (data.items || []).map(mapPendingRequest) };
+    },
+    getPendingRequestMetrics: (filters = {}) =>
+      http.request("/dashboard/pending-metrics", { query: filters }),
+    getDashboard: (filters = {}) =>
+      http.request("/dashboard", { query: filters }),
     getRequest: (requestId) =>
       http.request(`/requests/${encodeURIComponent(requestId)}`),
     getTariffs: (filters = {}) => http.request("/tariffs", { query: filters }),
@@ -36,7 +62,38 @@ export function createCashCollectionApi(config) {
           ? { "Idempotency-Key": command.idempotencyKey }
           : undefined,
       }),
-    listTransactions: (filters = {}) =>
-      http.request("/transactions", { query: filters }),
+    listTransactions: async (filters = {}) => {
+      const data = await http.request("/transactions", { query: filters });
+      return { ...data, items: (data.items || []).map(mapTransactionRow) };
+    },
+    prepareShiftClose: async () =>
+      normalizeShiftClosePreparation(
+        await http.request("/shifts/current/close-preparation"),
+      ),
+    closeShift: async (command) =>
+      normalizeClosedShift(
+        await http.request(
+          `/shifts/${encodeURIComponent(command.shiftId)}/close`,
+          {
+            method: "POST",
+            body: {
+              version: command.version,
+              reconciliationMode: command.reconciliationMode,
+              denominations: command.denominations,
+            },
+            headers: command.idempotencyKey
+              ? { "Idempotency-Key": command.idempotencyKey }
+              : undefined,
+          },
+        ),
+      ),
+    reopenShift: (command) =>
+      http.request(`/shifts/${encodeURIComponent(command.shiftId)}/reopen`, {
+        method: "POST",
+        body: { version: command.version },
+        headers: command.idempotencyKey
+          ? { "Idempotency-Key": command.idempotencyKey }
+          : undefined,
+      }),
   });
 }

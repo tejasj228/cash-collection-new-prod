@@ -1,6 +1,12 @@
 import React from "react";
 import { Button as AntButton } from "antd";
 import { Icon } from "./Icon";
+import { useCountUp } from "../hooks/useCountUp";
+
+export function CountUp({ value, format = (n) => n, duration }) {
+  const animated = useCountUp(value, duration ? { duration } : undefined);
+  return <>{format(animated)}</>;
+}
 
 export function Button({
   children,
@@ -92,18 +98,39 @@ export function PageHeading({ title, action }) {
   );
 }
 
-export function StatCard({ label, value, meta, icon, tone }) {
+export function StatCard({
+  label,
+  value,
+  meta,
+  icon,
+  tone,
+  countValue,
+  formatValue,
+  className = "",
+  onClick,
+}) {
+  const Tag = onClick ? "button" : "div";
   return (
-    <div className={`stat-card ${tone}`}>
+    <Tag
+      className={`stat-card ${tone || ""} ${className}`.trim()}
+      onClick={onClick}
+      type={onClick ? "button" : undefined}
+    >
       <div className="stat-top">
         <span>{label}</span>
         <span className="stat-icon">
           <Icon name={icon} size={16} />
         </span>
       </div>
-      <strong>{value}</strong>
+      <strong>
+        {countValue != null && formatValue ? (
+          <CountUp value={countValue} format={formatValue} />
+        ) : (
+          value
+        )}
+      </strong>
       <small>{meta}</small>
-    </div>
+    </Tag>
   );
 }
 

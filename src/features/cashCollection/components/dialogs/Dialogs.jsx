@@ -107,13 +107,24 @@ function ConfirmDialog({
   lead,
   rows,
   confirmLabel,
+  dismissible = true,
   onConfirm,
   onCancel,
 }) {
   const { closing, requestClose } = useModalClose(onCancel);
+  useEscapeToClose(requestClose, dismissible);
   return (
-    <div className="popover-backdrop" data-closing={closing || undefined}>
-      <div className="confirm-dialog" role="dialog" aria-modal="true">
+    <div
+      className="popover-backdrop"
+      data-closing={closing || undefined}
+      onMouseDown={dismissible ? requestClose : undefined}
+    >
+      <div
+        className="confirm-dialog"
+        role="dialog"
+        aria-modal="true"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
         <div className="confirm-head">
           <strong>{title}</strong>
         </div>
@@ -127,9 +138,6 @@ function ConfirmDialog({
           ))}
         </dl>
         <div className="confirm-actions">
-          <button className="link-button" onClick={requestClose}>
-            Cancel
-          </button>
           <Button onClick={onConfirm} icon="print">
             {confirmLabel}
           </Button>

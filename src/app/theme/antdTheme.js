@@ -1,6 +1,6 @@
 export const antdTheme = Object.freeze({
   token: {
-    colorPrimary: "#078a8f",
+    colorPrimary: "#49b2f3",
     colorInfo: "#2b67d9",
     colorSuccess: "#188261",
     colorWarning: "#d78319",
@@ -10,11 +10,34 @@ export const antdTheme = Object.freeze({
     colorBorder: "#dce5ef",
     borderRadius: 9,
     fontFamily: "'Segoe UI', Arial, sans-serif",
+    controlItemBgHover: "#eef4fc",
+    controlItemBgActive: "#e0eefc",
+    controlItemBgActiveHover: "#d3e6fb",
+    boxShadowSecondary:
+      "0 10px 30px rgba(16, 36, 71, 0.14), 0 4px 12px rgba(16, 36, 71, 0.08)",
+    motionDurationMid: "0.2s",
+    motionEaseOutCirc: "cubic-bezier(0.22, 1, 0.36, 1)",
   },
   components: {
     Button: { fontWeight: 600, controlHeight: 40 },
     Input: { activeBorderColor: "#87abe3", hoverBorderColor: "#9bb8ea" },
-    Select: { activeBorderColor: "#87abe3", hoverBorderColor: "#9bb8ea" },
+    Select: {
+      activeBorderColor: "#87abe3",
+      hoverBorderColor: "#9bb8ea",
+      optionSelectedColor: "#06243f",
+      optionSelectedFontWeight: 700,
+      optionSelectedBg: "#e0eefc",
+      optionActiveBg: "#eef4fc",
+      borderRadius: 10,
+      controlHeight: 40,
+    },
+    DatePicker: {
+      borderRadius: 10,
+      cellActiveWithRangeBg: "#eef4fc",
+      cellHoverBg: "#eef4fc",
+      activeBorderColor: "#87abe3",
+      hoverBorderColor: "#9bb8ea",
+    },
     Table: { headerBg: "#f7f9fc", rowHoverBg: "#eef4fa" },
   },
 });

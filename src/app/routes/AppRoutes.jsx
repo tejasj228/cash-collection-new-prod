@@ -11,11 +11,7 @@ export function AppRoutes() {
         element={<ApplicationBootstrap />}
       />
       <Route
-        path={CASH_COLLECTION_ROUTES.overview}
-        element={<ApplicationBootstrap />}
-      />
-      <Route
-        path={CASH_COLLECTION_ROUTES.reports}
+        path={CASH_COLLECTION_ROUTES.dashboard}
         element={<ApplicationBootstrap />}
       />
 
@@ -24,12 +20,20 @@ export function AppRoutes() {
         element={<Navigate to={CASH_COLLECTION_ROUTES.collection} replace />}
       />
       <Route
+        path="/cash-collection/dashboard"
+        element={<Navigate to={CASH_COLLECTION_ROUTES.dashboard} replace />}
+      />
+      <Route
+        path="/cash-collection/reports"
+        element={<Navigate to={CASH_COLLECTION_ROUTES.dashboard} replace />}
+      />
+      <Route
         path="/overview"
-        element={<Navigate to={CASH_COLLECTION_ROUTES.overview} replace />}
+        element={<Navigate to={CASH_COLLECTION_ROUTES.dashboard} replace />}
       />
       <Route
         path="/reports"
-        element={<Navigate to={CASH_COLLECTION_ROUTES.reports} replace />}
+        element={<Navigate to={CASH_COLLECTION_ROUTES.dashboard} replace />}
       />
       <Route
         path="/estimates"

@@ -1,35 +1,36 @@
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { TopBar } from "./Navigation";
+import { TopNav } from "./Navigation";
 
-jest.mock("react-router-dom", () => ({
-  Link: ({ to, children, ...props }) => (
-    <a href={to} {...props}>
-      {children}
-    </a>
-  ),
-}));
-
-describe("cash collection breadcrumb", () => {
-  test("keeps Billing as context and links the cash collection levels", () => {
-    render(<TopBar page="Overview" />);
-
-    expect(screen.getByText("Billing").closest("a")).toBeNull();
+describe("cash collection top nav", () => {
+  test("marks the active section link", () => {
+    render(<TopNav active="dashboard" />);
     expect(
-      screen
-        .getByRole("link", { name: "Cash Collection" })
-        .getAttribute("href"),
-    ).toBe("/cash-collection/collection");
+      screen.getByRole("button", { name: "Dashboard" }).className,
+    ).toContain("is-active");
     expect(
-      screen.getByRole("link", { name: "Overview" }).getAttribute("href"),
-    ).toBe("/cash-collection/overview");
+      screen.getByRole("button", { name: "Collection" }).className,
+    ).not.toContain("is-active");
   });
 
-  test("returns an open collection flow to the collection landing page", () => {
+  test("navigates when a link is clicked", () => {
     const onNavigate = jest.fn();
-    render(<TopBar page="Collection" onNavigate={onNavigate} />);
-
-    fireEvent.click(screen.getByRole("link", { name: "Collection" }));
+    render(<TopNav active="dashboard" onNavigate={onNavigate} />);
+    fireEvent.click(screen.getByRole("button", { name: "Collection" }));
     expect(onNavigate).toHaveBeenCalledWith("collection");
+  });
+
+  test("fires the End Shift action", () => {
+    const onEndShift = jest.fn();
+    render(<TopNav active="collection" onEndShift={onEndShift} />);
+    fireEvent.click(screen.getByRole("button", { name: /End Shift/ }));
+    expect(onEndShift).toHaveBeenCalled();
+  });
+
+  test("changes the action to Start Shift after closing", () => {
+    render(<TopNav active="collection" shiftEnded />);
+    expect(
+      screen.getByRole("button", { name: /Start Shift/ }).className,
+    ).toContain("is-start-shift");
   });
 });

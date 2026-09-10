@@ -131,6 +131,8 @@ export const CASH_COLLECTION_SERVICE_METHODS = Object.freeze([
   "loadBootstrap",
   "searchPatients",
   "listPendingRequests",
+  "getPendingRequestMetrics",
+  "getDashboard",
   "getRequest",
   "getTariffs",
   "getPaymentOptions",
@@ -139,6 +141,9 @@ export const CASH_COLLECTION_SERVICE_METHODS = Object.freeze([
   "getTerminalPaymentStatus",
   "postTransaction",
   "listTransactions",
+  "prepareShiftClose",
+  "closeShift",
+  "reopenShift",
 ]);
 
 export function assertCashCollectionServices(services) {

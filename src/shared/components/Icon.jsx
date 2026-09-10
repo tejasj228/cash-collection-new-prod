@@ -176,6 +176,12 @@ function Icon({ name, size = 18, strokeWidth = 1.8 }) {
         <path d="M5 20h14" />
       </>
     ),
+    sheet: (
+      <>
+        <path d="M6 3h9l4 4v14H6z" />
+        <path d="M9 12h7M9 16h7M9.5 8h4" />
+      </>
+    ),
     edit: (
       <>
         <path d="M12 20h9" />
@@ -193,6 +199,18 @@ function Icon({ name, size = 18, strokeWidth = 1.8 }) {
         <circle cx="5" cy="12" r="1" fill="currentColor" stroke="none" />
         <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
         <circle cx="19" cy="12" r="1" fill="currentColor" stroke="none" />
+      </>
+    ),
+    power: (
+      <>
+        <path d="M12 3v9" />
+        <path d="M7.5 6.5a8 8 0 1 0 9 0" />
+      </>
+    ),
+    layers: (
+      <>
+        <path d="M12 3 2 8l10 5 10-5-10-5Z" />
+        <path d="M2 13l10 5 10-5" />
       </>
     ),
   };

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAppData } from "../../../../app/providers/AppDataProvider";
 import { useEscapeToClose } from "../../../../shared/hooks/useEscapeToClose";
 import { useModalClose } from "../../../../shared/hooks/useModalClose";
@@ -133,9 +133,17 @@ function DirectSetup({
   selectedPatient,
   setSelectedPatient,
   services,
+  onModalVisibilityChange,
 }) {
   const { billingByService } = useAppData();
   const [patientPopup, setPatientPopup] = useState(null);
+  useEffect(() => {
+    onModalVisibilityChange?.(Boolean(patientPopup));
+  }, [patientPopup, onModalVisibilityChange]);
+  useEffect(
+    () => () => onModalVisibilityChange?.(false),
+    [onModalVisibilityChange],
+  );
   const [checkingEligibility, setCheckingEligibility] = useState(false);
   const [eligibilityMessage, setEligibilityMessage] = useState("");
   const billingOptions = billingByService[service.id]?.[requestType] || [];

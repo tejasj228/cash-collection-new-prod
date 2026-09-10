@@ -10,6 +10,7 @@ import {
 } from "../../model/chargeCalculations";
 import { Icon } from "../../../../shared/components/Icon";
 import { SortHeader } from "../../../../shared/components/ui";
+import { SelectField } from "../../../../shared/components/FormFields";
 
 function ChargeBuilder({
   lines,
@@ -114,18 +115,13 @@ function ChargeBuilder({
 
       {!isRequest && (
         <div className="tariff-bar">
-          <span className="select-wrap tariff-group">
-            <select
-              value={group}
-              onChange={(event) => setGroup(event.target.value)}
-              aria-label="Tariff Group"
-            >
-              {tariffGroups.map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-            <Icon name="down" size={15} />
-          </span>
+          <SelectField
+            className="tariff-group-select"
+            ariaLabel="Tariff group"
+            value={group}
+            onChange={setGroup}
+            options={tariffGroups}
+          />
           <div className="tariff-search">
             <Icon name="search" size={16} />
             <input
