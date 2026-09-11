@@ -285,15 +285,49 @@ export function Dashboard({ transactions = [], onCancelBill }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [today, filters]);
 
+  // The Payment Mode / Category / Group breakdowns read as "collection and
+  // refund, combined" by default. Picking a request-type tile narrows them:
+  // a collection charge type shows only what was collected under it, a
+  // refund charge type shows only what was refunded under it. With no
+  // request-type picked, both sides fold into one net figure per bucket, so
+  // it still reconciles with the Net Collection KPI.
+  const requestTypeKind = !filters.requestType
+    ? "both"
+    : REFUND_REQUEST_CHARGE_TYPES.includes(filters.requestType)
+      ? "refund"
+      : "collection";
+  const includedInBreakdown = (row) => {
+    if (requestTypeKind === "collection") return row.status === "Completed";
+    if (requestTypeKind === "refund") return row.status === "Refunded";
+    return row.status === "Completed" || row.status === "Refunded";
+  };
+  // `includedInBreakdown` has already restricted rows to one status when a
+  // request type is picked, so only the combined "both" view needs refunds
+  // signed negative to net against collections — a refund-only or
+  // collection-only view wants the plain positive magnitude, or every bucket
+  // nets negative and gets dropped by the value > 0 filter below.
+  const breakdownAmount = (row) => {
+    if (requestTypeKind !== "both") return parseAmount(row.amount);
+    return row.status === "Refunded"
+      ? -parseAmount(row.amount)
+      : parseAmount(row.amount);
+  };
+  const breakdownKindLabel =
+    requestTypeKind === "collection"
+      ? "Collections"
+      : requestTypeKind === "refund"
+        ? "Refunds"
+        : "Collection / Refund";
+
   // Every breakdown uses the same filtered transaction set so the totals shown
   // by payment mode, category, department and hour always reconcile.
   const donutData = useMemo(() => {
     return collectionModes
       .map(({ mode, color }) => {
         const inMode = view.filter(
-          (row) => row.mode === mode && row.status === "Completed",
+          (row) => row.mode === mode && includedInBreakdown(row),
         );
-        const value = inMode.reduce((s, r) => s + parseAmount(r.amount), 0);
+        const value = inMode.reduce((s, r) => s + breakdownAmount(r), 0);
         return {
           mode,
           value,
@@ -303,19 +337,18 @@ export function Dashboard({ transactions = [], onCancelBill }) {
         };
       })
       .filter((row) => row.value > 0);
-  }, [view, collectionModes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, collectionModes, requestTypeKind]);
   const donutTotal = donutData.reduce((s, r) => s + r.value, 0);
 
   // Preserve every named segment so category and department totals reconcile
   // with the payment-mode total without introducing an "Other" bucket.
   const groupCollected = (rows, key) => {
     const map = new Map();
-    rows
-      .filter((row) => row.status === "Completed")
-      .forEach((row) => {
-        const bucket = row[key] || "—";
-        map.set(bucket, (map.get(bucket) || 0) + parseAmount(row.amount));
-      });
+    rows.filter(includedInBreakdown).forEach((row) => {
+      const bucket = row[key] || "—";
+      map.set(bucket, (map.get(bucket) || 0) + breakdownAmount(row));
+    });
     const ranked = [...map.entries()]
       .map(([key2, value]) => ({ key: key2, label: key2, value }))
       .filter((row) => row.value > 0)
@@ -325,10 +358,15 @@ export function Dashboard({ transactions = [], onCancelBill }) {
       color: SEGMENT_COLORS[index % SEGMENT_COLORS.length],
     }));
   };
-  const categoryData = useMemo(() => groupCollected(view, "category"), [view]);
+  const categoryData = useMemo(
+    () => groupCollected(view, "category"),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [view, requestTypeKind],
+  );
   const departmentData = useMemo(
     () => groupCollected(view, "department"),
-    [view],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [view, requestTypeKind],
   );
 
   const hourBuckets = useMemo(() => {
@@ -518,7 +556,7 @@ export function Dashboard({ transactions = [], onCancelBill }) {
               <span className="tariff-title-icon">
                 <Icon name="wallet" size={15} />
               </span>
-              Collections by Payment Mode
+              {breakdownKindLabel} by Payment Mode
             </h2>
           </div>
           {donutTotal > 0 ? (
@@ -532,7 +570,9 @@ export function Dashboard({ transactions = [], onCancelBill }) {
           ) : (
             <div className="empty-state">
               <Icon name="cash" size={22} />
-              <strong>No collections</strong>
+              <strong>
+                {requestTypeKind === "refund" ? "No refunds" : "No collections"}
+              </strong>
             </div>
           )}
         </section>
@@ -543,7 +583,8 @@ export function Dashboard({ transactions = [], onCancelBill }) {
               <span className="tariff-title-icon">
                 <Icon name="layers" size={15} />
               </span>
-              Collections by {segmentView === "category" ? "Category" : "Group"}
+              {breakdownKindLabel} by{" "}
+              {segmentView === "category" ? "Category" : "Group"}
             </h2>
             <div className="dash-seg-toggle" role="group" aria-label="Segment">
               <button
@@ -568,6 +609,9 @@ export function Dashboard({ transactions = [], onCancelBill }) {
               segmentView === "category" ? filters.category : filters.department
             }
             onSelect={(value) => toggleFilter(segmentView, value)}
+            emptyLabel={
+              requestTypeKind === "refund" ? "No refunds" : "No collections"
+            }
           />
         </section>
 

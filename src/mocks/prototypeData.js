@@ -2,6 +2,7 @@
 import {
   WorkflowFamily,
   RequestChargeType,
+  REFUND_REQUEST_CHARGE_TYPES,
 } from "../contracts/cashCollection.contract.js";
 
 const serviceOptions = [
@@ -667,6 +668,13 @@ const fixtureRequestTypes = [
   RequestChargeType.PACKAGE_COLLECTION,
   RequestChargeType.OPD_REFUND,
 ];
+// Every non-refund charge type, for tagging dashboard fixture rows so their
+// "collected by request type" breakdown covers every charge type, not just
+// the four `fixtureRequestTypes` cycles through.
+const dashboardCollectionRequestTypes = Object.values(RequestChargeType).filter(
+  (type) => !REFUND_REQUEST_CHARGE_TYPES.includes(type),
+);
+const dashboardRefundRequestTypes = REFUND_REQUEST_CHARGE_TYPES;
 // The queue's Charge Type column shows the request TYPE, but the Tariff Name
 // column inside each request must show an actual tariff line, not that same
 // category label repeated back — pick a real catalog-style item per type.
@@ -988,10 +996,12 @@ recentTransactions.push(
       time: to12Time(hour, minute),
       status: refunded ? "Refunded" : "Completed",
       requestType: refunded
-        ? Math.floor(index / 9) % 2 === 0
-          ? RequestChargeType.OPD_REFUND
-          : RequestChargeType.IPD_ADVANCE_REFUND
-        : fixtureRequestTypes[index % (fixtureRequestTypes.length - 1)],
+        ? dashboardRefundRequestTypes[
+            index % dashboardRefundRequestTypes.length
+          ]
+        : dashboardCollectionRequestTypes[
+            index % dashboardCollectionRequestTypes.length
+          ],
       department: fixtureDepartments[(index * 5) % fixtureDepartments.length],
       category: fixtureCategories[(index * 4 + 1) % fixtureCategories.length],
     };
@@ -1010,6 +1020,14 @@ recentTransactions.push(
       amount: value.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
       time: to12Time(10 + (index % 6), (index * 13) % 60),
       status: index % 10 === 9 ? "Refunded" : "Completed",
+      requestType:
+        index % 10 === 9
+          ? dashboardRefundRequestTypes[
+              index % dashboardRefundRequestTypes.length
+            ]
+          : dashboardCollectionRequestTypes[
+              index % dashboardCollectionRequestTypes.length
+            ],
       department: patient.department,
       category: patient.category,
     };

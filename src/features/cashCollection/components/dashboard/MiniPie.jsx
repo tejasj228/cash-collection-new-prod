@@ -5,7 +5,12 @@ const money0 = (value) => `₹${Math.round(value).toLocaleString("en-IN")}`;
 
 // Generic donut + legend for a categorical breakdown (patient category,
 // department, …). Slices and legend rows cross-filter when `onSelect` is set.
-export function MiniPie({ items, selected, onSelect }) {
+export function MiniPie({
+  items,
+  selected,
+  onSelect,
+  emptyLabel = "No collections",
+}) {
   const [hover, setHover] = useState(null);
   const [drawn, setDrawn] = useState(false);
   useEffect(() => {
@@ -42,7 +47,7 @@ export function MiniPie({ items, selected, onSelect }) {
   if (!total)
     return (
       <div className="empty-state">
-        <span>No collections</span>
+        <span>{emptyLabel}</span>
       </div>
     );
 
