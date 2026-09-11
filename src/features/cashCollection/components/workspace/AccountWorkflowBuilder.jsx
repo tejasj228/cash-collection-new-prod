@@ -25,6 +25,7 @@ function AccountWorkflowBuilder({
   selections,
   setSelections,
   onDetails,
+  onPay,
 }) {
   const context = workflowContext || {};
   const isSettlement = [
@@ -230,6 +231,16 @@ function AccountWorkflowBuilder({
             required
             inputMode="decimal"
           />
+        )}
+        {onPay && (
+          <button
+            type="button"
+            className="button button-primary account-pay-button"
+            onClick={onPay}
+            disabled={total <= 0}
+          >
+            Proceed
+          </button>
         )}
       </div>
     </section>

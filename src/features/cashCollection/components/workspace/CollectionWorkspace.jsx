@@ -172,6 +172,10 @@ function CollectionWorkspace({
   const total = Math.max(0, gross - discount);
   const [detailsGroup, setDetailsGroup] = useState(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  // The payment form (mode, terminal, manual details, …) is its own step —
+  // reached from a "Pay" prompt — instead of always sitting inline under the
+  // charges, so a bare-bones charge list isn't left looking half-finished.
+  const [payOpen, setPayOpen] = useState(false);
   useEffect(() => {
     onModalVisibilityChange?.(Boolean(detailsGroup) || paymentModalOpen);
   }, [detailsGroup, paymentModalOpen, onModalVisibilityChange]);
@@ -200,65 +204,75 @@ function CollectionWorkspace({
   };
   return (
     <div className="flow-screen workspace-screen">
-      <div className="flow-top">
-        <button className="back-link" onClick={onBack}>
-          <Icon name="back" size={15} />
-          {isRequest ? "Back to Pending Requests" : "Back to Transaction Setup"}
-        </button>
-      </div>
+      {!payOpen && (
+        <div className="flow-top">
+          <button className="back-link" onClick={onBack}>
+            <Icon name="back" size={15} />
+            {isRequest
+              ? "Back to Pending Requests"
+              : "Back to Transaction Setup"}
+          </button>
+        </div>
+      )}
       <PatientBanner patient={selectedPatient} patientMode={patientMode} />
 
       <div className="workspace-stack">
-        {usesAccountForm ? (
-          <AccountWorkflowBuilder
-            service={service}
-            patient={selectedPatient}
-            workflow={workflow}
-            requestType={requestType}
-            workflowContext={workflowContext}
-            selections={workflowSelections}
-            setSelections={setWorkflowSelections}
-            lines={chosenLines}
+        {!payOpen &&
+          (usesAccountForm ? (
+            <AccountWorkflowBuilder
+              service={service}
+              patient={selectedPatient}
+              workflow={workflow}
+              requestType={requestType}
+              workflowContext={workflowContext}
+              selections={workflowSelections}
+              setSelections={setWorkflowSelections}
+              lines={chosenLines}
+              total={total}
+              amount={Number(lines[0]?.rate || 0)}
+              setAmount={(value) =>
+                setLines((current) => [
+                  {
+                    ...(current[0] || {}),
+                    code: `BS-${workflow.processingServiceId}`,
+                    name: workflow.label,
+                    group: "Account",
+                    qty: 1,
+                    discount: 0,
+                    selected: true,
+                    key: `BS-${workflow.processingServiceId}-0`,
+                    source: "server",
+                    rate: value,
+                  },
+                ])
+              }
+              onDetails={handleDetails}
+              onPay={() => setPayOpen(true)}
+            />
+          ) : (
+            <ChargeBuilder
+              lines={lines}
+              setLines={setLines}
+              requestType={requestType}
+              mode={mode}
+              workflow={workflow}
+              onDetails={handleDetails}
+              onPay={() => setPayOpen(true)}
+            />
+          ))}
+        {payOpen && (
+          <PaymentCard
+            paymentMode={paymentMode}
+            setPaymentMode={setPaymentMode}
             total={total}
-            amount={Number(lines[0]?.rate || 0)}
-            setAmount={(value) =>
-              setLines((current) => [
-                {
-                  ...(current[0] || {}),
-                  code: `BS-${workflow.processingServiceId}`,
-                  name: workflow.label,
-                  group: "Account",
-                  qty: 1,
-                  discount: 0,
-                  selected: true,
-                  key: `BS-${workflow.processingServiceId}-0`,
-                  source: "server",
-                  rate: value,
-                },
-              ])
-            }
-            onDetails={handleDetails}
-          />
-        ) : (
-          <ChargeBuilder
-            lines={lines}
-            setLines={setLines}
             requestType={requestType}
-            mode={mode}
-            workflow={workflow}
-            onDetails={handleDetails}
+            patient={selectedPatient}
+            onConfirm={postAndPrint}
+            services={services}
+            onModalVisibilityChange={setPaymentModalOpen}
+            onCancel={() => setPayOpen(false)}
           />
         )}
-        <PaymentCard
-          paymentMode={paymentMode}
-          setPaymentMode={setPaymentMode}
-          total={total}
-          requestType={requestType}
-          patient={selectedPatient}
-          onConfirm={postAndPrint}
-          services={services}
-          onModalVisibilityChange={setPaymentModalOpen}
-        />
       </div>
 
       <PrintableBill

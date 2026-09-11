@@ -20,7 +20,10 @@ import {
   RequestWorklist,
   DirectSelector,
   EstimatesHome,
+  ALL_TYPES,
+  ALL_DEPTS,
 } from "./components/home/HomeComponents";
+import { useSort } from "../../shared/hooks/useSort";
 import { DirectSetup } from "./components/patient/PatientComponents";
 import { CollectionWorkspace } from "./components/workspace/CollectionWorkspace";
 import { Confirmation } from "./pages/ConfirmationPage";
@@ -74,7 +77,24 @@ export default function CashCollectionApplication({
   const [crQuery, setCrQuery] = useState("");
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  // The pending-requests list's own search/filter/page/sort state lives here,
+  // one level above the "home" ⇄ "workspace" stage swap, so it survives the
+  // request-based "Back to Pending Requests" round trip (that transition
+  // never touches this state). Every OTHER way back to the list — resetHome,
+  // switching the Collection/Direct mode tab, starting an estimate — resets
+  // it explicitly below, so only that one button preserves it.
   const [requestSearch, setRequestSearch] = useState("");
+  const [requestTypeFilter, setRequestTypeFilter] = useState(ALL_TYPES);
+  const [requestDeptFilter, setRequestDeptFilter] = useState(ALL_DEPTS);
+  const [requestPage, setRequestPage] = useState(1);
+  const [requestSort, toggleRequestSort, resetRequestSort] = useSort();
+  const resetRequestWorklist = () => {
+    setRequestSearch("");
+    setRequestTypeFilter(ALL_TYPES);
+    setRequestDeptFilter(ALL_DEPTS);
+    setRequestPage(1);
+    resetRequestSort();
+  };
   const [confirmationData, setConfirmationData] = useState(null);
   const [workflowContext, setWorkflowContext] = useState(null);
   const [patientContextVersion, setPatientContextVersion] = useState(null);
@@ -229,11 +249,13 @@ export default function CashCollectionApplication({
     setPatientMode("existing");
     setRequestType("Receipt");
     setBillingService(firstBillingOption(firstService));
+    resetRequestWorklist();
   };
   const changeMode = (nextMode) => {
     setMode(nextMode);
     setStage("home");
     setSelectedRequest(null);
+    if (nextMode !== mode) resetRequestWorklist();
     if (nextMode === "direct") {
       setService(firstService);
       setRequestType("Receipt");
@@ -370,6 +392,7 @@ export default function CashCollectionApplication({
     setService(firstService);
     setRequestType("Estimation");
     setBillingService(firstBillingOption(firstService, "Estimation"));
+    resetRequestWorklist();
   };
   const navigate = (destination) => {
     if (destination === "dashboard") {
@@ -508,6 +531,14 @@ export default function CashCollectionApplication({
                     search={requestSearch}
                     setSearch={setRequestSearch}
                     services={integration.services}
+                    page={requestPage}
+                    setPage={setRequestPage}
+                    sort={requestSort}
+                    toggleSort={toggleRequestSort}
+                    typeFilter={requestTypeFilter}
+                    setTypeFilter={setRequestTypeFilter}
+                    deptFilter={requestDeptFilter}
+                    setDeptFilter={setRequestDeptFilter}
                   />
                 ) : (
                   <DirectSelector

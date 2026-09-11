@@ -19,6 +19,7 @@ function ChargeBuilder({
   mode,
   workflow,
   onDetails,
+  onPay,
 }) {
   const { tariffCatalog, tariffGroups } = useAppData();
   const [chargeSort, toggleChargeSort] = useSort();
@@ -343,9 +344,21 @@ function ChargeBuilder({
               </em>
             )}
           </span>
-          <strong className="mono">
-            ₹{money(Math.max(0, gross - discount))}
-          </strong>
+          <span className="charge-hero-amount">
+            <strong className="mono">
+              ₹{money(Math.max(0, gross - discount))}
+            </strong>
+            {onPay && (
+              <button
+                type="button"
+                className="button button-primary charge-pay-button"
+                onClick={onPay}
+                disabled={!isEstimate && Math.max(0, gross - discount) <= 0}
+              >
+                {isEstimate ? "Continue" : "Proceed"}
+              </button>
+            )}
+          </span>
         </div>
       </div>
     </section>

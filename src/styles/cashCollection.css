@@ -6630,3 +6630,83 @@
 .hbims-cash-collection .confirm-modal.tone-success .confirm-head strong {
   color: #1c7c5b;
 }
+
+/* ---------- patient banner photo ---------- */
+.hbims-cash-collection .patient-photo {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 72px;
+  height: 72px;
+  margin-right: 8px;
+  border-radius: 50%;
+  overflow: hidden;
+  color: #7c8aa0;
+  background: #eef2f8;
+  border: 1px solid #e1e7f0;
+}
+.hbims-cash-collection .patient-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.hbims-cash-collection .patient-photo.is-clickable {
+  padding: 0;
+  cursor: pointer;
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+.hbims-cash-collection .patient-photo.is-clickable:hover {
+  box-shadow: 0 0 0 3px rgba(43, 103, 217, 0.16);
+  transform: translateY(-1px);
+}
+.hbims-cash-collection .patient-photo-lightbox {
+  position: relative;
+  max-width: min(480px, 90vw);
+  max-height: 85vh;
+  padding: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 24px 60px -20px rgba(16, 36, 71, 0.5);
+}
+.hbims-cash-collection .patient-photo-lightbox img {
+  display: block;
+  width: 100%;
+  max-height: 85vh;
+  object-fit: contain;
+  background: #0f172a;
+}
+.hbims-cash-collection .patient-photo-lightbox-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  color: #fff;
+  background: rgba(15, 23, 42, 0.55);
+  border-radius: 50%;
+  padding: 6px;
+}
+.hbims-cash-collection .patient-photo-lightbox-close:hover {
+  background: rgba(15, 23, 42, 0.75);
+}
+
+/* ---------- pay button, inline next to the charges/settlement total ---------- */
+.hbims-cash-collection .charge-hero-amount {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.hbims-cash-collection .account-amount-row {
+  /* the row's other child is a full field (label + input) or the settlement
+     readout box, both taller than a bare button — align-items defaults to
+     stretch, which was blowing the button up to match that full height */
+  align-items: flex-end;
+  gap: 20px;
+}
+.hbims-cash-collection .charge-pay-button,
+.hbims-cash-collection .account-pay-button {
+  flex: 0 0 auto;
+  align-self: flex-end;
+}

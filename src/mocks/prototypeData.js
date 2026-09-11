@@ -2,7 +2,6 @@
 import {
   WorkflowFamily,
   RequestChargeType,
-  REFUND_REQUEST_CHARGE_TYPES,
 } from "../contracts/cashCollection.contract.js";
 
 const serviceOptions = [
@@ -381,6 +380,8 @@ const patients = [
     admittedOn: "03/09/2024 · 11:47",
     category: "General — CGHS",
     mobile: "98xxx 41207",
+    abhaNumber: "14-1234-5678-9001",
+    abhaAddress: "rajesh.mehta@abdm",
     eligibleChargeTypeIds: ["2"],
     accountOpen: true,
     refundableDocumentCount: 2,
@@ -413,6 +414,8 @@ const patients = [
     admittedOn: "—",
     category: "General",
     mobile: "99xxx 30514",
+    abhaNumber: "14-1234-5678-9002",
+    abhaAddress: "sunita.rao@abdm",
     eligibleChargeTypeIds: ["1", "4"],
     accountOpen: false,
     refundableDocumentCount: 1,
@@ -436,6 +439,8 @@ const patients = [
     admittedOn: "02/09/2024 · 09:20",
     category: "General",
     mobile: "97xxx 88420",
+    abhaNumber: "14-1234-5678-9003",
+    abhaAddress: "vikram.singh@abdm",
     eligibleChargeTypeIds: ["2"],
     accountOpen: true,
     refundableDocumentCount: 1,
@@ -535,6 +540,12 @@ patients.push(
       admittedOn: inpatient ? "02/09/2024 · 08:30" : "—",
       category,
       mobile: `9${6 + (index % 4)}xxx ${String(21000 + index * 193).slice(-5)}`,
+      abhaNumber: `14-${String(1000 + number).padStart(4, "0")}-${String(5000 + number).padStart(4, "0")}-${String(9000 + number).padStart(4, "0")}`,
+      abhaAddress: `${name
+        .toLowerCase()
+        .replace(/[^a-z\s]/g, "")
+        .trim()
+        .replace(/\s+/g, ".")}@abdm`,
       eligibleChargeTypeIds: inpatient ? ["2"] : ["1", "4"],
       accountOpen: inpatient,
       refundableDocumentCount: index % 4 === 0 ? 1 : 0,
@@ -668,17 +679,13 @@ const fixtureRequestTypes = [
   RequestChargeType.PACKAGE_COLLECTION,
   RequestChargeType.OPD_REFUND,
 ];
-// Every non-refund charge type, for tagging dashboard fixture rows so their
-// "collected by request type" breakdown covers every charge type, not just
-// the four `fixtureRequestTypes` cycles through.
-const dashboardCollectionRequestTypes = Object.values(RequestChargeType).filter(
-  (type) => !REFUND_REQUEST_CHARGE_TYPES.includes(type),
-);
-const dashboardRefundRequestTypes = REFUND_REQUEST_CHARGE_TYPES;
 // The queue's Charge Type column shows the request TYPE, but the Tariff Name
 // column inside each request must show an actual tariff line, not that same
 // category label repeated back — pick a real catalog-style item per type.
 const requestLineOptions = {
+  // A real OPD Service bill is a consultation plus whatever was done
+  // alongside it — never just one line — so this pool splits into a
+  // consultation half and an add-on half the generator below combines.
   [RequestChargeType.OPD_SERVICE]: [
     {
       code: "CONS-118",
@@ -691,6 +698,9 @@ const requestLineOptions = {
       group: "Consultation",
     },
     { code: "CONS-215", name: "Specialist review", group: "Consultation" },
+    { code: "INV-3312", name: "ECG — 12 lead", group: "Investigation" },
+    { code: "INV-2201", name: "Complete blood count", group: "Investigation" },
+    { code: "PROC-410", name: "Dressing — minor", group: "Procedure" },
   ],
   [RequestChargeType.IPD_ADVANCE_DEPOSIT]: [
     { code: "ADV-0001", name: "Admission advance deposit", group: "Advance" },
@@ -729,7 +739,64 @@ requests.push(
     const offset = 0;
     const elapsedMinutes = 20 + index * 37;
     const lineOptions = requestLineOptions[requestType];
-    const linePick = lineOptions[index % lineOptions.length];
+    let lines;
+    let lineTotal = amount;
+    if (requestType === RequestChargeType.OPD_SERVICE) {
+      // A walk-in OPD Service visit is a consultation plus whatever else was
+      // done alongside it — one line was never realistic here.
+      const consultations = lineOptions.filter(
+        (option) => option.group === "Consultation",
+      );
+      const addOns = lineOptions.filter(
+        (option) => option.group !== "Consultation",
+      );
+      const consultation = consultations[index % consultations.length];
+      const addOnCount = 1 + (index % 2);
+      const picked = Array.from(
+        { length: addOnCount },
+        (_, i) => addOns[(index + i) % addOns.length],
+      );
+      const consultationRate = 300 + (index % 4) * 60;
+      const addOnBudget = Math.max(
+        120 * picked.length,
+        amount - consultationRate,
+      );
+      const addOnRate = Math.floor(addOnBudget / picked.length);
+      lines = [
+        {
+          code: `${consultation.code}-${String(1800 + index)}`,
+          name: consultation.name,
+          group: consultation.group,
+          rate: consultationRate,
+          qty: 1,
+          discount: 0,
+        },
+        ...picked.map((option, i) => ({
+          code: `${option.code}-${String(1800 + index)}-${i}`,
+          name: option.name,
+          group: option.group,
+          rate:
+            i === picked.length - 1
+              ? addOnBudget - addOnRate * (picked.length - 1)
+              : addOnRate,
+          qty: 1,
+          discount: 0,
+        })),
+      ];
+      lineTotal = lines.reduce((sum, line) => sum + line.rate * line.qty, 0);
+    } else {
+      const linePick = lineOptions[index % lineOptions.length];
+      lines = [
+        {
+          code: `${linePick.code}-${String(1800 + index)}`,
+          name: linePick.name,
+          group: linePick.group,
+          rate: amount,
+          qty: 1,
+          discount: 0,
+        },
+      ];
+    }
     return {
       id: `${isRefund ? "REF" : "BIL"}-2024-${String(1200 + index).padStart(4, "0")}`,
       patient: patient.name,
@@ -741,21 +808,12 @@ requests.push(
           : `${patient.ward} · ${patient.bed}`,
       dateIso: isoMinus(offset),
       date: displayDate(isoMinus(offset)),
-      amount: amount.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      amount: lineTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
       waiting: `${Math.floor(elapsedMinutes / 60)}h ${String(elapsedMinutes % 60).padStart(2, "0")}m`,
       raisedBy: `${patient.department} desk`,
       department: patient.department,
       category: patient.category,
-      lines: [
-        {
-          code: `${linePick.code}-${String(1800 + index)}`,
-          name: linePick.name,
-          group: linePick.group,
-          rate: amount,
-          qty: 1,
-          discount: 0,
-        },
-      ],
+      lines,
     };
   }),
 );
@@ -914,6 +972,8 @@ const recentTransactions = [
     time: "10:38 AM",
     status: "Completed",
     requestType: RequestChargeType.IPD_FINAL_ADJUSTMENT,
+    hospitalService: "IPD",
+    billingService: "Bill Settlement",
     ...segmentFor(crNo(1)),
   },
   {
@@ -926,6 +986,8 @@ const recentTransactions = [
     time: "10:31 AM",
     status: "Completed",
     requestType: RequestChargeType.OPD_SERVICE,
+    hospitalService: "OPD",
+    billingService: "Service",
     ...segmentFor(crNo(6)),
   },
   {
@@ -938,6 +1000,8 @@ const recentTransactions = [
     time: "10:12 AM",
     status: "Refunded",
     requestType: RequestChargeType.OPD_REFUND,
+    hospitalService: "OPD",
+    billingService: "Service",
     ...segmentFor(crNo(5)),
   },
   {
@@ -950,6 +1014,8 @@ const recentTransactions = [
     time: "09:57 AM",
     status: "Completed",
     requestType: RequestChargeType.INVESTIGATION_CHARGES,
+    hospitalService: "OPD",
+    billingService: "Service",
     ...segmentFor(crNo(7)),
   },
   {
@@ -962,6 +1028,8 @@ const recentTransactions = [
     time: "09:44 AM",
     status: "Completed",
     requestType: RequestChargeType.OPD_SERVICE,
+    hospitalService: "OPD",
+    billingService: "Service",
     ...segmentFor(crNo(2)),
   },
 ];
@@ -973,66 +1041,175 @@ const to12Time = (hour24, minute) => {
   return `${h}:${String(minute).padStart(2, "0")} ${suffix}`;
 };
 
-// A full day of today's counter activity: ~72 transactions spread across
-// 08:00–20:00, every payment mode, and a wide spread of patient categories
-// and departments (rotated independently of the patient so every segment
-// slice is represented), with a handful of refunds so the dashboard has
-// something to break down.
+// Today's counter activity is generated deliberately per (hospital service,
+// billing service) bucket — the exact split the Shift Dashboard's "Cash
+// Collected/Refunded by Request Type" cards drill through (OPD only ever
+// bills "Service"; IPD spans Service/Advance/Part Payment/Bill Settlement;
+// Emergency only bills "Service") — rather than cycling a flat list of
+// Pending-Requests Charge Types and hoping the split comes out sensible.
+// Two buckets (IPD Part Payment, Emergency Service) have no corresponding
+// value in the `RequestChargeType` enum at all — a real, descriptive
+// `requestType` string is used for those instead.
+const REQUEST_TYPE_BY_BUCKET = {
+  "OPD::Service": [
+    RequestChargeType.OPD_SERVICE,
+    RequestChargeType.INVESTIGATION_CHARGES,
+  ],
+  "IPD::Service": [RequestChargeType.PACKAGE_COLLECTION],
+  "IPD::Advance": [RequestChargeType.IPD_ADVANCE_DEPOSIT],
+  "IPD::Part Payment": ["IPD Part Payment"],
+  "IPD::Bill Settlement": [RequestChargeType.IPD_FINAL_ADJUSTMENT],
+  "Emergency::Service": ["Emergency Service"],
+};
+const REFUND_REQUEST_TYPE_BY_BUCKET = {
+  "OPD::Service": [RequestChargeType.OPD_REFUND],
+  "IPD::Service": ["Package Refund"],
+  "IPD::Advance": [RequestChargeType.IPD_ADVANCE_REFUND],
+  "IPD::Part Payment": ["IPD Part Payment Refund"],
+  "IPD::Bill Settlement": ["IPD Final Adjustment Refund"],
+  "Emergency::Service": ["Emergency Refund"],
+};
+// { family, service, collected, refunded, base, span } — `base`/`span` set a
+// realistic amount range per bucket (an IPD Advance or Bill Settlement bill
+// runs far higher than a walk-in OPD service charge).
+const TODAY_BUCKET_SPEC = [
+  {
+    family: "OPD",
+    service: "Service",
+    collected: 18,
+    refunded: 3,
+    base: 260,
+    span: 4200,
+  },
+  {
+    family: "IPD",
+    service: "Service",
+    collected: 8,
+    refunded: 1,
+    base: 2800,
+    span: 9000,
+  },
+  {
+    family: "IPD",
+    service: "Advance",
+    collected: 8,
+    refunded: 2,
+    base: 5000,
+    span: 20000,
+  },
+  {
+    family: "IPD",
+    service: "Part Payment",
+    collected: 6,
+    refunded: 1,
+    base: 2000,
+    span: 12000,
+  },
+  {
+    family: "IPD",
+    service: "Bill Settlement",
+    collected: 6,
+    refunded: 1,
+    base: 8000,
+    span: 32000,
+  },
+  {
+    family: "Emergency",
+    service: "Service",
+    collected: 10,
+    refunded: 2,
+    base: 900,
+    span: 11000,
+  },
+];
 const todayPatients = patients.slice(3);
-recentTransactions.push(
-  ...Array.from({ length: 72 }, (_, index) => {
-    const patient = todayPatients[(index * 5) % todayPatients.length];
-    const refunded = index % 9 === 4;
-    const value = 300 + ((index * 1373) % 15200);
-    const hour = 8 + Math.floor((index * 12) / 72); // 08 → 19
-    const minute = (index * 17) % 60;
-    return {
-      no: `${refunded ? "REF" : "REC"}-2024-${String((refunded ? 970 : 88190) + index).padStart(6, "0")}`,
+let todayRowIndex = 0;
+TODAY_BUCKET_SPEC.forEach((bucket) => {
+  const bucketKey = `${bucket.family}::${bucket.service}`;
+  const collectionTypes = REQUEST_TYPE_BY_BUCKET[bucketKey];
+  const refundTypes = REFUND_REQUEST_TYPE_BY_BUCKET[bucketKey];
+  const rows = [
+    ...Array.from({ length: bucket.collected }, (_, i) => ({
+      i,
+      refunded: false,
+    })),
+    ...Array.from({ length: bucket.refunded }, (_, i) => ({
+      i,
+      refunded: true,
+    })),
+  ];
+  rows.forEach(({ i, refunded }) => {
+    const globalIndex = todayRowIndex++;
+    const patient = todayPatients[(globalIndex * 5) % todayPatients.length];
+    const value = bucket.base + ((globalIndex * 1373 + i * 511) % bucket.span);
+    const hour = 8 + (globalIndex % 12); // 08 → 19
+    const minute = (globalIndex * 17) % 60;
+    const typeList = refunded ? refundTypes : collectionTypes;
+    recentTransactions.push({
+      no: `${refunded ? "REF" : "REC"}-2024-${String((refunded ? 970 : 88190) + globalIndex).padStart(6, "0")}`,
       dateIso: isoMinus(0),
       patient: patient.name,
       cr: patient.cr,
-      mode: fixturePaymentModes[(index * 3) % fixturePaymentModes.length],
+      mode: fixturePaymentModes[globalIndex % fixturePaymentModes.length],
       amount: value.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
       time: to12Time(hour, minute),
       status: refunded ? "Refunded" : "Completed",
-      requestType: refunded
-        ? dashboardRefundRequestTypes[
-            index % dashboardRefundRequestTypes.length
-          ]
-        : dashboardCollectionRequestTypes[
-            index % dashboardCollectionRequestTypes.length
-          ],
-      department: fixtureDepartments[(index * 5) % fixtureDepartments.length],
-      category: fixtureCategories[(index * 4 + 1) % fixtureCategories.length],
-    };
-  }),
-);
-// Keep a short trail of earlier days for context in future date filters.
-recentTransactions.push(
-  ...patients.slice(6, 20).map((patient, index) => {
-    const value = 450 + ((index * 811) % 9200);
-    return {
-      no: `REC-2024-${String(87990 - index).padStart(6, "0")}`,
-      dateIso: isoMinus(1 + (index % 12)),
+      requestType: typeList[i % typeList.length],
+      hospitalService: bucket.family,
+      billingService: bucket.service,
+      department:
+        fixtureDepartments[(globalIndex * 5) % fixtureDepartments.length],
+      category:
+        fixtureCategories[(globalIndex * 4 + 1) % fixtureCategories.length],
+    });
+  });
+});
+// Keep a short trail of earlier days for context in future date filters —
+// the same buckets, at roughly a fifth of today's volume, so a date filter
+// still has every family/billing-service combination to show.
+const HISTORY_BUCKET_SPEC = TODAY_BUCKET_SPEC.map((bucket) => ({
+  ...bucket,
+  collected: Math.max(1, Math.round(bucket.collected / 5)),
+  refunded: bucket.refunded > 1 ? 1 : 0,
+}));
+const historyPatients = patients.slice(6, 20);
+let historyRowIndex = 0;
+HISTORY_BUCKET_SPEC.forEach((bucket) => {
+  const bucketKey = `${bucket.family}::${bucket.service}`;
+  const collectionTypes = REQUEST_TYPE_BY_BUCKET[bucketKey];
+  const refundTypes = REFUND_REQUEST_TYPE_BY_BUCKET[bucketKey];
+  const rows = [
+    ...Array.from({ length: bucket.collected }, (_, i) => ({
+      i,
+      refunded: false,
+    })),
+    ...Array.from({ length: bucket.refunded }, (_, i) => ({
+      i,
+      refunded: true,
+    })),
+  ];
+  rows.forEach(({ i, refunded }) => {
+    const globalIndex = historyRowIndex++;
+    const patient = historyPatients[globalIndex % historyPatients.length];
+    const value = bucket.base + ((globalIndex * 811 + i * 337) % bucket.span);
+    const typeList = refunded ? refundTypes : collectionTypes;
+    recentTransactions.push({
+      no: `REC-2024-${String(87990 - globalIndex).padStart(6, "0")}`,
+      dateIso: isoMinus(1 + (globalIndex % 12)),
       patient: patient.name,
       cr: patient.cr,
-      mode: fixturePaymentModes[index % fixturePaymentModes.length],
+      mode: fixturePaymentModes[globalIndex % fixturePaymentModes.length],
       amount: value.toLocaleString("en-IN", { minimumFractionDigits: 2 }),
-      time: to12Time(10 + (index % 6), (index * 13) % 60),
-      status: index % 10 === 9 ? "Refunded" : "Completed",
-      requestType:
-        index % 10 === 9
-          ? dashboardRefundRequestTypes[
-              index % dashboardRefundRequestTypes.length
-            ]
-          : dashboardCollectionRequestTypes[
-              index % dashboardCollectionRequestTypes.length
-            ],
+      time: to12Time(10 + (globalIndex % 6), (globalIndex * 13) % 60),
+      status: refunded ? "Refunded" : "Completed",
+      requestType: typeList[i % typeList.length],
+      hospitalService: bucket.family,
+      billingService: bucket.service,
       department: patient.department,
       category: patient.category,
-    };
-  }),
-);
+    });
+  });
+});
 
 const recentEstimates = [
   {

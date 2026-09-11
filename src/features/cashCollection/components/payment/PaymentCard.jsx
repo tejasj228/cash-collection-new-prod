@@ -27,6 +27,7 @@ function PaymentCard({
   onConfirm,
   services,
   onModalVisibilityChange,
+  onCancel,
 }) {
   const { paymentOptions } = useAppData();
   const {
@@ -416,7 +417,10 @@ function PaymentCard({
         </div>
       )}
       <div className="payment-actions">
-        <Button variant="ghost" onClick={() => window.history.back()}>
+        <Button
+          variant="ghost"
+          onClick={() => (onCancel ? onCancel() : window.history.back())}
+        >
           Cancel
         </Button>
         {!usesTerminal && (

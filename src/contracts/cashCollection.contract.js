@@ -32,6 +32,38 @@ export const REFUND_REQUEST_CHARGE_TYPES = Object.freeze([
   RequestChargeType.IPD_ADVANCE_REFUND,
 ]);
 
+// The dashboard's "Cash Collected/Refunded by Request Type" breakdown drills
+// OPD/IPD/Emergency → billing service, not the Pending-Requests Charge Type
+// above (a different, request-queue-specific taxonomy). This mirrors
+// `serviceOptions`/`billingByService`: OPD Normal and OPD Special both fold
+// into "OPD" (both only ever bill a generic "Service"); Emergency likewise
+// only bills "Service"; IPD is the only context with more than one option.
+export const HOSPITAL_SERVICE_FAMILY = Object.freeze({
+  "opd-normal": "OPD",
+  "opd-special": "OPD",
+  ipd: "IPD",
+  emergency: "Emergency",
+});
+export const HOSPITAL_SERVICE_FAMILIES = Object.freeze([
+  "OPD",
+  "IPD",
+  "Emergency",
+]);
+// A billed "Package" is service revenue for this breakdown's purposes — it
+// doesn't get its own top-level bucket, it folds into "Service".
+export const BILLING_SERVICE_BUCKET = Object.freeze({
+  Service: "Service",
+  Package: "Service",
+  Advance: "Advance",
+  "Part Payment": "Part Payment",
+  "Bill Settlement": "Bill Settlement",
+});
+export const BILLING_SERVICES_BY_FAMILY = Object.freeze({
+  OPD: Object.freeze(["Service"]),
+  IPD: Object.freeze(["Service", "Advance", "Part Payment", "Bill Settlement"]),
+  Emergency: Object.freeze(["Service"]),
+});
+
 const requiredArrays = [
   "serviceOptions",
   "patients",

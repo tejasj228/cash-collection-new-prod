@@ -359,6 +359,8 @@ function DirectSetup({
 function PatientBanner({ patient, patientMode }) {
   const known = patientMode === "existing" && patient;
   const name = known ? patient.name : "New patient record";
+  const hasPhoto = Boolean(known && patient.photoUrl);
+  const [photoOpen, setPhotoOpen] = useState(false);
   const facts = known
     ? [
         ["CR No.", patient.cr, true],
@@ -383,6 +385,20 @@ function PatientBanner({ patient, patientMode }) {
   return (
     <section className="patient-banner">
       <div className="patient-identity">
+        {hasPhoto ? (
+          <button
+            type="button"
+            className="patient-photo is-clickable"
+            onClick={() => setPhotoOpen(true)}
+            aria-label={`View ${name}'s photo`}
+          >
+            <img src={patient.photoUrl} alt="" />
+          </button>
+        ) : (
+          <span className="patient-photo" aria-hidden={!known}>
+            <Icon name="user" size={30} />
+          </span>
+        )}
         <div className="patient-identity-copy">
           <div className="patient-name-row">
             <h2>{name}</h2>
@@ -397,6 +413,12 @@ function PatientBanner({ patient, patientMode }) {
                 <span className="chip muted">
                   {compactIdentifier(patient.mobile)}
                 </span>
+                {patient.abhaNumber && (
+                  <span className="chip muted">ABHA {patient.abhaNumber}</span>
+                )}
+                {patient.abhaAddress && (
+                  <span className="chip muted">{patient.abhaAddress}</span>
+                )}
               </>
             )}
           </div>
@@ -418,7 +440,41 @@ function PatientBanner({ patient, patientMode }) {
           </div>
         ))}
       </dl>
+      {photoOpen && (
+        <PatientPhotoLightbox
+          name={name}
+          photoUrl={patient.photoUrl}
+          onClose={() => setPhotoOpen(false)}
+        />
+      )}
     </section>
+  );
+}
+
+function PatientPhotoLightbox({ name, photoUrl, onClose }) {
+  const { closing, requestClose } = useModalClose(onClose);
+  useEscapeToClose(requestClose);
+  return (
+    <div
+      className="popover-backdrop"
+      data-closing={closing || undefined}
+      onMouseDown={requestClose}
+    >
+      <div
+        className="patient-photo-lightbox"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          className="plain-icon patient-photo-lightbox-close"
+          onClick={requestClose}
+          aria-label="Close"
+        >
+          <Icon name="close" size={18} />
+        </button>
+        <img src={photoUrl} alt={name} />
+      </div>
+    </div>
   );
 }
 

@@ -12,8 +12,8 @@ import {
 } from "../../../shared/components/ui";
 import { ConfirmModal } from "../../../shared/components/ConfirmModal";
 import {
-  REFUND_REQUEST_CHARGE_TYPES,
-  RequestChargeType,
+  BILLING_SERVICES_BY_FAMILY,
+  HOSPITAL_SERVICE_FAMILIES,
 } from "../../../contracts/cashCollection.contract";
 import { DonutChart } from "../components/dashboard/DonutChart";
 import { MiniPie } from "../components/dashboard/MiniPie";
@@ -40,15 +40,39 @@ const STATUS_TONE = {
   Failed: "red",
   Unposted: "amber",
 };
+// The table's "Bill Type" pill reads as a clerk would say it aloud — a
+// completed bill is a "Receipt" — without touching the underlying status
+// value every filter/summary computation already keys off.
+const STATUS_LABEL = {
+  Completed: "Receipt",
+  Refunded: "Refunded",
+  Cancelled: "Cancelled",
+  Failed: "Failed",
+  Unposted: "Unposted",
+};
 
 const DIMENSION_LABEL = {
   mode: "Mode",
   status: "Status",
   hour: "Hour",
-  category: "Category",
+  category: "Patient Category",
   department: "Group",
-  requestType: "Request Type",
+  service: "Billing Service Type",
 };
+// A `service` filter value is `${kind}::${family}` (every billing service in
+// that family) or `${kind}::${family}::${billingService}` (one specific
+// service) — kind is "collect" or "refund" (the two request-type cards track
+// independent selections, and "IPD Advance" alone would be ambiguous between
+// them). `service` is left undefined for a family-only selection.
+const parseServiceFilter = (value) => {
+  if (!value) return null;
+  const [kind, family, service] = String(value).split("::");
+  return { kind, family, service: service || null };
+};
+const buildServiceFilter = (kind, family, service) =>
+  service ? `${kind}::${family}::${service}` : `${kind}::${family}`;
+const formatServiceFilter = ({ kind, family, service }) =>
+  `${family}${service ? ` · ${service}` : ""} · ${kind === "refund" ? "Refunded" : "Collected"}`;
 
 // A muted, distinct palette for the segment pies.
 const SEGMENT_COLORS = [
@@ -67,29 +91,46 @@ const SEGMENT_COLORS = [
   "#55a6a0",
   "#c66c7f",
 ];
-const COLLECTION_REQUEST_TYPES = Object.values(RequestChargeType).filter(
-  (type) => !REFUND_REQUEST_CHARGE_TYPES.includes(type),
+// "Cash Refunded by Billing Service Type" tracks OPD and Emergency only — IPD
+// refunds aren't broken out on this dashboard. The underlying IPD-refund
+// transactions still count everywhere else (Net Collection, Refunds KPI,
+// Payment Mode/Category breakdowns) — this only narrows the one chart.
+const REFUND_HOSPITAL_SERVICE_FAMILIES = HOSPITAL_SERVICE_FAMILIES.filter(
+  (family) => family !== "IPD",
 );
-
-const groupRequestTypes = (rows, supportedTypes) => {
-  const grouped = new Map(
-    supportedTypes.map((chargeType) => [
-      chargeType,
-      { chargeType, count: 0, value: 0 },
-    ]),
-  );
+// Every (hospital service, billing service) bucket this app actually offers
+// — OPD and Emergency only ever bill a generic "Service"; IPD is the only
+// context with more than one option (`serviceOptions`/`billingByService`).
+// Seeding every combination at 0 means a family with no activity yet (e.g.
+// Emergency, until real Emergency charge data exists) still renders its tile
+// instead of vanishing.
+const groupByService = (rows) => {
+  const grouped = new Map();
+  HOSPITAL_SERVICE_FAMILIES.forEach((family) => {
+    (BILLING_SERVICES_BY_FAMILY[family] || []).forEach((service) => {
+      grouped.set(`${family}::${service}`, {
+        family,
+        service,
+        count: 0,
+        value: 0,
+      });
+    });
+  });
   rows.forEach((row) => {
-    const chargeType = row.requestType || "Unspecified";
-    const current = grouped.get(chargeType) || {
-      chargeType,
-      count: 0,
-      value: 0,
-    };
+    const family = HOSPITAL_SERVICE_FAMILIES.includes(row.hospitalService)
+      ? row.hospitalService
+      : "OPD";
+    const validServices = BILLING_SERVICES_BY_FAMILY[family] || ["Service"];
+    const service = validServices.includes(row.billingService)
+      ? row.billingService
+      : "Service";
+    const key = `${family}::${service}`;
+    const current = grouped.get(key) || { family, service, count: 0, value: 0 };
     current.count += 1;
     current.value += parseAmount(row.amount);
-    grouped.set(chargeType, current);
+    grouped.set(key, current);
   });
-  return [...grouped.values()].sort((left, right) => right.value - left.value);
+  return [...grouped.values()];
 };
 
 function HourBars({ buckets, selected, onSelect }) {
@@ -117,50 +158,147 @@ function HourBars({ buckets, selected, onSelect }) {
   );
 }
 
-function CollectionTypeTreemap({ items, selected, onSelect }) {
-  const total = items.reduce(
-    (sum, item) => sum + Math.abs(Number(item.value) || 0),
-    0,
-  );
+// Two levels: OPD / IPD / Emergency first, then that family's billing
+// services (OPD and Emergency only ever have one — "Service" — so a click
+// there selects it directly; IPD has four, so a click first applies a
+// family-wide filter and drills in to let it be narrowed further). `selected`
+// is `{ family, service }` (service may be null — a family-wide selection),
+// already scoped to this card's own kind (collected vs refunded) and derived
+// straight from the active cross-filter — not local state — so selecting in
+// the *other* card (a different kind) naturally collapses this one back to
+// the top level, and "back" clearing the filter naturally does the same.
+function CollectionTypeTreemap({
+  items,
+  selected,
+  onSelect,
+  onClear,
+  emptyLabel,
+  families: familyNames = HOSPITAL_SERVICE_FAMILIES,
+}) {
+  const families = familyNames.map((name) => {
+    const familyItems = items.filter((item) => item.family === name);
+    const value = familyItems.reduce(
+      (sum, item) => sum + Math.abs(Number(item.value) || 0),
+      0,
+    );
+    const count = familyItems.reduce(
+      (sum, item) => sum + (Number(item.count) || 0),
+      0,
+    );
+    return { name, items: familyItems, value, count };
+  });
+  const grandTotal = families.reduce((sum, row) => sum + row.value, 0);
+
   if (!items.length)
-    return <div className="dash-chart-empty">No collections</div>;
-  return (
-    <div
-      className="collection-type-treemap"
-      style={{ "--request-type-count": items.length }}
-    >
-      {items.map((item, index) => {
-        const count = Number(item.count) || 0;
-        const value = Number(item.value) || 0;
-        const magnitude = Math.abs(value);
-        const active = selected === item.chargeType;
-        return (
+    return (
+      <div className="dash-chart-empty">{emptyLabel || "No collections"}</div>
+    );
+
+  const activeFamily =
+    selected?.family && families.find((row) => row.name === selected.family);
+  // OPD and Emergency each expose only one billing service — picking the
+  // family already fully identifies the transaction, so select it outright.
+  const pickFamily = (row) => {
+    if (row.items.length === 1) onSelect?.(row.items[0]);
+    else onSelect?.({ family: row.name, service: null });
+  };
+
+  if (!activeFamily) {
+    return (
+      <div
+        className="collection-type-treemap"
+        style={{ "--request-type-count": familyNames.length }}
+      >
+        {families.map((row, index) => (
           <button
-            key={item.chargeType}
+            key={row.name}
             type="button"
-            className={`${active ? "picked" : ""} ${selected && !active ? "dim" : ""}`.trim()}
-            onClick={() => onSelect?.(item.chargeType)}
-            title={`${item.chargeType} · ${rupee(value)} · ${count} transactions`}
+            className={row.value ? "" : "dim"}
+            disabled={!row.value}
+            onClick={() => pickFamily(row)}
+            title={`${row.name} · ${rupee(row.value)} · ${row.count} transactions`}
             style={{
               "--tile-color": SEGMENT_COLORS[index % SEGMENT_COLORS.length],
             }}
           >
             <span className="collection-type-value">
               <strong>
-                <CountUp value={value} format={rupee0} duration={900} />
+                <CountUp value={row.value} format={rupee0} duration={900} />
               </strong>
               <small>
                 <CountUp
-                  value={total ? (magnitude / total) * 100 : 0}
+                  value={grandTotal ? (row.value / grandTotal) * 100 : 0}
                   format={(number) => `${Math.round(number)}%`}
                   duration={900}
                 />
               </small>
             </span>
-            <span className="collection-type-label">{item.chargeType}</span>
+            <span className="collection-type-label">{row.name}</span>
+            {!row.value && (
+              <small className="collection-type-note">None yet</small>
+            )}
           </button>
-        );
-      })}
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="collection-type-drilldown">
+      <button type="button" className="collection-type-back" onClick={onClear}>
+        <Icon name="back" size={13} />
+        {activeFamily.name}
+      </button>
+      <div
+        className="collection-type-treemap"
+        style={{ "--request-type-count": activeFamily.items.length || 1 }}
+      >
+        {activeFamily.items.map((item, index) => {
+          const count = Number(item.count) || 0;
+          const value = Number(item.value) || 0;
+          const active = selected?.service === item.service;
+          return (
+            <button
+              key={item.service}
+              type="button"
+              className={`${active ? "picked" : ""} ${selected?.service && !active ? "dim" : ""}`.trim()}
+              onClick={() => {
+                if (!active) return onSelect?.(item);
+                // Re-clicking the active leaf steps back up to the
+                // family-wide selection — unless this family only has the one
+                // service anyway (OPD, Emergency), in which case there's no
+                // meaningful "family, unspecified service" state to step back
+                // to, so it clears outright, same as the "← family" button.
+                if (activeFamily.items.length > 1)
+                  onSelect?.({ family: item.family, service: null });
+                else onClear?.();
+              }}
+              title={`${item.family} · ${item.service} · ${rupee(value)} · ${count} transactions`}
+              style={{
+                "--tile-color": SEGMENT_COLORS[index % SEGMENT_COLORS.length],
+              }}
+            >
+              <span className="collection-type-value">
+                <strong>
+                  <CountUp value={value} format={rupee0} duration={900} />
+                </strong>
+                <small>
+                  <CountUp
+                    value={
+                      activeFamily.value
+                        ? (value / activeFamily.value) * 100
+                        : 0
+                    }
+                    format={(number) => `${Math.round(number)}%`}
+                    duration={900}
+                  />
+                </small>
+              </span>
+              <span className="collection-type-label">{item.service}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -174,7 +312,7 @@ export function Dashboard({ transactions = [], onCancelBill }) {
     hour: null,
     category: null,
     department: null,
-    requestType: null,
+    service: null,
   });
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -187,15 +325,36 @@ export function Dashboard({ transactions = [], onCancelBill }) {
     () =>
       transactions
         .filter((row) => row.dateIso === todayIso)
-        .map((row) => ({ ...row, hour: hourOf(row.time) })),
+        .map((row) => {
+          const family = HOSPITAL_SERVICE_FAMILIES.includes(row.hospitalService)
+            ? row.hospitalService
+            : "OPD";
+          const validServices = BILLING_SERVICES_BY_FAMILY[family] || [
+            "Service",
+          ];
+          const billingService = validServices.includes(row.billingService)
+            ? row.billingService
+            : "Service";
+          return {
+            ...row,
+            hour: hourOf(row.time),
+            // `${collect|refund}::${family}::${billingService}` — the exact
+            // shape a request-type filter value takes (see parseServiceFilter).
+            service: `${row.status === "Refunded" ? "refund" : "collect"}::${family}::${billingService}`,
+          };
+        }),
     [transactions, todayIso],
   );
 
   const matchesExcept = (row, skip) =>
-    Object.entries(filters).every(
-      ([dim, value]) =>
-        value == null || dim === skip || String(row[dim]) === String(value),
-    );
+    Object.entries(filters).every(([dim, value]) => {
+      if (value == null || dim === skip) return true;
+      // A `service` filter can be family-wide ("collect::IPD") — a prefix of
+      // every row's own full "collect::IPD::Advance" — or fully specific;
+      // startsWith covers both without a separate "family only" branch.
+      if (dim === "service") return String(row.service).startsWith(value);
+      return String(row[dim]) === String(value);
+    });
   const view = useMemo(
     () => today.filter((row) => matchesExcept(row, null)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -216,8 +375,15 @@ export function Dashboard({ transactions = [], onCancelBill }) {
       hour: null,
       category: null,
       department: null,
-      requestType: null,
+      service: null,
     });
+    setPage(1);
+  };
+  // The request-type treemaps' "back" always clears the filter outright
+  // (rather than toggling), so navigating up never leaves a stale selection
+  // behind that resurfaces later.
+  const clearServiceFilter = () => {
+    setFilters((current) => ({ ...current, service: null }));
     setPage(1);
   };
   const activeChips = Object.entries(filters).filter(
@@ -249,11 +415,16 @@ export function Dashboard({ transactions = [], onCancelBill }) {
         <button
           key={dim}
           type="button"
-          className="dash-chip"
+          className={`dash-chip ${dim === "service" ? "dash-chip-wrap" : ""}`}
           onClick={() => toggleFilter(dim, value)}
         >
           <span>
-            {DIMENSION_LABEL[dim]}: {dim === "hour" ? hourLabel(value) : value}
+            {DIMENSION_LABEL[dim]}:{" "}
+            {dim === "hour"
+              ? hourLabel(value)
+              : dim === "service"
+                ? formatServiceFilter(parseServiceFilter(value))
+                : value}
           </span>
           <Icon name="close" size={12} />
         </button>
@@ -270,18 +441,27 @@ export function Dashboard({ transactions = [], onCancelBill }) {
     [today],
   );
 
+  // Memoized so its identity only changes when the filter value itself does —
+  // otherwise a fresh object every render (e.g. from the pinned-filter
+  // scroll observer re-rendering the page) re-triggers the treemap's
+  // selected-family sync effect and silently snaps it back into a drilled-in
+  // view the operator had already navigated away from.
+  const selectedService = useMemo(
+    () => parseServiceFilter(filters.service),
+    [filters.service],
+  );
   const collectionTypeData = useMemo(() => {
     const rows = today.filter(
-      (row) => row.status === "Completed" && matchesExcept(row, "requestType"),
+      (row) => row.status === "Completed" && matchesExcept(row, "service"),
     );
-    return groupRequestTypes(rows, COLLECTION_REQUEST_TYPES);
+    return groupByService(rows);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [today, filters]);
   const refundTypeData = useMemo(() => {
     const rows = today.filter(
-      (row) => row.status === "Refunded" && matchesExcept(row, "requestType"),
+      (row) => row.status === "Refunded" && matchesExcept(row, "service"),
     );
-    return groupRequestTypes(rows, REFUND_REQUEST_CHARGE_TYPES);
+    return groupByService(rows);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [today, filters]);
 
@@ -291,9 +471,9 @@ export function Dashboard({ transactions = [], onCancelBill }) {
   // refund charge type shows only what was refunded under it. With no
   // request-type picked, both sides fold into one net figure per bucket, so
   // it still reconciles with the Net Collection KPI.
-  const requestTypeKind = !filters.requestType
+  const requestTypeKind = !selectedService
     ? "both"
-    : REFUND_REQUEST_CHARGE_TYPES.includes(filters.requestType)
+    : selectedService.kind === "refund"
       ? "refund"
       : "collection";
   const includedInBreakdown = (row) => {
@@ -474,7 +654,7 @@ export function Dashboard({ transactions = [], onCancelBill }) {
     <div className="dash">
       <div className="dash-header">
         <div>
-          <h1>Shift Dashboard</h1>
+          <h1>Collection Dashboard</h1>
           <span className="dash-subtitle">{dateLabel} </span>
         </div>
         <button
@@ -531,21 +711,23 @@ export function Dashboard({ transactions = [], onCancelBill }) {
         />
         <StatCard
           className="kpi-tile"
-          label="Average Bill"
-          countValue={summary.avgTicket}
-          formatValue={rupee}
+          label="Receipts"
+          countValue={summary.collectionCount}
+          formatValue={(n) => Math.round(n).toString()}
           icon="receipt"
           tone="teal"
-          meta={`Largest ${rupee0(summary.largest)} · Today`}
+          meta={
+            cancelledCount ? `${cancelledCount} cancelled · Today` : "Today"
+          }
         />
         <StatCard
           className="kpi-tile"
-          label="Bills"
-          countValue={summary.bills}
+          label="Refund Bills"
+          countValue={summary.refundCount}
           formatValue={(n) => Math.round(n).toString()}
-          icon="grid"
-          tone="navy"
-          meta={`${cancelledCount ? `${cancelledCount} cancelled` : "Processed"} · Today`}
+          icon="refund"
+          tone="coral"
+          meta="Today"
         />
       </div>
 
@@ -584,7 +766,7 @@ export function Dashboard({ transactions = [], onCancelBill }) {
                 <Icon name="layers" size={15} />
               </span>
               {breakdownKindLabel} by{" "}
-              {segmentView === "category" ? "Category" : "Group"}
+              {segmentView === "category" ? "Patient Category" : "Group"}
             </h2>
             <div className="dash-seg-toggle" role="group" aria-label="Segment">
               <button
@@ -592,7 +774,7 @@ export function Dashboard({ transactions = [], onCancelBill }) {
                 className={segmentView === "category" ? "on" : ""}
                 onClick={() => setSegmentView("category")}
               >
-                Category
+                Patient Category
               </button>
               <button
                 type="button"
@@ -622,13 +804,21 @@ export function Dashboard({ transactions = [], onCancelBill }) {
                 <span className="tariff-title-icon">
                   <Icon name="receipt" size={15} />
                 </span>
-                Cash Collected by Request Type
+                Cash Collected by Billing Service Type
               </h2>
             </div>
             <CollectionTypeTreemap
               items={collectionTypeData}
-              selected={filters.requestType}
-              onSelect={(value) => toggleFilter("requestType", value)}
+              selected={
+                selectedService?.kind === "collect" ? selectedService : null
+              }
+              onSelect={(item) =>
+                toggleFilter(
+                  "service",
+                  buildServiceFilter("collect", item.family, item.service),
+                )
+              }
+              onClear={clearServiceFilter}
             />
           </section>
 
@@ -638,13 +828,23 @@ export function Dashboard({ transactions = [], onCancelBill }) {
                 <span className="tariff-title-icon">
                   <Icon name="refund" size={15} />
                 </span>
-                Cash Refunded by Request Type
+                Cash Refunded by Billing Service Type
               </h2>
             </div>
             <CollectionTypeTreemap
               items={refundTypeData}
-              selected={filters.requestType}
-              onSelect={(value) => toggleFilter("requestType", value)}
+              families={REFUND_HOSPITAL_SERVICE_FAMILIES}
+              selected={
+                selectedService?.kind === "refund" ? selectedService : null
+              }
+              onSelect={(item) =>
+                toggleFilter(
+                  "service",
+                  buildServiceFilter("refund", item.family, item.service),
+                )
+              }
+              onClear={clearServiceFilter}
+              emptyLabel="No refunds"
             />
           </section>
         </div>
@@ -762,7 +962,7 @@ export function Dashboard({ transactions = [], onCancelBill }) {
                   </td>
                   <td className="col-c">
                     <span className={`status-pill ${STATUS_TONE[row.status]}`}>
-                      {row.status}
+                      {STATUS_LABEL[row.status] || row.status}
                     </span>
                   </td>
                   <td className="col-c">

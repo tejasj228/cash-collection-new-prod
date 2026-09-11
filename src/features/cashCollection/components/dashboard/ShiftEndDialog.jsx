@@ -184,7 +184,7 @@ export function ShiftEndDialog({
             ) : (
               <>
                 <div>
-                  <span>Expected cash</span>
+                  <span>Cash in Drawer</span>
                   <strong>{rupee(expectedCash)}</strong>
                 </div>
                 <div>

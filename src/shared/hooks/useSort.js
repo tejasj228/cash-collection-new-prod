@@ -10,7 +10,8 @@ function useSort(initial = null) {
           : null
         : { field, dir: "asc" },
     );
-  return [sort, toggle];
+  const reset = () => setSort(initial);
+  return [sort, toggle, reset];
 }
 
 const applySort = (rows, sort, accessors) => {

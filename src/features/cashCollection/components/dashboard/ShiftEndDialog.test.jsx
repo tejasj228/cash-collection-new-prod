@@ -46,7 +46,7 @@ test("requires denomination reconciliation before ending a shift", async () => {
   const continueButton = screen.getByRole("button", { name: "Continue" });
   expect(continueButton.disabled).toBe(true);
   expect(screen.queryByRole("button", { name: "End shift" })).toBeNull();
-  expect(screen.getByText("Expected cash")).toBeTruthy();
+  expect(screen.getByText("Cash in Drawer")).toBeTruthy();
   expect(screen.queryByText("Previously submitted")).toBeNull();
 
   fireEvent.change(screen.getByLabelText("₹500 note quantity"), {

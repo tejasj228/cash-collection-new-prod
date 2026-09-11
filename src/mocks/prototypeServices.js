@@ -4,6 +4,10 @@ import {
   hourOf,
   parseAmount,
 } from "../features/cashCollection/model/shiftSummary.js";
+import {
+  HOSPITAL_SERVICE_FAMILY,
+  BILLING_SERVICE_BUCKET,
+} from "../contracts/cashCollection.contract.js";
 
 let sequence = 88500;
 const reference = (prefix) =>
@@ -455,6 +459,14 @@ export function createPrototypeServices({ now = () => Date.now() } = {}) {
                 pendingRequest?.type ||
                 command.billingServiceName ||
                 command.requestType,
+              // OPD/IPD/Emergency × billing-service, for the dashboard's
+              // request-type breakdown — kept separate from `requestType`
+              // above (the Pending-Requests Charge Type / workflow label)
+              // since that field's existing shape is depended on elsewhere.
+              hospitalService:
+                HOSPITAL_SERVICE_FAMILY[command.hospitalServiceId] || "OPD",
+              billingService:
+                BILLING_SERVICE_BUCKET[command.billingServiceName] || "Service",
               department:
                 pendingRequest?.department ||
                 patient?.department ||

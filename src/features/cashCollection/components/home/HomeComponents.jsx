@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useAppData } from "../../../../app/providers/AppDataProvider";
 import { useEscapeToClose } from "../../../../shared/hooks/useEscapeToClose";
-import { useSort } from "../../../../shared/hooks/useSort";
 import { compactIdentifier } from "../../../../shared/utils/formatters";
 import { isRefundRequest } from "../../model/workflowRoutes";
 import { Icon } from "../../../../shared/components/Icon";
@@ -63,10 +62,21 @@ function ModeTabs({ mode, onChange }) {
   );
 }
 
-function RequestWorklist({ onCollect, search, setSearch, services }) {
+function RequestWorklist({
+  onCollect,
+  search,
+  setSearch,
+  services,
+  page,
+  setPage,
+  sort,
+  toggleSort,
+  typeFilter,
+  setTypeFilter,
+  deptFilter,
+  setDeptFilter,
+}) {
   const { requests, queueSummary, requestFilterOptions } = useAppData();
-  const [page, setPage] = useState(1);
-  const [sort, toggleSort] = useSort();
   const [pageData, setPageData] = useState({
     items: requests.slice(0, 10),
     total: Number(queueSummary?.pendingCount ?? requests.length),
@@ -75,8 +85,6 @@ function RequestWorklist({ onCollect, search, setSearch, services }) {
   const [loading, setLoading] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
   useEscapeToClose(() => setFilterOpen(false), filterOpen);
-  const [typeFilter, setTypeFilter] = useState(ALL_TYPES);
-  const [deptFilter, setDeptFilter] = useState(ALL_DEPTS);
   const pageSize = 10;
   const typeOptions = useMemo(
     () => [
@@ -142,6 +150,17 @@ function RequestWorklist({ onCollect, search, setSearch, services }) {
   const pageCount = Math.max(1, Math.ceil(pageData.total / pageSize));
   const currentPage = Math.min(page, pageCount);
   const visible = pageData.items;
+  // The skeleton should be exactly as tall as the table it's standing in
+  // for — on the last page of any list, that's fewer than a full pageSize —
+  // using the last-known total (already loaded once) as the best estimate
+  // avoids a layout jump when the real rows replace the placeholders.
+  const skeletonRowCount = Math.max(
+    1,
+    Math.min(
+      pageSize,
+      pageData.total - (currentPage - 1) * pageSize || pageSize,
+    ),
+  );
   const changeSearch = (value) => {
     setSearch(value);
     setPage(1);
@@ -242,7 +261,7 @@ function RequestWorklist({ onCollect, search, setSearch, services }) {
             </tr>
           </thead>
           <tbody>
-            {loading && <SkeletonRows rows={pageSize} cols={8} />}
+            {loading && <SkeletonRows rows={skeletonRowCount} cols={8} />}
             {!loading &&
               visible.map((request) => (
                 <tr
@@ -492,4 +511,11 @@ function EstimatesHome({ onCreate }) {
   );
 }
 
-export { ModeTabs, RequestWorklist, DirectSelector, EstimatesHome };
+export {
+  ModeTabs,
+  RequestWorklist,
+  DirectSelector,
+  EstimatesHome,
+  ALL_TYPES,
+  ALL_DEPTS,
+};
