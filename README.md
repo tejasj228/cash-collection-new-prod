@@ -1,24 +1,40 @@
 # HBIMS Cash Collection
 
-Production-oriented Create React App frontend for HBIMS cash collection. It uses Ant Design for application primitives, React Router's `HashRouter` for deployment below legacy application paths, and a typed-by-contract service boundary for a new Spring Boot backend.
+Production-oriented Create React App frontend for the HBIMS cash-collection
+counter. Runs today against an in-memory mock backend; a real Spring Boot
+service is not built yet.
 
 ## Run locally
 
-```powershell
+```bash
 npm install
 npm start
 ```
 
-Development uses isolated prototype adapters when `REACT_APP_USE_MOCKS=true`. Production builds always call the configured backend and fail visibly if it is unavailable; mock fixtures are never a production fallback.
+Opens on `http://localhost:3000` with the mock backend (`REACT_APP_USE_MOCKS=true`
+in `.env.development` — nothing else to configure).
 
-```powershell
-npm test -- --runInBand
-npm run build
+```bash
+npm test
+npm run build     # production bundle; requires the real backend at runtime
+npm run format
 ```
+
+## Documentation
+
+- **[`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md)** — start here. Full
+  architecture, folder-by-folder structure, environment variables, how data
+  flows through the app, every screen mapped to its code, and a complete
+  step-by-step guide to building the real backend and connecting it to the
+  legacy HBIMS system.
+- **[`docs/api/`](docs/api/README.md)** — one file per API endpoint with the
+  exact field names and example request/response JSON every screen needs.
+- **[`contracts/openapi.yaml`](contracts/openapi.yaml)** — the same contract
+  as a machine-readable OpenAPI 3.0.3 spec.
 
 ## Runtime configuration
 
-Set values at build time with `.env` or at deployment time before the bundle loads:
+Set at build time (`.env.*`) or at deploy time, before the bundle loads:
 
 ```html
 <script>
@@ -30,26 +46,6 @@ Set values at build time with `.env` or at deployment time before the bundle loa
 </script>
 ```
 
-Routes use hashes: `/#/cash-collection/collection`,
-`/#/cash-collection/overview`, and `/#/cash-collection/reports`, so the hosting
-server does not require SPA rewrite rules.
-
-## Structure
-
-```text
-src/
-  app/                    application composition, providers, routes and theme
-  config/                 deployment-time configuration
-  contracts/              canonical frontend data contract
-  features/cashCollection feature pages, components, models and API adapter
-  mocks/                  development-only fixture adapters
-  services/               HTTP and runtime integration infrastructure
-  shared/                 reusable controls, hooks and formatters
-  styles/                 application and feature styles
-contracts/openapi.yaml    Spring Boot REST contract
-docs/                     architecture and backend integration notes
-```
-
-The legacy HBIMS browser bridge remains in `src/services/legacyHbimsBridge.js` only as migration reference. New production code calls Spring Boot REST endpoints through `cashCollectionApi.js`.
-
-See [Architecture](docs/ARCHITECTURE.md) and [Spring Boot integration](docs/SPRING-BOOT-INTEGRATION.md).
+Routes are hash-based (`/#/cash-collection/collection`,
+`/#/cash-collection/overview`), so the hosting server needs no SPA rewrite
+rules.
