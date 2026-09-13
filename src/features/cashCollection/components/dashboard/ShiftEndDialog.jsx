@@ -8,7 +8,10 @@ export function ShiftEndDialog({
   summary,
   dateLabel,
   preparation,
+  isStaleShift = false,
+  staleDateLabel,
   onConfirm,
+  onStartNewShift,
   onClose,
 }) {
   const [phase, setPhase] = useState("reconcile");
@@ -70,16 +73,16 @@ export function ShiftEndDialog({
           .filter((item) => item.quantity > 0),
   };
 
-  if (phase === "ended")
+  if (phase === "stale-done")
     return (
       <ConfirmModal
         tone="success"
         icon="check"
         title="Shift ended"
-        lead={`${dateLabel} is closed. Print the shift report for the drawer hand-over, or close this.`}
-        confirmLabel="Print shift report"
+        lead={`You've successfully ended the shift for ${staleDateLabel}. You can now start today's shift.`}
+        confirmLabel="Start today's shift"
         cancelLabel="Close"
-        onConfirm={() => window.print()}
+        onConfirm={onStartNewShift}
         onCancel={onClose}
         content={
           <div className="shift-end-recap">
@@ -98,7 +101,11 @@ export function ShiftEndDialog({
         tone="danger"
         icon="power"
         title="End this shift?"
-        lead="Cash reconciliation is complete. Confirm to close today's shift and lock these totals."
+        lead={
+          isStaleShift
+            ? `Cash reconciliation is complete. Confirm to close the shift opened on ${staleDateLabel} and lock these totals.`
+            : `Cash reconciliation is complete. Confirm to close ${dateLabel}'s shift and lock these totals.`
+        }
         rows={[
           [
             "Bills processed",
@@ -122,7 +129,9 @@ export function ShiftEndDialog({
           setSubmitError("");
           try {
             await onConfirm(reconciliation);
-            setPhase("ended");
+            window.print();
+            if (isStaleShift) setPhase("stale-done");
+            else onClose();
           } catch (error) {
             setSubmitError(
               error.message || "The shift could not be closed. Try again.",
@@ -147,13 +156,17 @@ export function ShiftEndDialog({
       className="shift-reconcile-modal"
       backdropClassName="shift-reconcile-backdrop"
       icon="arrow"
-      title="Count today’s cash"
+      title={
+        isStaleShift ? "Count cash for the earlier shift" : "Count today’s cash"
+      }
       lead={
-        isRepeatedShift
-          ? expectedCash < 0
-            ? "Reconcile the cash paid out for refunds after restarting. Enter the notes and coins deducted from the earlier submission."
-            : "Reconcile the new cash collected after restarting. The earlier submission remains included in today’s total."
-          : "Enter the number of notes and coins collected at this counter. The counted total must match today’s cash collection before you can continue."
+        isStaleShift
+          ? `This shift was opened on ${staleDateLabel} and was never closed. Reconcile and end it below before starting today's shift.`
+          : isRepeatedShift
+            ? expectedCash < 0
+              ? "Reconcile the cash paid out for refunds after restarting. Enter the notes and coins deducted from the earlier submission."
+              : "Reconcile the new cash collected after restarting. The earlier submission remains included in today’s total."
+            : "Enter the number of notes and coins collected at this counter. The counted total must match today’s cash collection before you can continue."
       }
       confirmLabel="Continue"
       cancelLabel="Cancel"

@@ -1067,10 +1067,10 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
   gap: 22.8px;
   margin-top: 22.8px;
-  align-items: start;
+  align-items: stretch;
 }
 .setup-main {
-  padding: 28.8px 30px 24px;
+  padding: 16px 24px 14px;
 }
 .setup-heading {
   display: flex;
@@ -1098,7 +1098,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
-  margin-top: 28.8px;
+  margin-top: 13px;
 }
 .setup-fields.three {
   grid-template-columns: 1.3fr 1fr 0.8fr;
@@ -1174,7 +1174,7 @@
   display: flex;
   align-items: center;
   gap: 13.2px;
-  margin-top: 32.4px;
+  margin-top: 15px;
   color: #526985;
   font-size: 12px;
   font-weight: 800;
@@ -1229,8 +1229,8 @@
 .patient-lookup-box,
 .walkin-box {
   position: relative;
-  margin-top: 15.6px;
-  padding: 19.2px;
+  margin-top: 8px;
+  padding: 12px;
   border: 1px solid #e4eaf1;
   border-radius: 10.8px;
   background: #fbfcfe;
@@ -1330,8 +1330,8 @@
   display: flex;
   justify-content: flex-end;
   gap: 10.8px;
-  padding-top: 26.4px;
-  margin-top: 24px;
+  padding-top: 12px;
+  margin-top: 10px;
   border-top: 1px solid #edf1f5;
 }
 .context-summary {
@@ -6537,8 +6537,19 @@
   transform: translateX(calc(var(--nav-active, 0) * 112px));
   transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.hbims-cash-collection .top-nav-end-shift {
+.hbims-cash-collection .top-nav-actions {
+  display: flex;
+  align-items: center;
   justify-self: end;
+  gap: 8px;
+}
+.hbims-cash-collection .top-nav-reprint {
+  flex: 0 0 auto;
+  height: 36px;
+  padding: 0 14px;
+  font-size: 12px;
+}
+.hbims-cash-collection .top-nav-end-shift {
   flex: 0 0 auto;
   height: 36px;
   color: #fff;
@@ -6709,4 +6720,40 @@
 .hbims-cash-collection .account-pay-button {
   flex: 0 0 auto;
   align-self: flex-end;
+}
+
+/* ---------- Direct Collection setup: side illustration ---------- */
+.hbims-cash-collection .direct-setup-art {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 4px;
+  padding: 24px 26px;
+}
+.hbims-cash-collection .direct-setup-art-svg {
+  width: min(220px, 100%);
+  height: auto;
+  margin-bottom: 12px;
+}
+.hbims-cash-collection .direct-setup-art h3 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--ink);
+}
+.hbims-cash-collection .direct-setup-art p {
+  margin: 0;
+  max-width: 260px;
+  color: #7e8da1;
+  font-size: 12px;
+  line-height: 1.6;
+}
+@media (max-width: 900px) {
+  .hbims-cash-collection .setup-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hbims-cash-collection .direct-setup-art {
+    display: none;
+  }
 }

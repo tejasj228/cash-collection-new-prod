@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ShiftEndDialog } from "./ShiftEndDialog";
 
 jest.mock("../../../../shared/components/ui", () => ({
@@ -18,8 +18,13 @@ const summary = {
   cashCollected: 700,
 };
 
+beforeEach(() => {
+  window.print = jest.fn();
+});
+
 test("requires denomination reconciliation before ending a shift", async () => {
   const onConfirm = jest.fn();
+  const onClose = jest.fn();
   render(
     <ShiftEndDialog
       summary={summary}
@@ -39,7 +44,7 @@ test("requires denomination reconciliation before ending a shift", async () => {
         ],
       }}
       onConfirm={onConfirm}
-      onClose={jest.fn()}
+      onClose={onClose}
     />,
   );
 
@@ -63,11 +68,13 @@ test("requires denomination reconciliation before ending a shift", async () => {
   expect(onConfirm).toHaveBeenCalledWith(
     expect.objectContaining({ expectedCash: 700, countedCash: 700 }),
   );
-  expect(await screen.findByText("Shift ended")).toBeTruthy();
+  await waitFor(() => expect(onClose).toHaveBeenCalled());
+  expect(window.print).toHaveBeenCalled();
 });
 
 test("allows denomination entry to be skipped", async () => {
   const onConfirm = jest.fn();
+  const onClose = jest.fn();
   render(
     <ShiftEndDialog
       summary={summary}
@@ -86,7 +93,7 @@ test("allows denomination entry to be skipped", async () => {
         ],
       }}
       onConfirm={onConfirm}
-      onClose={jest.fn()}
+      onClose={onClose}
     />,
   );
 
@@ -106,13 +113,65 @@ test("allows denomination entry to be skipped", async () => {
       denominations: [],
     }),
   );
+  await waitFor(() => expect(onClose).toHaveBeenCalled());
+  expect(window.print).toHaveBeenCalled();
+});
+
+test("ending a shift left open from an earlier day shows the stale-shift messaging and a start-new-shift prompt", async () => {
+  const onConfirm = jest.fn();
+  const onClose = jest.fn();
+  const onStartNewShift = jest.fn();
+  render(
+    <ShiftEndDialog
+      summary={summary}
+      dateLabel="12 Sep 2026"
+      isStaleShift
+      staleDateLabel="10 Sep 2026"
+      preparation={{
+        shiftId: "shift-stale",
+        version: "v1",
+        expectedCash: "700.00",
+        canClose: true,
+        blockers: [],
+        previousSubmittedCash: "0.00",
+        cumulativeExpectedCash: "700.00",
+        segmentNumber: "1",
+        denominations: [
+          { code: "NOTE_500", kind: "NOTE", value: "500", label: "₹500" },
+          { code: "NOTE_200", kind: "NOTE", value: "200", label: "₹200" },
+        ],
+      }}
+      onConfirm={onConfirm}
+      onStartNewShift={onStartNewShift}
+      onClose={onClose}
+    />,
+  );
+
+  expect(screen.getByText(/This shift was opened on 10 Sep 2026/)).toBeTruthy();
+
+  fireEvent.change(screen.getByLabelText("₹500 note quantity"), {
+    target: { value: "1" },
+  });
+  fireEvent.change(screen.getByLabelText("₹200 note quantity"), {
+    target: { value: "1" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+  fireEvent.click(screen.getByRole("button", { name: "End shift" }));
+
   expect(await screen.findByText("Shift ended")).toBeTruthy();
-  expect(screen.getByText("Cash submitted")).toBeTruthy();
-  expect(screen.getByText("₹1,100.00")).toBeTruthy();
+  expect(
+    screen.getByText(/successfully ended the shift for 10 Sep 2026/),
+  ).toBeTruthy();
+  expect(window.print).toHaveBeenCalled();
+  expect(onClose).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole("button", { name: "Start today's shift" }));
+  expect(onStartNewShift).toHaveBeenCalled();
 });
 
 test("treats denomination counts as cash deducted for a refund-only segment", async () => {
   const onConfirm = jest.fn();
+  const onClose = jest.fn();
   render(
     <ShiftEndDialog
       summary={{ ...summary, collectionCount: 0, refundCount: 1 }}
@@ -132,7 +191,7 @@ test("treats denomination counts as cash deducted for a refund-only segment", as
         ],
       }}
       onConfirm={onConfirm}
-      onClose={jest.fn()}
+      onClose={onClose}
     />,
   );
 
@@ -154,5 +213,6 @@ test("treats denomination counts as cash deducted for a refund-only segment", as
   expect(onConfirm).toHaveBeenCalledWith(
     expect.objectContaining({ expectedCash: -120, countedCash: -120 }),
   );
-  expect(await screen.findByText("Shift ended")).toBeTruthy();
+  await waitFor(() => expect(onClose).toHaveBeenCalled());
+  expect(window.print).toHaveBeenCalled();
 });

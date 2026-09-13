@@ -303,7 +303,12 @@ function CollectionTypeTreemap({
   );
 }
 
-export function Dashboard({ transactions = [], onCancelBill }) {
+export function Dashboard({
+  transactions = [],
+  onCancelBill,
+  shiftOpenedAt,
+  shiftClearedAt,
+}) {
   const { collectionModes, todayIso } = useAppData();
   const loading = useFakeLoad();
   const [filters, setFilters] = useState({
@@ -318,6 +323,14 @@ export function Dashboard({ transactions = [], onCancelBill }) {
   const [page, setPage] = useState(1);
   const [txSort, toggleTxSort] = useSort();
   const [cancelTarget, setCancelTarget] = useState(null);
+  // Ticks once a minute so the hourly-collection chart keeps growing live
+  // while the shift is open, without needing a page reload.
+  const [clockNow, setClockNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (shiftClearedAt) return undefined;
+    const id = setInterval(() => setClockNow(Date.now()), 60000);
+    return () => clearInterval(id);
+  }, [shiftClearedAt]);
   const [segmentView, setSegmentView] = useState("category");
   const pageSize = 5;
 
@@ -549,15 +562,33 @@ export function Dashboard({ transactions = [], onCancelBill }) {
     [view, requestTypeKind],
   );
 
+  // Bars only span the hours the counter has actually been open for: they
+  // start at the hour the shift began and, while it's still running, grow
+  // by one every time the clock ticks over into a new hour — then freeze at
+  // the hour it was closed. The row stays the same width throughout (each
+  // bar just shares a smaller slice of it), so the card never resizes.
+  const shiftStartHour = shiftOpenedAt ? new Date(shiftOpenedAt).getHours() : 0;
+  const shiftEndHour = Math.max(
+    shiftStartHour,
+    shiftClearedAt
+      ? new Date(shiftClearedAt).getHours()
+      : new Date(clockNow).getHours(),
+  );
   const hourBuckets = useMemo(() => {
     const rows = view.filter((row) => row.status === "Completed");
-    return Array.from({ length: 24 }, (_, hour) => ({
-      hour,
-      value: rows
-        .filter((r) => r.hour === hour)
-        .reduce((s, r) => s + parseAmount(r.amount), 0),
-    }));
-  }, [view]);
+    return Array.from(
+      { length: shiftEndHour - shiftStartHour + 1 },
+      (_, index) => {
+        const hour = shiftStartHour + index;
+        return {
+          hour,
+          value: rows
+            .filter((r) => r.hour === hour)
+            .reduce((s, r) => s + parseAmount(r.amount), 0),
+        };
+      },
+    );
+  }, [view, shiftStartHour, shiftEndHour]);
 
   const filteredRows = useMemo(
     () => view.filter((row) => compactIdentifier(row.cr).includes(query)),

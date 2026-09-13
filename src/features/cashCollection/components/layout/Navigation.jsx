@@ -9,7 +9,13 @@ const LINKS = [
 // A flat product header: brand on the left, section links in the middle with a
 // sliding underline, End Shift on the right. Not the pill segmented control
 // used for Request / Direct collection.
-function TopNav({ active, onNavigate, onEndShift, shiftEnded = false }) {
+function TopNav({
+  active,
+  onNavigate,
+  onEndShift,
+  onReprint,
+  shiftEnded = false,
+}) {
   const activeIndex = Math.max(
     0,
     LINKS.findIndex(([id]) => id === active),
@@ -41,14 +47,26 @@ function TopNav({ active, onNavigate, onEndShift, shiftEnded = false }) {
             </button>
           ))}
         </nav>
-        <button
-          type="button"
-          className={`button top-nav-end-shift ${shiftEnded ? "is-start-shift" : ""}`}
-          onClick={onEndShift}
-        >
-          <Icon name="power" size={15} />
-          {shiftEnded ? "Start Shift" : "End Shift"}
-        </button>
+        <div className="top-nav-actions">
+          {shiftEnded && (
+            <button
+              type="button"
+              className="button button-soft top-nav-reprint"
+              onClick={onReprint}
+            >
+              <Icon name="print" size={15} />
+              Reprint Receipt
+            </button>
+          )}
+          <button
+            type="button"
+            className={`button top-nav-end-shift ${shiftEnded ? "is-start-shift" : ""}`}
+            onClick={onEndShift}
+          >
+            <Icon name="power" size={15} />
+            {shiftEnded ? "Start Shift" : "End Shift"}
+          </button>
+        </div>
       </div>
     </header>
   );

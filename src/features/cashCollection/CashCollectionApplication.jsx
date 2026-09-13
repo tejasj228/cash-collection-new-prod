@@ -31,6 +31,14 @@ import { Dashboard } from "./pages/DashboardPage";
 import { ShiftEndDialog } from "./components/dashboard/ShiftEndDialog";
 import { ShiftReport } from "./components/dashboard/ShiftReport";
 import { computeShiftSummary } from "./model/shiftSummary";
+import {
+  formatDisplayDate,
+  localDateOf,
+  nowLocalIso,
+  readShiftOpenedAt,
+  todayLocalIso,
+  writeShiftOpenedAt,
+} from "./model/reportDates";
 import { createIdempotencyKey } from "./services/idempotency";
 
 function ShiftClosedState() {
@@ -113,6 +121,18 @@ export default function CashCollectionApplication({
   const [restartShiftBusy, setRestartShiftBusy] = useState(false);
   const [restartShiftError, setRestartShiftError] = useState("");
   const [restartIdempotencyKey, setRestartIdempotencyKey] = useState(null);
+  // Real wall-clock moment the currently-open shift began, persisted so a
+  // shift left open overnight is detected as stale the next time someone
+  // tries to end it, and so the hourly-collection chart knows where its
+  // live range starts — both independent of the prototype's fixed business
+  // date.
+  const [shiftOpenedAt, setShiftOpenedAt] = useState(() => {
+    const stored = readShiftOpenedAt();
+    if (stored) return stored;
+    const now = nowLocalIso();
+    writeShiftOpenedAt(now);
+    return now;
+  });
 
   const dashboardTransactions = useMemo(
     () =>
@@ -128,14 +148,15 @@ export default function CashCollectionApplication({
       ),
     [dashboardTransactions, todayIso],
   );
-  const shiftDateLabel = useMemo(
-    () =>
-      new Date(`${todayIso}T12:00:00`).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }),
-    [todayIso],
+  const shiftDateLabel = useMemo(() => formatDisplayDate(todayIso), [todayIso]);
+  const shiftOpenedOnDate = useMemo(
+    () => localDateOf(shiftOpenedAt),
+    [shiftOpenedAt],
+  );
+  const isStaleShift = shiftOpenedOnDate !== todayLocalIso();
+  const staleShiftDateLabel = useMemo(
+    () => formatDisplayDate(shiftOpenedOnDate),
+    [shiftOpenedOnDate],
   );
 
   const cancelBill = (no) =>
@@ -192,6 +213,11 @@ export default function CashCollectionApplication({
     setRestartIdempotencyKey(createIdempotencyKey());
     setRestartShiftOpen(true);
   };
+  const startNewShiftFromStaleClose = () => {
+    setEndShiftOpen(false);
+    setShiftPreparation(null);
+    requestStartNewShift();
+  };
   const startNewShift = async () => {
     setRestartShiftBusy(true);
     setRestartShiftError("");
@@ -225,6 +251,9 @@ export default function CashCollectionApplication({
           : refreshedData,
       );
       if (!sameBusinessDate) setTxPatches(new Map());
+      const openedAt = nowLocalIso();
+      writeShiftOpenedAt(openedAt);
+      setShiftOpenedAt(openedAt);
       setShiftClearedAt(null);
       setShiftSnapshot(null);
       setRestartShiftOpen(false);
@@ -469,6 +498,7 @@ export default function CashCollectionApplication({
           active={activeNav}
           onNavigate={navigate}
           onEndShift={shiftClearedAt ? requestStartNewShift : openEndShift}
+          onReprint={() => window.print()}
           shiftEnded={Boolean(shiftClearedAt)}
         />
         <div className="app-main">
@@ -477,6 +507,8 @@ export default function CashCollectionApplication({
               <Dashboard
                 transactions={dashboardTransactions}
                 onCancelBill={cancelBill}
+                shiftOpenedAt={shiftOpenedAt}
+                shiftClearedAt={shiftClearedAt}
               />
             ) : shiftClearedAt ? (
               <ShiftClosedState />
@@ -562,7 +594,10 @@ export default function CashCollectionApplication({
             summary={shiftSummaryNow}
             dateLabel={shiftDateLabel}
             preparation={shiftPreparation}
+            isStaleShift={isStaleShift}
+            staleDateLabel={staleShiftDateLabel}
             onConfirm={confirmEndShift}
+            onStartNewShift={startNewShiftFromStaleClose}
             onClose={() => {
               setEndShiftOpen(false);
               setShiftPreparation(null);

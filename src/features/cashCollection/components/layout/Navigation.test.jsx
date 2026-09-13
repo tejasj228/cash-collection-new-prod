@@ -33,4 +33,16 @@ describe("cash collection top nav", () => {
       screen.getByRole("button", { name: /Start Shift/ }).className,
     ).toContain("is-start-shift");
   });
+
+  test("only shows the reprint action once the shift has ended", () => {
+    const { rerender } = render(<TopNav active="collection" />);
+    expect(
+      screen.queryByRole("button", { name: /Reprint Receipt/ }),
+    ).toBeNull();
+
+    const onReprint = jest.fn();
+    rerender(<TopNav active="collection" shiftEnded onReprint={onReprint} />);
+    fireEvent.click(screen.getByRole("button", { name: /Reprint Receipt/ }));
+    expect(onReprint).toHaveBeenCalled();
+  });
 });
