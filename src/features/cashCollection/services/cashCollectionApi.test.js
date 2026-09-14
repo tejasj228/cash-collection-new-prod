@@ -28,6 +28,36 @@ describe("cash collection API adapter", () => {
     expect(options.credentials).toBe("include");
   });
 
+  test("sends the admitted IPD patient search and recent-result limit", async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true, data: [] }),
+    });
+    const api = createCashCollectionApi({
+      apiBaseUrl: "/api/cash-collection",
+      credentials: "include",
+      requestTimeoutMs: 1000,
+    });
+
+    await api.searchPatients({
+      query: "Rajesh, 41207",
+      hospitalServiceId: "ipd",
+      admittedOnly: true,
+      page: 0,
+      size: 10,
+      sort: "admittedOn,desc",
+    });
+
+    const [url] = global.fetch.mock.calls[0];
+    expect(url.pathname).toContain("/patients");
+    expect(url.searchParams.get("query")).toBe("Rajesh, 41207");
+    expect(url.searchParams.get("hospitalServiceId")).toBe("ipd");
+    expect(url.searchParams.get("admittedOnly")).toBe("true");
+    expect(url.searchParams.get("page")).toBe("0");
+    expect(url.searchParams.get("size")).toBe("10");
+    expect(url.searchParams.get("sort")).toBe("admittedOn,desc");
+  });
+
   test("uses the terminal transaction identifier in the polling path", async () => {
     const api = createCashCollectionApi({
       apiBaseUrl: "/api/cash-collection",

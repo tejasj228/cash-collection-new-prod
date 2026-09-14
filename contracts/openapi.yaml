@@ -31,6 +31,16 @@ paths:
         - name: hospitalServiceId
           in: query
           schema: { type: string }
+        - name: admittedOnly
+          in: query
+          description: Limit the result to patients with a currently open admission.
+          schema: { type: boolean }
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/Size" }
+        - name: sort
+          in: query
+          description: Whitelisted sort; the admitted-patient picker uses admittedOn,desc.
+          schema: { type: string }
       responses:
         "200":
           description: Matching patients

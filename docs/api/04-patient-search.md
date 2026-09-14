@@ -1,7 +1,7 @@
 # Patient search
 
 ```http
-GET /api/cash-collection/patients?query=939112600000002&hospitalServiceId=ipd
+GET /api/cash-collection/patients?query=Rajesh%2C88420&hospitalServiceId=ipd&admittedOnly=true&page=0&size=10&sort=admittedOn%2Cdesc
 ```
 
 Powers three things: the Direct Collection **"Find Patient"** CR lookup, the
@@ -10,10 +10,13 @@ patient-search-by-name feature. Same endpoint, different `query` shape.
 
 ## Query parameters
 
-| Param               | Type   | Notes                                                                                                                                                                                                                                                                                |
-| ------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `query`             | string | CR number, mobile, or name fragment. Empty/omitted → return the browsable list for `hospitalServiceId` (used by "Existing Patients").                                                                                                                                                |
-| `hospitalServiceId` | string | One of `opd-normal` \| `opd-special` \| `ipd` \| `emergency`. **Filters by episode type**: `ipd` → only patients with an `IPD` episode; anything else → only `OPD` episodes. This is what makes "Existing Patients" show only admitted IPD patients, never the full hospital census. |
+| Param               | Type    | Notes                                                                                                                                                                                                                                                                                |
+| ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `query`             | string  | CR number, mobile, or name fragment. Multiple details may be comma-separated and must all match the same patient, for example `Rajesh, 88420`, `939112600000001, 41207`, or `Rajesh, 939112600000001, 41207`. Empty/omitted returns the browsable list.                              |
+| `hospitalServiceId` | string  | One of `opd-normal` \| `opd-special` \| `ipd` \| `emergency`. **Filters by episode type**: `ipd` → only patients with an `IPD` episode; anything else → only `OPD` episodes. This is what makes "Existing Patients" show only admitted IPD patients, never the full hospital census. |
+| `admittedOnly`      | boolean | When `true`, return only patients with a currently open admission. The IPD existing-patient picker always sends `true`.                                                                                                                                                              |
+| `page` / `size`     | integer | The picker sends `page=0&size=10`. Search remains server-side across the full admitted-patient set; the response contains at most 10 matches.                                                                                                                                        |
+| `sort`              | string  | Whitelisted sort. The picker sends `admittedOn,desc` so an empty search returns the 10 most recently admitted patients.                                                                                                                                                              |
 
 Require a trimmed minimum query length for name/mobile searches (avoid a
 table scan on 2 characters); permit exact CR/admission/account matches

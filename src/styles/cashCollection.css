@@ -1710,6 +1710,9 @@
   text-align: center;
   font-size: 12px;
 }
+.patient-search-error {
+  color: #a34840;
+}
 .popover-footer {
   display: flex;
   gap: 8.4px;

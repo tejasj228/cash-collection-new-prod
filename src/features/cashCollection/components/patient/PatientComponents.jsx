@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useAppData } from "../../../../app/providers/AppDataProvider";
 import { useEscapeToClose } from "../../../../shared/hooks/useEscapeToClose";
 import { useModalClose } from "../../../../shared/hooks/useModalClose";
@@ -120,29 +120,79 @@ function PatientSearchPopover({
   onClose,
   service,
   listOnly = false,
+  services,
 }) {
   const { closing, requestClose } = useModalClose(onClose);
   useEscapeToClose(requestClose);
   const { patients } = useAppData();
   const [listQuery, setListQuery] = useState("");
+  const [remotePatients, setRemotePatients] = useState(null);
+  const [loadingPatients, setLoadingPatients] = useState(false);
+  const [searchError, setSearchError] = useState("");
   const episodeType = service?.id === "ipd" ? "IPD" : "OPD";
   const activeQuery = listOnly ? listQuery : query;
-  const eligiblePatients = patients.filter((patient) =>
-    String(patient.episode || "")
-      .toUpperCase()
-      .startsWith(episodeType),
+  const eligiblePatients = useMemo(
+    () =>
+      patients.filter((patient) =>
+        String(patient.episode || "")
+          .toUpperCase()
+          .startsWith(episodeType),
+      ),
+    [episodeType, patients],
   );
-  const results = eligiblePatients.filter(
-    (patient) =>
-      !activeQuery ||
-      compactIdentifier(patient.cr).includes(compactIdentifier(activeQuery)),
-  );
+  const results = listOnly
+    ? (remotePatients ?? eligiblePatients).slice(0, 10)
+    : eligiblePatients.filter(
+        (patient) =>
+          !activeQuery ||
+          compactIdentifier(patient.cr).includes(
+            compactIdentifier(activeQuery),
+          ),
+      );
+
+  useEffect(() => {
+    if (!listOnly || typeof services?.searchPatients !== "function") return;
+    let current = true;
+    const timer = window.setTimeout(
+      () => {
+        setLoadingPatients(true);
+        setSearchError("");
+        services
+          .searchPatients({
+            query: listQuery.trim(),
+            hospitalServiceId: service?.id,
+            admittedOnly: true,
+            page: 0,
+            size: 10,
+            sort: "admittedOn,desc",
+          })
+          .then((matches) => {
+            if (current)
+              setRemotePatients(Array.isArray(matches) ? matches : []);
+          })
+          .catch((error) => {
+            if (!current) return;
+            setRemotePatients([]);
+            setSearchError(
+              error?.message || "Admitted patients could not be loaded.",
+            );
+          })
+          .finally(() => {
+            if (current) setLoadingPatients(false);
+          });
+      },
+      listQuery ? 250 : 0,
+    );
+    return () => {
+      current = false;
+      window.clearTimeout(timer);
+    };
+  }, [listOnly, listQuery, service?.id, services]);
+
   const changeQuery = (value) => {
-    const digits = String(value || "")
-      .replace(/\D/g, "")
-      .slice(0, 15);
-    if (listOnly) setListQuery(digits);
-    else onChange(digits);
+    const nextValue = String(value || "");
+    if (listOnly) setListQuery(nextValue.slice(0, 120));
+    else onChange(nextValue.replace(/\D/g, "").slice(0, 15));
   };
   return (
     <div
@@ -170,41 +220,50 @@ function PatientSearchPopover({
           <Icon name="search" size={16} />
           <input
             autoFocus
-            inputMode="numeric"
-            maxLength="15"
+            inputMode={listOnly ? "search" : "numeric"}
+            maxLength={listOnly ? 120 : 15}
             value={activeQuery}
             onChange={(event) => changeQuery(event.target.value)}
             placeholder={
               listOnly
-                ? `Filter ${episodeType} patients by CR No.`
+                ? "Search By CR No., Mobile No. Or Patient Name"
                 : "Enter CR No."
             }
           />
         </div>
         <div className="patient-results">
-          {results.map((patient) => (
-            <button
-              key={patient.id}
-              className="patient-result"
-              onClick={() => onSelect(patient)}
-            >
-              <div className="avatar patient-avatar">
-                {patient.name
-                  .split(" ")
-                  .map((word) => word[0])
-                  .slice(0, 2)
-                  .join("")}
-              </div>
-              <div>
-                <strong>{patient.name}</strong>
-                <span>
-                  CR {compactIdentifier(patient.cr)} · {patient.episode}
-                </span>
-              </div>
-              <Icon name="chevron" size={15} />
-            </button>
-          ))}
-          {!results.length && (
+          {!loadingPatients &&
+            !searchError &&
+            results.map((patient) => (
+              <button
+                key={patient.id}
+                className="patient-result"
+                onClick={() => onSelect(patient)}
+              >
+                <div className="avatar patient-avatar">
+                  {patient.name
+                    .split(" ")
+                    .map((word) => word[0])
+                    .slice(0, 2)
+                    .join("")}
+                </div>
+                <div>
+                  <strong>{patient.name}</strong>
+                  <span>
+                    CR {compactIdentifier(patient.cr)} · {patient.mobile} ·{" "}
+                    {patient.episode}
+                  </span>
+                </div>
+                <Icon name="chevron" size={15} />
+              </button>
+            ))}
+          {loadingPatients && (
+            <div className="no-results">Searching admitted patients…</div>
+          )}
+          {!loadingPatients && searchError && (
+            <div className="no-results patient-search-error">{searchError}</div>
+          )}
+          {!loadingPatients && !searchError && !results.length && (
             <div className="no-results">
               No matching {episodeType} patient found.
             </div>
@@ -212,8 +271,11 @@ function PatientSearchPopover({
         </div>
         <div className="popover-footer">
           <Icon name="info" size={14} />
-          Showing only existing {episodeType} patients for{" "}
-          {service?.label || "this service"}.
+          {listOnly
+            ? activeQuery
+              ? "Showing up to 10 matching admitted IPD patients. Separate multiple details with commas."
+              : "Showing the 10 most recently admitted IPD patients. Search to find anyone else."
+            : `Showing only existing ${episodeType} patients for ${service?.label || "this service"}.`}
         </div>
       </div>
     </div>
@@ -453,6 +515,7 @@ function DirectSetup({
           onChange={changeCr}
           service={service}
           listOnly={patientPopup === "existing"}
+          services={services}
           onSelect={(patient) => {
             setSelectedPatient(patient);
             setCrQuery(compactIdentifier(patient.cr));

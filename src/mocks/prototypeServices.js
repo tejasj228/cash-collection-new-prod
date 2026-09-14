@@ -148,6 +148,21 @@ const withLatency = (value, ms = PROTOTYPE_LATENCY_MS) =>
     window.setTimeout(() => resolve(value), ms);
   });
 
+const admissionTime = (value) => {
+  const match = String(value || "").match(
+    /^(\d{2})\/(\d{2})\/(\d{4})(?:\s*[·-]\s*(\d{2}):(\d{2}))?/,
+  );
+  if (!match) return 0;
+  const [, day, month, year, hour = "00", minute = "00"] = match;
+  return Date.UTC(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour),
+    Number(minute),
+  );
+};
+
 /** Browser-only adapters used by the standalone design review build. */
 export function createPrototypeServices({ now = () => Date.now() } = {}) {
   let pendingRequests = [...PROTOTYPE_DATA.requests];
@@ -180,13 +195,40 @@ export function createPrototypeServices({ now = () => Date.now() } = {}) {
         },
       });
     },
-    async searchPatients(query) {
-      const term = String(query || "").toLowerCase();
-      return withLatency(
-        PROTOTYPE_DATA.patients.filter((row) =>
-          `${row.name} ${row.cr} ${row.mobile}`.toLowerCase().includes(term),
-        ),
-      );
+    async searchPatients(input) {
+      const options = typeof input === "object" ? input : { query: input };
+      const terms = String(options.query || "")
+        .split(",")
+        .map((term) => term.trim().toLowerCase())
+        .filter(Boolean);
+      const normalize = (value) =>
+        String(value || "")
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "");
+      const matchesTerm = (row, term) => {
+        const fields = [row.name, row.cr, row.mobile].map(normalize);
+        return term
+          .split(/\s+/)
+          .map(normalize)
+          .filter(Boolean)
+          .every((token) => fields.some((field) => field.includes(token)));
+      };
+      const episodeType = options.hospitalServiceId === "ipd" ? "IPD" : "OPD";
+      const size = Math.max(1, Math.min(Number(options.size) || 10, 100));
+      const matches = PROTOTYPE_DATA.patients
+        .filter(
+          (row) =>
+            String(row.episode || "")
+              .toUpperCase()
+              .startsWith(episodeType) &&
+            (!options.admittedOnly || row.status === "Admitted") &&
+            terms.every((term) => matchesTerm(row, term)),
+        )
+        .sort(
+          (left, right) =>
+            admissionTime(right.admittedOn) - admissionTime(left.admittedOn),
+        );
+      return withLatency(matches.slice(0, size));
     },
     async listPendingRequests({
       page = 0,

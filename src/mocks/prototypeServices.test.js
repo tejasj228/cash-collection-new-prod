@@ -128,3 +128,51 @@ test("dashboard and end shift use the same unfiltered cash-only net", async () =
 
   jest.useRealTimers();
 });
+
+test("IPD patient browse returns only the 10 most recent admitted patients", async () => {
+  jest.useFakeTimers();
+  const services = createPrototypeServices();
+
+  const patients = await resolveAfterPrototypeLatency(
+    services.searchPatients({
+      query: "",
+      hospitalServiceId: "ipd",
+      admittedOnly: true,
+      page: 0,
+      size: 10,
+      sort: "admittedOn,desc",
+    }),
+  );
+
+  expect(patients).toHaveLength(10);
+  expect(
+    patients.every(
+      (patient) =>
+        patient.status === "Admitted" && patient.episode.startsWith("IPD"),
+    ),
+  ).toBe(true);
+  expect(patients[0].name).toBe("Rajesh Kumar Mehta");
+
+  jest.useRealTimers();
+});
+
+test("IPD patient search combines comma-separated name, CR and mobile details", async () => {
+  jest.useFakeTimers();
+  const services = createPrototypeServices();
+  const expected = PROTOTYPE_DATA.patients.find(
+    (patient) => patient.name === "Rajesh Kumar Mehta",
+  );
+
+  const patients = await resolveAfterPrototypeLatency(
+    services.searchPatients({
+      query: `Rajesh, ${expected.cr}, 41207`,
+      hospitalServiceId: "ipd",
+      admittedOnly: true,
+      size: 10,
+    }),
+  );
+
+  expect(patients).toEqual([expected]);
+
+  jest.useRealTimers();
+});
