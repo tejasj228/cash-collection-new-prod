@@ -46,7 +46,7 @@ export function createHttpClient({
             code: error.code,
             status: response.status,
             fieldErrors: error.fieldErrors,
-            requestId: envelope?.requestId,
+            requestId: envelope?.trace_id,
           },
         );
       }

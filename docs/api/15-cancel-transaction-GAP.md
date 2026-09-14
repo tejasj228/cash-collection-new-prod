@@ -12,19 +12,19 @@ file proposes the endpoint needed to make the button real.
 ## Proposed endpoint
 
 ```http
-POST /api/cash-collection/transactions/{no}/cancel
+POST /api/cash-collection/transactions/{transaction_no}/cancel
 ```
 
-`no` is the transaction's `no` (bill number) from
+`transaction_no` is the transaction's `transaction_no` (bill number) from
 [`GET /transactions`](./10-transactions-list.md).
 
 ### Request body
 
-| Field            | Type             | Notes                                                                                                                                         |
-| ---------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `version`        | string           | If you add a concurrency version to transaction rows (recommended), require it here to prevent cancelling a transaction that already changed. |
-| `reason`         | string, optional | Free-text reason, for audit.                                                                                                                  |
-| `idempotencyKey` | string           | Same pattern as posting — a cancel is also a financial-ledger write.                                                                          |
+| Field                       | Type             | Notes                                                                                                                                         |
+| --------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `transaction_version`       | string           | If you add a concurrency version to transaction rows (recommended), require it here to prevent cancelling a transaction that already changed. |
+| `transaction_cancel_reason` | string, optional | Free-text reason, for audit.                                                                                                                  |
+| `idempotency_key`           | string           | Same pattern as posting — a cancel is also a financial-ledger write.                                                                          |
 
 ### What the backend must actually do
 
@@ -37,8 +37,8 @@ domain owner whether "Cancel bill" should:
 - record it as a distinct `Cancelled` state that still appears in reports
   with a zeroed net effect.
 
-Whichever is chosen, `kpis.cashInDrawer` (§[`dashboard.md`](./11-dashboard.md))
-and the shift-close `expectedCash` (§[`shift-close-preparation.md`](./12-shift-close-preparation.md))
+Whichever is chosen, `dashboard_kpis.cash_in_drawer_amount` (§[`dashboard.md`](./11-dashboard.md))
+and the shift-close `expected_cash_amount` (§[`shift-close-preparation.md`](./12-shift-close-preparation.md))
 must reflect it consistently — a cancelled cash bill should no longer count
 toward the drawer total the same shift reconciles against.
 
@@ -47,11 +47,11 @@ toward the drawer total the same shift reconciles against.
 ```json
 {
   "success": true,
-  "requestId": "trace-1401",
+  "trace_id": "trace-1401",
   "data": {
-    "no": "REC-2026-088241",
-    "status": "Cancelled",
-    "cancelledAt": "2026-09-13T11:02:00+05:30"
+    "transaction_no": "REC-2026-088241",
+    "transaction_status": "Cancelled",
+    "transaction_cancelled_at": "2026-09-13T11:02:00+05:30"
   }
 }
 ```

@@ -18,10 +18,10 @@ This file proposes the endpoint needed to make **(1)** real.
 ## Proposed endpoint
 
 ```http
-GET /api/cash-collection/transactions/{no}/printable
+GET /api/cash-collection/transactions/{transaction_no}/printable
 ```
 
-`no` is the transaction's `no` (bill number).
+`transaction_no` is the transaction's bill number.
 
 ### Why a fetch, not just re-rendering local data
 
@@ -29,34 +29,42 @@ GET /api/cash-collection/transactions/{no}/printable
 amount, mode, status) — they don't carry the original tariff line items,
 discount breakdown, or exact payment summary needed to reproduce the
 original printed receipt. Reprinting must pull the **original persisted
-`printableData`** snapshot from when the transaction was posted (see
-[`post-transaction.md`](./09-post-transaction.md#printabledata)) — never
+`printable_data`** snapshot from when the transaction was posted (see
+[`post-transaction.md`](./09-post-transaction.md#printable_data)) — never
 recompute it from current (possibly since-changed) tariff/patient data.
 
 ### Proposed response
 
-Identical shape to `postTransaction`'s `printableData`:
+Identical shape to `postTransaction`'s `printable_data`:
 
 ```json
 {
   "success": true,
-  "requestId": "trace-1501",
+  "trace_id": "trace-1501",
   "data": {
-    "documentNumber": "REC-2026-088241",
-    "documentType": "Receipt",
-    "documentDate": "13/09/2026",
-    "patient": { "id": "4", "name": "Ajay Deshmukh", "cr": "939112600000004" },
-    "lines": [
+    "transaction_document_no": "REC-2026-088241",
+    "transaction_document_type": "Receipt",
+    "transaction_document_date": "13/09/2026",
+    "patient_details": {
+      "pat_id": "4",
+      "pat_name": "Ajay Deshmukh",
+      "cr_num": "939112600000004"
+    },
+    "tariff_lines": [
       {
-        "code": "CONS-118",
-        "name": "Consultation — General Medicine",
-        "rate": 300,
-        "qty": 1,
-        "discount": 0
+        "tariff_code": "CONS-118",
+        "tariff_name": "Consultation — General Medicine",
+        "tariff_rate": 300,
+        "tariff_qty": 1,
+        "tariff_discount_percent": 0
       }
     ],
-    "payment": { "mode": "Cash", "summary": "Cash" },
-    "totals": { "gross": "300.00", "discount": "0.00", "net": "300.00" }
+    "payment_details": { "payment_mode": "Cash", "payment_summary": "Cash" },
+    "transaction_totals": {
+      "gross_amount": "300.00",
+      "discount_amount": "0.00",
+      "net_amount": "300.00"
+    }
   }
 }
 ```

@@ -17,114 +17,106 @@ anything is written.
 
 ## Request body
 
-| Field                        | Type             | Notes                                                                                                                                                                                       |
-| ---------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `source`                     | string           | `"request"` \| `"direct"`.                                                                                                                                                                  |
-| `requestId`                  | string, nullable | Present only when `source: "request"`.                                                                                                                                                      |
-| `requestVersion`             | string, nullable |                                                                                                                                                                                             |
-| `requestType`                | string           | `"Receipt"` \| `"Refund"` \| `"Estimation"`.                                                                                                                                                |
-| `billingServiceId`           | string           | The chosen option's `id`.                                                                                                                                                                   |
-| `billingServiceName`         | string           | The chosen option's `label` (e.g. `"Bill Settlement"`) — used by the dashboard's billing-service tagging, see below.                                                                        |
-| `processingBillingServiceId` | string           | The chosen option's `processingServiceId`. The server **re-resolves and verifies** this — never dispatches on the client's copy.                                                            |
-| `workflowId`                 | string           | The chosen option's `uiFamily`.                                                                                                                                                             |
-| `legacyMode`                 | string           | The chosen option's `legacyMode`. Documentary only — the server decides the real dispatch.                                                                                                  |
-| `hospitalServiceId`          | string           | `opd-normal` \| `opd-special` \| `ipd` \| `emergency`.                                                                                                                                      |
-| `chargeTypeId`               | string           | The service's `legacyChargeTypeId`.                                                                                                                                                         |
-| `patientId`                  | string, nullable |                                                                                                                                                                                             |
-| `crNumber`                   | string, nullable |                                                                                                                                                                                             |
-| `patientContextVersion`      | string           | Must match the version [`checkEligibility`](./07-eligibility.md) returned — reject a stale one.                                                                                             |
-| `workflowFields`             | object           | The department/episode/category/ward/room IDs picked from `workflowContext` — every value must be one the eligibility response actually offered.                                            |
-| `lines`                      | array            | `[{ code, name, group, rate, qty, discount, selected }]` — only rows with `selected: true` are billed. Recompute gross/discount/net server-side per line; never trust the client's numbers. |
-| `displayedTotal`             | string decimal   | What the UI showed the clerk. Compare against your own recomputation; mismatch → `409 AMOUNT_CHANGED`.                                                                                      |
-| `payment`                    | object           | See below.                                                                                                                                                                                  |
-| `idempotencyKey`             | string           | Also sent as the `Idempotency-Key` header — claim it before the financial write.                                                                                                            |
+| Field                           | Type             | Notes                                                                                                                                                                                    |
+| ------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `collection_source`             | string           | `"request"` \| `"direct"`.                                                                                                                                                               |
+| `req_id`                        | string, nullable | Present only when `collection_source: "request"`.                                                                                                                                        |
+| `req_version`                   | string, nullable |                                                                                                                                                                                          |
+| `request_type`                  | string           | `"Receipt"` \| `"Refund"` \| `"Estimation"`.                                                                                                                                             |
+| `processing_billing_service_id` | string           | The chosen option's `processing_billing_service_id`. The server **re-resolves and verifies** this — never dispatches on the client's copy.                                               |
+| `workflow_id`                   | string           | The chosen option's `workflow_family`.                                                                                                                                                   |
+| `pat_id`                        | string, nullable |                                                                                                                                                                                          |
+| `pat_context_version`           | string           | Must match the version [`checkEligibility`](./07-eligibility.md) returned — reject a stale one.                                                                                          |
+| `workflow_fields`               | object           | The department/episode/category/ward/room IDs picked from `workflow_context` — every value must be one the eligibility response actually offered.                                        |
+| `tariff_lines`                  | array            | `[{ tariff_code, tariff_name, tariff_rate, tariff_qty, tariff_discount_percent, tariff_source }]` — recompute gross/discount/net server-side per line; never trust the client's numbers. |
+| `transaction_total`             | string decimal   | What the UI showed the clerk. Compare against your own recomputation; mismatch → `409 AMOUNT_CHANGED`.                                                                                   |
+| `payment_details`               | object           | See below.                                                                                                                                                                               |
+| `idempotency_key`               | string           | Also sent as the `Idempotency-Key` header — claim it before the financial write.                                                                                                         |
 
-### `payment`
+### `payment_details`
 
-| Field              | Type                                              | Notes                                                                                                                                                                                            |
-| ------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `mode`             | string                                            | `"Cash"` \| `"Card"` \| `"UPI"` \| `"Cheque"`.                                                                                                                                                   |
-| `description`      | string                                            | Free-text note (required for Cheque).                                                                                                                                                            |
-| `summary`          | string                                            | Human-readable one-liner, printed on the receipt — e.g. `"Debit Card ending 4821 · T1 · Approval 024-088501"`. Treat as **display text only**; validate the structured fields it was built from. |
-| `cardType`         | string, present for Card                          |                                                                                                                                                                                                  |
-| `terminalId`       | string, present for Card/UPI                      |                                                                                                                                                                                                  |
-| `terminalApproval` | object, present for a successful terminal payment | The full [terminal-payment status response](./08-terminal-payments.md) — verify it belongs to this counter/terminal/amount and hasn't already been consumed.                                     |
-| `manualDetails`    | object, present for a manual fallback             | `{ bankName, reference, cardLastFour, transactionDate, cardType, summary }` — validate every field server-side; this is a verified fallback, not a free-text bypass.                             |
+| Field                    | Type                                              | Notes                                                                                                                                                                                            |
+| ------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `payment_mode`           | string                                            | `"Cash"` \| `"Card"` \| `"UPI"` \| `"Cheque"`.                                                                                                                                                   |
+| `payment_description`    | string                                            | Free-text note (required for Cheque).                                                                                                                                                            |
+| `payment_summary`        | string                                            | Human-readable one-liner, printed on the receipt — e.g. `"Debit Card ending 4821 · T1 · Approval 024-088501"`. Treat as **display text only**; validate the structured fields it was built from. |
+| `card_type`              | string, present for Card                          |                                                                                                                                                                                                  |
+| `pos_terminal_id`        | string, present for Card/UPI                      |                                                                                                                                                                                                  |
+| `terminal_payment`       | object, present for a successful terminal payment | The full [terminal-payment status response](./08-terminal-payments.md) — verify it belongs to this counter/terminal/amount and hasn't already been consumed.                                     |
+| `manual_payment_details` | object, present for a manual fallback             | `{ bank_name, payment_reference, card_last_four, transaction_date, card_type, payment_summary }` — validate every field server-side; this is a verified fallback, not a free-text bypass.        |
 
 ### Example — Cash receipt
 
 ```json
 {
-  "source": "request",
-  "requestId": "BIL-2024-1200",
-  "requestVersion": "1",
-  "requestType": "Receipt",
-  "billingServiceId": "10",
-  "billingServiceName": "Service",
-  "processingBillingServiceId": "10",
-  "workflowId": "tariff-entry",
-  "legacyMode": "OFFRECSER",
-  "hospitalServiceId": "opd-normal",
-  "chargeTypeId": "1",
-  "patientId": "4",
-  "crNumber": "939112600000004",
-  "patientContextVersion": "patient-4-v1",
-  "workflowFields": {},
-  "lines": [
+  "collection_source": "request",
+  "req_id": "BIL-2024-1200",
+  "req_version": "1",
+  "request_type": "Receipt",
+  "processing_billing_service_id": "10",
+  "workflow_id": "tariff-entry",
+  "pat_id": "4",
+  "pat_context_version": "patient-4-v1",
+  "workflow_fields": {},
+  "tariff_lines": [
     {
-      "code": "CONS-118",
-      "name": "Consultation — General Medicine",
-      "group": "Consultation",
-      "rate": 300,
-      "qty": 1,
-      "discount": 0,
-      "selected": true
+      "tariff_code": "CONS-118",
+      "tariff_name": "Consultation — General Medicine",
+      "tariff_group_name": "Consultation",
+      "tariff_rate": 300,
+      "tariff_qty": 1,
+      "tariff_discount_percent": 0,
+      "tariff_source": "request"
     },
     {
-      "code": "INV-3312",
-      "name": "ECG — 12 lead",
-      "group": "Investigation",
-      "rate": 180,
-      "qty": 1,
-      "discount": 0,
-      "selected": true
+      "tariff_code": "INV-3312",
+      "tariff_name": "ECG — 12 lead",
+      "tariff_group_name": "Investigation",
+      "tariff_rate": 180,
+      "tariff_qty": 1,
+      "tariff_discount_percent": 0,
+      "tariff_source": "request"
     }
   ],
-  "displayedTotal": "480.00",
-  "payment": { "mode": "Cash", "description": "", "summary": "Cash" },
-  "idempotencyKey": "a1b2c3d4-0000-4000-8000-000000000000"
+  "transaction_total": "480.00",
+  "payment_details": {
+    "payment_mode": "Cash",
+    "payment_description": "",
+    "payment_summary": "Cash"
+  },
+  "idempotency_key": "a1b2c3d4-0000-4000-8000-000000000000"
 }
 ```
 
 ## Response — success
 
-| Field                  | Type             | Notes                                                                                                                                           |
-| ---------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `documentNumber`       | string           | The authoritative receipt/refund/estimate number (e.g. `"REC-2026-088241"`, `"REF-…"`, `"EST-…"`). The frontend refuses to proceed without one. |
-| `status`               | string           | `"Completed"` for Receipt, or your equivalent for Refund/Estimation.                                                                            |
-| `resolvedRequestId`    | string, nullable | Echo the source request's ID so the frontend can remove it from the in-memory queue immediately.                                                |
-| `printableData`        | object           | **Required, complete.** The frontend builds the printed receipt from this and nothing else.                                                     |
-| `dashboardTransaction` | object, nullable | The row to prepend to the in-memory transactions list (omit/`null` for Estimation, which never posts a ledger row). Shape below.                |
+| Field                       | Type             | Notes                                                                                                                                           |
+| --------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `transaction_document_no`   | string           | The authoritative receipt/refund/estimate number (e.g. `"REC-2026-088241"`, `"REF-…"`, `"EST-…"`). The frontend refuses to proceed without one. |
+| `transaction_status`        | string           | `"Completed"` for Receipt, or your equivalent for Refund/Estimation.                                                                            |
+| `resolved_req_id`           | string, nullable | Echo the source request's ID so the frontend can remove it from the in-memory queue immediately.                                                |
+| `printable_data`            | object           | **Required, complete.** The frontend builds the printed receipt from this and nothing else.                                                     |
+| `dashboard_transaction_row` | object, nullable | The row to prepend to the in-memory transactions list (omit/`null` for Estimation, which never posts a ledger row). Shape below.                |
 
-### `printableData`
+### `printable_data`
 
-| Field             | Type           | Notes                                               |
-| ----------------- | -------------- | --------------------------------------------------- |
-| `documentType`    | string         | Echo `requestType`.                                 |
-| `documentDate`    | string         | `DD/MM/YYYY`.                                       |
-| `patient`         | object         | The full patient object, for the receipt header.    |
-| `lines`           | array          | The final, server-recomputed charge lines.          |
-| `payment`         | object         | Echo of the request's `payment`.                    |
-| `totals.gross`    | string decimal |                                                     |
-| `totals.discount` | string decimal |                                                     |
-| `totals.net`      | string decimal | Must equal `documentNumber`'s actual posted amount. |
+| Field                                | Type           | Notes                                                        |
+| ------------------------------------ | -------------- | ------------------------------------------------------------ |
+| `transaction_document_type`          | string         | Echo `request_type`.                                         |
+| `transaction_document_date`          | string         | `DD/MM/YYYY`.                                                |
+| `patient_details`                    | object         | The full patient object, for the receipt header.             |
+| `tariff_lines`                       | array          | The final, server-recomputed charge lines.                   |
+| `payment_details`                    | object         | Echo of the request's `payment_details`.                     |
+| `transaction_totals.gross_amount`    | string decimal |                                                              |
+| `transaction_totals.discount_amount` | string decimal |                                                              |
+| `transaction_totals.net_amount`      | string decimal | Must equal `transaction_document_no`'s actual posted amount. |
 
-### `dashboardTransaction` — the row that feeds every dashboard chart
+### `dashboard_transaction_row` — the row that feeds every dashboard chart
 
 This is the same row shape as [`GET /transactions`](./10-transactions-list.md#response-fields)
-— **including** `hospitalService` and `billingService`, which is how the
+— **including** `hospital_service_name` and `billing_service_name`, which is how the
 dashboard's OPD/IPD/Emergency billing-service treemap gets its data. Derive
-them from `hospitalServiceId`/`billingServiceName` using the same mapping
+them from `hospital_service_id`/`billing_service_name` using the same mapping
 tables as `src/contracts/cashCollection.contract.js`'s
 `HOSPITAL_SERVICE_FAMILY` and `BILLING_SERVICE_BUCKET`:
 
@@ -139,53 +131,57 @@ BILLING_SERVICE_BUCKET  = { "Service": "Service", "Package": "Service", "Advance
 ```json
 {
   "success": true,
-  "requestId": "trace-801",
+  "trace_id": "trace-801",
   "data": {
-    "documentNumber": "REC-2026-088241",
-    "status": "Completed",
-    "resolvedRequestId": "BIL-2024-1200",
-    "dashboardTransaction": {
-      "no": "REC-2026-088241",
-      "patient": "Ajay Deshmukh",
-      "cr": "939112600000004",
-      "dateIso": "2026-09-13",
-      "time": "10:38 AM",
-      "mode": "Cash",
-      "amount": "480.00",
-      "status": "Completed",
-      "department": "Cardiology",
-      "category": "General",
-      "requestType": "OPD Service",
-      "hospitalService": "OPD",
-      "billingService": "Service"
+    "transaction_document_no": "REC-2026-088241",
+    "transaction_status": "Completed",
+    "resolved_req_id": "BIL-2024-1200",
+    "dashboard_transaction_row": {
+      "transaction_no": "REC-2026-088241",
+      "pat_name": "Ajay Deshmukh",
+      "cr_num": "939112600000004",
+      "transaction_date_iso": "2026-09-13",
+      "transaction_time": "10:38 AM",
+      "payment_mode": "Cash",
+      "transaction_amount": "480.00",
+      "transaction_status": "Completed",
+      "department_name": "Cardiology",
+      "category_name": "General",
+      "req_charge_type": "OPD Service",
+      "hospital_service_name": "OPD",
+      "billing_service_name": "Service"
     },
-    "printableData": {
-      "documentType": "Receipt",
-      "documentDate": "13/09/2026",
-      "patient": {
-        "id": "4",
-        "name": "Ajay Deshmukh",
-        "cr": "939112600000004",
-        "episode": "IPD / Cardiology"
+    "printable_data": {
+      "transaction_document_type": "Receipt",
+      "transaction_document_date": "13/09/2026",
+      "patient_details": {
+        "pat_id": "4",
+        "pat_name": "Ajay Deshmukh",
+        "cr_num": "939112600000004",
+        "episode_name": "IPD / Cardiology"
       },
-      "lines": [
+      "tariff_lines": [
         {
-          "code": "CONS-118",
-          "name": "Consultation — General Medicine",
-          "rate": 300,
-          "qty": 1,
-          "discount": 0
+          "tariff_code": "CONS-118",
+          "tariff_name": "Consultation — General Medicine",
+          "tariff_rate": 300,
+          "tariff_qty": 1,
+          "tariff_discount_percent": 0
         },
         {
-          "code": "INV-3312",
-          "name": "ECG — 12 lead",
-          "rate": 180,
-          "qty": 1,
-          "discount": 0
+          "tariff_code": "INV-3312",
+          "tariff_name": "ECG — 12 lead",
+          "tariff_rate": 180,
+          "tariff_qty": 1,
+          "tariff_discount_percent": 0
         }
       ],
-      "payment": { "mode": "Cash", "summary": "Cash" },
-      "totals": { "gross": "480.00", "discount": "0.00", "net": "480.00" }
+      "payment_details": { "payment_mode": "Cash", "payment_summary": "Cash" },
+      "transaction_totals": {
+        "gross_amount": "480.00",
+        "discount_amount": "0.00",
+        "net_amount": "480.00"
+      }
     }
   }
 }
@@ -199,7 +195,7 @@ error this time (posting is a write, not a query):
 ```json
 {
   "success": false,
-  "requestId": "trace-802",
+  "trace_id": "trace-802",
   "error": {
     "code": "AMOUNT_CHANGED",
     "message": "The settlement total changed. Reload and try again.",

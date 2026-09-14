@@ -1,7 +1,7 @@
 # Payment options
 
 ```http
-GET /api/cash-collection/payment-options?patientCategory=General%20—%20CGHS
+GET /api/cash-collection/payment-options?pat_id=4&category_name=General%20—%20CGHS&hospital_service_id=ipd&billing_service_id=35
 ```
 
 Populates the Payment Mode / Card Type / POS Terminal dropdowns on the
@@ -10,18 +10,21 @@ the current patient's category.
 
 ## Query parameters
 
-| Param             | Type   | Notes                                                                                                                                                                                                                                                     |
-| ----------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `patientCategory` | string | Optional context — lets the server pre-filter `restrictionsByCategory` for just this patient rather than shipping the whole table. The frontend today calls this with no context and applies `restrictionsByCategory` client-side; either approach works. |
+| Param                 | Type   | Notes                                                                                                                                                                                                                                                                         |
+| --------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pat_id`              | string | Optional patient context.                                                                                                                                                                                                                                                     |
+| `category_name`       | string | Optional context — lets the server pre-filter `payment_restrictions_by_category` for just this patient rather than shipping the whole table. The frontend today calls this with no context and applies `payment_restrictions_by_category` client-side; either approach works. |
+| `hospital_service_id` | string | Optional selected hospital-service context.                                                                                                                                                                                                                                   |
+| `billing_service_id`  | string | Optional selected billing-service context.                                                                                                                                                                                                                                    |
 
 ## Response fields
 
-| Field                    | Type             | Notes                                                                                                                                                                                                                |
-| ------------------------ | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `modes`                  | array of strings | All modes this counter can offer, e.g. `["Cash", "Card", "UPI", "Cheque"]`.                                                                                                                                          |
-| `cardTypes`              | array of strings | e.g. `["Debit Card", "Credit Card"]`.                                                                                                                                                                                |
-| `posTerminals`           | array of strings | Terminal IDs available to **this counter specifically** — never return terminals belonging to a different counter.                                                                                                   |
-| `restrictionsByCategory` | object           | Keyed by a **substring match** against the patient's `category` field (e.g. key `"CGHS"` matches a patient whose category is `"General — CGHS"`). Value is `{ [mode]: "reason shown next to the disabled option" }`. |
+| Field                              | Type             | Notes                                                                                                                                                                                                       |
+| ---------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `payment_modes`                    | array of strings | All modes this counter can offer, e.g. `["Cash", "Card", "UPI", "Cheque"]`.                                                                                                                                 |
+| `payment_card_types`               | array of strings | e.g. `["Debit Card", "Credit Card"]`.                                                                                                                                                                       |
+| `payment_pos_terminals`            | array of strings | Terminal IDs available to **this counter specifically** — never return terminals belonging to a different counter.                                                                                          |
+| `payment_restrictions_by_category` | object           | Keyed by a **substring match** against the patient's `category_name` field (e.g. key `"CGHS"` matches a patient whose category is `"General — CGHS"`). Values hold named payment-mode restriction messages. |
 
 The server must enforce every one of these restrictions again at posting
 time even though the UI already disabled the choice — see
@@ -32,12 +35,12 @@ time even though the UI already disabled the choice — see
 ```json
 {
   "success": true,
-  "requestId": "trace-501",
+  "trace_id": "trace-501",
   "data": {
-    "modes": ["Cash", "Card", "UPI", "Cheque"],
-    "cardTypes": ["Debit Card", "Credit Card"],
-    "posTerminals": ["T1", "T2", "T3"],
-    "restrictionsByCategory": {
+    "payment_modes": ["Cash", "Card", "UPI", "Cheque"],
+    "payment_card_types": ["Debit Card", "Credit Card"],
+    "payment_pos_terminals": ["T1", "T2", "T3"],
+    "payment_restrictions_by_category": {
       "CGHS": { "Cheque": "not permitted for the CGHS category" }
     }
   }

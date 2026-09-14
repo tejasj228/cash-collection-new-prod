@@ -16,77 +16,77 @@ file only documents the wire shape, not the business rules.
 
 ## Request body
 
-| Field                        | Type             | Notes                                                                                                                                                                                    |
-| ---------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `source`                     | string           | `"request"` \| `"direct"`.                                                                                                                                                               |
-| `requestId`                  | string, nullable | Present only when `source: "request"`.                                                                                                                                                   |
-| `requestVersion`             | string, nullable | The request's `version`, for staleness detection.                                                                                                                                        |
-| `requestType`                | string           | `"Receipt"` \| `"Refund"` \| `"Estimation"`.                                                                                                                                             |
-| `patientId`                  | string           |                                                                                                                                                                                          |
-| `crNumber`                   | string           |                                                                                                                                                                                          |
-| `hospitalServiceId`          | string           | `opd-normal` \| `opd-special` \| `ipd` \| `emergency`.                                                                                                                                   |
-| `chargeTypeId`               | string           | The service's `legacyChargeTypeId` (`"1"`–`"4"`).                                                                                                                                        |
-| `billingServiceId`           | string           | The chosen billing option's `id` from `billingByService`.                                                                                                                                |
-| `processingBillingServiceId` | string           | That option's `processingServiceId` — sent back so the server can verify the client isn't out of sync, but the server always **re-resolves** this itself; never trust the client's copy. |
-| `workflowId`                 | string           | That option's `uiFamily`.                                                                                                                                                                |
+| Field                           | Type             | Notes                                                                                                                                                                                              |
+| ------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `collection_source`             | string           | `"request"` \| `"direct"`.                                                                                                                                                                         |
+| `req_id`                        | string, nullable | Present only when `collection_source: "request"`.                                                                                                                                                  |
+| `req_version`                   | string, nullable | The request's `req_version`, for staleness detection.                                                                                                                                              |
+| `request_type`                  | string           | `"Receipt"` \| `"Refund"` \| `"Estimation"`.                                                                                                                                                       |
+| `pat_id`                        | string           |                                                                                                                                                                                                    |
+| `cr_num`                        | string           |                                                                                                                                                                                                    |
+| `hospital_service_id`           | string           | `opd-normal` \| `opd-special` \| `ipd` \| `emergency`.                                                                                                                                             |
+| `charge_type_id`                | string           | The service's `legacyChargeTypeId` (`"1"`–`"4"`).                                                                                                                                                  |
+| `billing_service_id`            | string           | The chosen billing option's `billing_service_id` from `billing_services_by_hospital_service`.                                                                                                      |
+| `processing_billing_service_id` | string           | That option's `processing_billing_service_id` — sent back so the server can verify the client isn't out of sync, but the server always **re-resolves** this itself; never trust the client's copy. |
+| `workflow_id`                   | string           | That option's `workflow_family`.                                                                                                                                                                   |
 
 ```json
 {
-  "source": "direct",
-  "requestId": null,
-  "requestVersion": null,
-  "requestType": "Receipt",
-  "patientId": "1",
-  "crNumber": "939112600000001",
-  "hospitalServiceId": "ipd",
-  "chargeTypeId": "2",
-  "billingServiceId": "35",
-  "processingBillingServiceId": "21",
-  "workflowId": "bill-settlement"
+  "collection_source": "direct",
+  "req_id": null,
+  "req_version": null,
+  "request_type": "Receipt",
+  "pat_id": "1",
+  "cr_num": "939112600000001",
+  "hospital_service_id": "ipd",
+  "charge_type_id": "2",
+  "billing_service_id": "35",
+  "processing_billing_service_id": "21",
+  "workflow_id": "bill-settlement"
 }
 ```
 
 ## Response — eligible
 
-| Field                   | Type    | Notes                                                                                                                                                                      |
-| ----------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `eligible`              | boolean | `true`.                                                                                                                                                                    |
-| `code`                  | string  | `"ELIGIBLE"`.                                                                                                                                                              |
-| `patientContextVersion` | string  | Opaque. Every `workflowFields` value the browser later posts must trace back to a `workflowContext` returned under this same version — reject a stale one at posting time. |
-| `workflowContext`       | object  | See below.                                                                                                                                                                 |
+| Field                 | Type    | Notes                                                                                                                                                                        |
+| --------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `is_eligible`         | boolean | `true`.                                                                                                                                                                      |
+| `eligibility_code`    | string  | `"ELIGIBLE"`.                                                                                                                                                                |
+| `pat_context_version` | string  | Opaque. Every `workflow_fields` value the browser later posts must trace back to a `workflow_context` returned under this same version — reject a stale one at posting time. |
+| `workflow_context`    | object  | See below.                                                                                                                                                                   |
 
-### `workflowContext` (account/settlement workflows)
+### `workflow_context` (account/settlement workflows)
 
-| Field                | Type             | Notes                                                                                                                     |
-| -------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `raisingDepartments` | array of strings | Options for the "Department" dropdown.                                                                                    |
-| `episodes`           | array of strings | Options for the "Episode" dropdown, e.g. `["03-Sep-2026 / IPD"]`.                                                         |
-| `patientCategories`  | array of strings | Options for "Patient Category".                                                                                           |
-| `wards`              | array of strings | Options for "Ward Type" (settlement only).                                                                                |
-| `roomTypes`          | array of strings | Options for "Ward Name" (settlement only).                                                                                |
-| `payableAmount`      | number           | The account-payment amount shown/editable for Advance/Package/Part-Payment. **Not used** for Bill Settlement — see below. |
-| `chargeBreakdown`    | array            | **Required when `workflowId` is `bill-settlement`.** See next section.                                                    |
+| Field                      | Type             | Notes                                                                                                                     |
+| -------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `raising_department_names` | array of strings | Options for the "Department" dropdown.                                                                                    |
+| `episode_names`            | array of strings | Options for the "Episode" dropdown, e.g. `["03-Sep-2026 / IPD"]`.                                                         |
+| `patient_category_names`   | array of strings | Options for "Patient Category".                                                                                           |
+| `ward_names`               | array of strings | Options for "Ward Type" (settlement only).                                                                                |
+| `room_type_names`          | array of strings | Options for "Ward Name" (settlement only).                                                                                |
+| `payment_payable_amount`   | number           | The account-payment amount shown/editable for Advance/Package/Part-Payment. **Not used** for Bill Settlement — see below. |
+| `tariff_charge_breakdown`  | array            | **Required when `workflow_id` is `bill-settlement`.** See next section.                                                   |
 
 > The frontend today accepts plain strings in these arrays (`["General Medicine"]`).
 > A stricter `{id, label}` shape is fine too as long as `label` is what gets
 > displayed — but keep it consistent, since these are also the values echoed
-> back in `workflowFields` on posting.
+> back in `workflow_fields` on posting.
 
 ### Settlement breakdown
 
-`chargeBreakdown` is the read-only explanation of the amount a clerk is
-about to settle — **never** return only a `payableAmount` number for a
+`tariff_charge_breakdown` is the read-only explanation of the amount a clerk is
+about to settle — **never** return only a `payment_payable_amount` number for a
 settlement; a total with no source lines can't be reviewed, and previously
 caused the screen to show the wrong amount entirely.
 
-| Field      | Type   | Notes                                                                                                                |
-| ---------- | ------ | -------------------------------------------------------------------------------------------------------------------- |
-| `code`     | string | Tariff code.                                                                                                         |
-| `name`     | string | Tariff display name.                                                                                                 |
-| `group`    | string | Groups rows in the settlement table: `Accommodation`, `Consultation`, `Investigation`, `Procedure`, `Pharmacy`, etc. |
-| `rate`     | number | Effective per-unit rate after category/ward/package/effective-date pricing.                                          |
-| `qty`      | number | Billable quantity.                                                                                                   |
-| `discount` | number | Percentage `0`–`100`.                                                                                                |
+| Field                     | Type   | Notes                                                                                                                |
+| ------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------- |
+| `tariff_code`             | string | Tariff code.                                                                                                         |
+| `tariff_name`             | string | Tariff display name.                                                                                                 |
+| `tariff_group_name`       | string | Groups rows in the settlement table: `Accommodation`, `Consultation`, `Investigation`, `Procedure`, `Pharmacy`, etc. |
+| `tariff_rate`             | number | Effective per-unit rate after category/ward/package/effective-date pricing.                                          |
+| `tariff_qty`              | number | Billable quantity.                                                                                                   |
+| `tariff_discount_percent` | number | Percentage `0`–`100`.                                                                                                |
 
 ```text
 lineGross = rate * qty
@@ -98,7 +98,7 @@ payableAmount = sum(lineNet for every line)   ← must equal payableAmount exact
 Compute with a decimal type, never a float/double. If the legacy calculation
 includes credits, deposits, taxes or rounding that can't be represented as a
 tariff line, return them as explicit named lines (or a separately typed
-`adjustments` array) — never hide a difference inside `payableAmount`.
+`payment_adjustments` array) — never hide a difference inside `payment_payable_amount`.
 
 ## Response — not eligible
 
@@ -107,77 +107,77 @@ Still a normal `200`, not an HTTP error:
 ```json
 {
   "success": true,
-  "requestId": "trace-601",
+  "trace_id": "trace-601",
   "data": {
-    "eligible": false,
-    "code": "PATIENT_NOT_ADMITTED",
-    "message": "The patient must have a current admitted IPD episode for this transaction.",
-    "workflow": null,
-    "patientContextVersion": "patient-1-v1",
-    "workflowContext": null
+    "is_eligible": false,
+    "eligibility_code": "PATIENT_NOT_ADMITTED",
+    "eligibility_message": "The patient must have a current admitted IPD episode for this transaction.",
+    "workflow_context": null,
+    "pat_context_version": "patient-1-v1",
+    "workflow_context": null
   }
 }
 ```
 
-See `PROJECT_GUIDE.md` §9.3 for the full list of `code` values and when to
+See `PROJECT_GUIDE.md` §9.3 for the full list of `eligibility_code` values and when to
 return each one.
 
-## Full "eligible" example (IPD Bill Settlement)
+## Full "is_eligible" example (IPD Bill Settlement)
 
 ```json
 {
   "success": true,
-  "requestId": "trace-602",
+  "trace_id": "trace-602",
   "data": {
-    "eligible": true,
-    "code": "ELIGIBLE",
-    "patientContextVersion": "patient-1-v1",
-    "workflowContext": {
-      "raisingDepartments": ["General Medicine"],
-      "episodes": ["03-Sep-2026 / IPD"],
-      "patientCategories": ["General — CGHS"],
-      "wards": ["Ward 4B"],
-      "roomTypes": ["General ward"],
-      "chargeBreakdown": [
+    "is_eligible": true,
+    "eligibility_code": "ELIGIBLE",
+    "pat_context_version": "patient-1-v1",
+    "workflow_context": {
+      "raising_department_names": ["General Medicine"],
+      "episode_names": ["03-Sep-2026 / IPD"],
+      "patient_category_names": ["General — CGHS"],
+      "ward_names": ["Ward 4B"],
+      "room_type_names": ["General ward"],
+      "tariff_charge_breakdown": [
         {
-          "code": "BED-2041",
-          "name": "General ward bed charge / day",
-          "group": "Accommodation",
-          "rate": 1200.0,
-          "qty": 6,
-          "discount": 0
+          "tariff_code": "BED-2041",
+          "tariff_name": "General ward bed charge / day",
+          "tariff_group_name": "Accommodation",
+          "tariff_rate": 1200.0,
+          "tariff_qty": 6,
+          "tariff_discount_percent": 0
         },
         {
-          "code": "CONS-118",
-          "name": "Consultation — General Medicine",
-          "group": "Consultation",
-          "rate": 400.0,
-          "qty": 6,
-          "discount": 0
+          "tariff_code": "CONS-118",
+          "tariff_name": "Consultation — General Medicine",
+          "tariff_group_name": "Consultation",
+          "tariff_rate": 400.0,
+          "tariff_qty": 6,
+          "tariff_discount_percent": 0
         },
         {
-          "code": "INV-BUNDLE",
-          "name": "Investigation package",
-          "group": "Investigation",
-          "rate": 6030.0,
-          "qty": 1,
-          "discount": 0
+          "tariff_code": "INV-BUNDLE",
+          "tariff_name": "Investigation package",
+          "tariff_group_name": "Investigation",
+          "tariff_rate": 6030.0,
+          "tariff_qty": 1,
+          "tariff_discount_percent": 0
         },
         {
-          "code": "PROC-001",
-          "name": "Minor procedure",
-          "group": "Procedure",
-          "rate": 500.0,
-          "qty": 1,
-          "discount": 0
+          "tariff_code": "PROC-001",
+          "tariff_name": "Minor procedure",
+          "tariff_group_name": "Procedure",
+          "tariff_rate": 500.0,
+          "tariff_qty": 1,
+          "tariff_discount_percent": 0
         },
         {
-          "code": "PHARM-001",
-          "name": "Pharmacy issue",
-          "group": "Pharmacy",
-          "rate": 1260.0,
-          "qty": 1,
-          "discount": 0
+          "tariff_code": "PHARM-001",
+          "tariff_name": "Pharmacy issue",
+          "tariff_group_name": "Pharmacy",
+          "tariff_rate": 1260.0,
+          "tariff_qty": 1,
+          "tariff_discount_percent": 0
         }
       ]
     }

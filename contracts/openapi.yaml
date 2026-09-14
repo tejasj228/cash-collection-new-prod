@@ -27,19 +27,19 @@ paths:
       summary: Search eligible patients in the current hospital and counter scope
       operationId: searchPatients
       parameters:
-        - { $ref: "#/components/parameters/Query" }
-        - name: hospitalServiceId
+        - { $ref: "#/components/parameters/PatientSearch" }
+        - name: hospital_service_id
           in: query
           schema: { type: string }
-        - name: admittedOnly
+        - name: admitted_only
           in: query
           description: Limit the result to patients with a currently open admission.
           schema: { type: boolean }
         - { $ref: "#/components/parameters/Page" }
         - { $ref: "#/components/parameters/Size" }
-        - name: sort
+        - name: admission_sort
           in: query
-          description: Whitelisted sort; the admitted-patient picker uses admittedOn,desc.
+          description: Whitelisted sort; the admitted-patient picker uses admitted_on,desc.
           schema: { type: string }
       responses:
         "200":
@@ -61,22 +61,22 @@ paths:
       parameters:
         - { $ref: "#/components/parameters/Page" }
         - { $ref: "#/components/parameters/Size" }
-        - { $ref: "#/components/parameters/Search" }
-        - name: chargeType
+        - { $ref: "#/components/parameters/RequestSearch" }
+        - name: req_charge_type
           in: query
           schema: { type: string }
-        - name: department
+        - name: department_name
           in: query
           schema: { type: string }
-        - name: category
+        - name: category_name
           in: query
           schema: { type: string }
-        - name: date
+        - name: req_date
           in: query
           schema: { type: string, format: date }
-        - name: sort
+        - name: req_sort
           in: query
-          description: Whitelisted sort, for example date,desc or amount,asc.
+          description: Whitelisted sort, for example req_date,desc or req_amount,asc.
           schema: { type: string }
       responses:
         "200":
@@ -90,17 +90,17 @@ paths:
       summary: Aggregate pending requests for the current counter dashboard
       operationId: getPendingRequestMetrics
       parameters:
-        - name: date
+        - name: pending_date
           in: query
           required: true
           schema: { type: string, format: date }
-        - name: category
+        - name: category_name
           in: query
           schema: { type: string }
-        - name: department
+        - name: department_name
           in: query
           schema: { type: string }
-        - name: chargeType
+        - name: req_charge_type
           in: query
           schema: { type: string }
       responses:
@@ -125,27 +125,27 @@ paths:
         the unfiltered cash-payment net and is not recalculated by dashboard filters.
       operationId: getDashboard
       parameters:
-        - name: date
+        - name: dashboard_date
           in: query
           required: true
           schema: { type: string, format: date }
-        - name: paymentMode
+        - name: payment_mode
           in: query
           schema: { type: string }
-        - name: status
+        - name: transaction_status
           in: query
           schema: { type: string }
-        - name: hour
+        - name: collection_hour
           in: query
           schema: { type: integer, minimum: 0, maximum: 23 }
-        - name: category
+        - name: category_name
           in: query
           schema: { type: string }
-        - name: group
+        - name: department_name
           in: query
           description: Display label for the legacy raising department dimension.
           schema: { type: string }
-        - name: requestType
+        - name: req_charge_type
           in: query
           schema: { type: string }
       responses:
@@ -155,12 +155,12 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/DashboardEnvelope" }
         default: { $ref: "#/components/responses/Error" }
-  /requests/{requestId}:
+  /requests/{req_id}:
     get:
       summary: Reload authoritative request and linked patient before collection
       operationId: getRequest
       parameters:
-        - name: requestId
+        - name: req_id
           in: path
           required: true
           schema: { type: string }
@@ -180,15 +180,15 @@ paths:
       summary: Search server-authorized tariffs
       operationId: getTariffs
       parameters:
-        - { $ref: "#/components/parameters/Search" }
-        - name: groupId
+        - { $ref: "#/components/parameters/TariffSearch" }
+        - name: tariff_group_id
           in: query
           schema: { type: string }
-        - name: patientId
+        - name: pat_id
           in: query
           required: true
           schema: { type: string }
-        - name: workflowId
+        - name: workflow_id
           in: query
           required: true
           schema: { type: string }
@@ -209,6 +209,19 @@ paths:
     get:
       summary: Load allowed payment modes, card types and POS terminals
       operationId: getPaymentOptions
+      parameters:
+        - name: pat_id
+          in: query
+          schema: { type: string }
+        - name: category_name
+          in: query
+          schema: { type: string }
+        - name: hospital_service_id
+          in: query
+          schema: { type: string }
+        - name: billing_service_id
+          in: query
+          schema: { type: string }
       responses:
         "200":
           description: Counter and patient-context payment options
@@ -260,12 +273,12 @@ paths:
                   - properties:
                       data: { $ref: "#/components/schemas/TerminalPayment" }
         default: { $ref: "#/components/responses/Error" }
-  /terminal-payments/{terminalTransactionId}:
+  /terminal-payments/{terminal_transaction_id}:
     get:
       summary: Poll POS transaction status
       operationId: getTerminalPaymentStatus
       parameters:
-        - name: terminalTransactionId
+        - name: terminal_transaction_id
           in: path
           required: true
           schema: { type: string }
@@ -287,14 +300,16 @@ paths:
       parameters:
         - { $ref: "#/components/parameters/Page" }
         - { $ref: "#/components/parameters/Size" }
-        - { $ref: "#/components/parameters/Search" }
-        - name: from
+        - name: transaction_from_date
           in: query
           schema: { type: string, format: date }
-        - name: to
+        - name: transaction_to_date
           in: query
           schema: { type: string, format: date }
-        - name: paymentMode
+        - name: payment_mode
+          in: query
+          schema: { type: string }
+        - name: transaction_status
           in: query
           schema: { type: string }
       responses:
@@ -344,12 +359,12 @@ paths:
               schema:
                 { $ref: "#/components/schemas/ShiftClosePreparationEnvelope" }
         default: { $ref: "#/components/responses/Error" }
-  /shifts/{shiftId}/close:
+  /shifts/{shift_id}/close:
     post:
       summary: Revalidate and atomically close the authenticated counter shift
       operationId: closeShift
       parameters:
-        - name: shiftId
+        - name: shift_id
           in: path
           required: true
           schema: { type: string }
@@ -369,7 +384,7 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ClosedShiftEnvelope" }
         default: { $ref: "#/components/responses/Error" }
-  /shifts/{shiftId}/reopen:
+  /shifts/{shift_id}/reopen:
     post:
       summary: Start another shift segment for the same counter and business date
       description: >-
@@ -377,7 +392,7 @@ paths:
         cumulative day-end submission.
       operationId: reopenShift
       parameters:
-        - name: shiftId
+        - name: shift_id
           in: path
           required: true
           schema: { type: string }
@@ -391,9 +406,9 @@ paths:
           application/json:
             schema:
               type: object
-              required: [version]
+              required: [shift_version]
               properties:
-                version: { type: string }
+                shift_version: { type: string }
               additionalProperties: false
       responses:
         "200":
@@ -414,9 +429,16 @@ components:
       in: cookie
       name: JSESSIONID
   parameters:
-    Query: { name: query, in: query, schema: { type: string, maxLength: 100 } }
-    Search:
-      { name: search, in: query, schema: { type: string, maxLength: 100 } }
+    PatientSearch:
+      { name: pat_search, in: query, schema: { type: string, maxLength: 100 } }
+    RequestSearch:
+      { name: req_search, in: query, schema: { type: string, maxLength: 100 } }
+    TariffSearch:
+      {
+        name: tariff_search,
+        in: query,
+        schema: { type: string, maxLength: 100 },
+      }
     Page:
       {
         name: page,
@@ -438,17 +460,17 @@ components:
   schemas:
     SuccessEnvelope:
       type: object
-      required: [success, data, requestId]
+      required: [success, data, trace_id]
       properties:
         success: { type: boolean, enum: [true] }
         data: {}
-        requestId: { type: string }
+        trace_id: { type: string }
     ErrorEnvelope:
       type: object
-      required: [success, error, requestId]
+      required: [success, error, trace_id]
       properties:
         success: { type: boolean, enum: [false] }
-        requestId: { type: string }
+        trace_id: { type: string }
         error:
           type: object
           required: [code, message]
@@ -474,89 +496,160 @@ components:
               type: object
               required:
                 [
-                  todayIso,
-                  facility,
-                  serviceOptions,
-                  billingByService,
-                  paymentOptions,
-                  queueSummary,
-                  requestFilterOptions,
+                  business_date,
+                  facility_details,
+                  hospital_services,
+                  billing_services_by_hospital_service,
+                  payment_options,
+                  pending_queue_summary,
+                  request_filter_options,
                 ]
               properties:
-                todayIso: { type: string, format: date }
-                facility: { type: object, additionalProperties: true }
-                serviceOptions:
+                business_date: { type: string, format: date }
+                facility_details:
+                  type: object
+                  required: [facility_name]
+                  properties:
+                    facility_name: { type: string }
+                    facility_subtitle: { type: string }
+                hospital_services:
                   {
                     type: array,
-                    items: { type: object, additionalProperties: true },
+                    items: { $ref: "#/components/schemas/HospitalService" },
                   }
-                billingByService: { type: object, additionalProperties: true }
-                paymentOptions: { $ref: "#/components/schemas/PaymentOptions" }
-                queueSummary:
+                billing_services_by_hospital_service:
+                  { type: object, additionalProperties: true }
+                payment_options: { $ref: "#/components/schemas/PaymentOptions" }
+                pending_queue_summary:
                   type: object
-                  required: [pendingCount, todayPendingCount, cashInDrawer]
+                  required:
+                    [
+                      pending_request_count,
+                      today_pending_request_count,
+                      cash_in_drawer_amount,
+                    ]
                   properties:
-                    pendingCount: { type: integer, format: int64 }
-                    todayPendingCount: { type: integer, format: int64 }
-                    cashInDrawer:
+                    pending_request_count: { type: integer, format: int64 }
+                    today_pending_request_count:
+                      { type: integer, format: int64 }
+                    cash_in_drawer_amount:
                       {
                         type: string,
                         description: Same-day cash-payment collections minus cash-payment refunds,
                       }
-                requestFilterOptions:
+                request_filter_options:
                   { type: object, additionalProperties: true }
-                patients:
+                patient_seed_list:
                   {
                     type: array,
                     items: { $ref: "#/components/schemas/Patient" },
                   }
-                requests:
+                pending_request_queue:
                   {
                     type: array,
                     items: { $ref: "#/components/schemas/PendingRequestRow" },
                   }
-                tariffGroups: { type: array, items: { type: string } }
-                tariffCatalog:
+                tariff_group_names: { type: array, items: { type: string } }
+                tariff_catalog:
                   {
                     type: array,
                     items: { $ref: "#/components/schemas/Tariff" },
                   }
-                collectionModes:
+                collection_mode_options:
                   {
                     type: array,
                     items: { type: object, additionalProperties: true },
                   }
-                recentTransactions:
+                recent_transaction_rows:
                   {
                     type: array,
                     items: { $ref: "#/components/schemas/Transaction" },
                   }
-                recentEstimates:
+                recent_estimate_rows:
                   {
                     type: array,
                     items: { type: object, additionalProperties: true },
                   }
     Patient:
       type: object
-      required: [id, cr, name]
+      required: [pat_id, cr_num, pat_name]
       properties:
-        id: { type: string }
-        cr: { type: string }
-        name: { type: string }
+        pat_id: { type: string }
+        cr_num: { type: string }
+        pat_name: { type: string }
+        pat_age: { type: integer }
+        pat_sex: { type: string }
+        ipd_admission_num: { type: string }
+        account_num: { type: string }
+        episode_name: { type: string }
+        admission_status: { type: string }
+        department_name: { type: string }
+        unit_name: { type: string }
+        ward_name: { type: string }
+        bed_name: { type: string }
+        room_type_name: { type: string }
+        consultant_name: { type: string }
+        admitted_on: { type: string, format: date }
+        category_name: { type: string }
+        mobile_num: { type: string }
+        abha_num: { type: string }
+        abha_address: { type: string }
+        eligible_charge_type_ids: { type: array, items: { type: string } }
+        ipd_account_open: { type: boolean }
+        refundable_document_count: { type: integer }
+        workflow_context: { type: object, additionalProperties: true }
       additionalProperties: true
+    HospitalService:
+      type: object
+      required:
+        [
+          hospital_service_id,
+          legacy_charge_type_id,
+          hospital_service_name,
+          hospital_service_short_name,
+          hospital_service_title,
+          hospital_service_description,
+          display_tone,
+          icon_name,
+        ]
+      properties:
+        hospital_service_id: { type: string }
+        legacy_charge_type_id: { type: string }
+        hospital_service_name: { type: string }
+        hospital_service_short_name: { type: string }
+        hospital_service_title: { type: string }
+        hospital_service_description: { type: string }
+        display_tone: { type: string }
+        icon_name: { type: string }
+    BillingService:
+      type: object
+      required:
+        [
+          billing_service_id,
+          billing_service_name,
+          processing_billing_service_id,
+          workflow_family,
+          legacy_mode,
+        ]
+      properties:
+        billing_service_id: { type: string }
+        billing_service_name: { type: string }
+        processing_billing_service_id: { type: string }
+        workflow_family: { type: string }
+        legacy_mode: { type: string }
     PendingRequestRow:
       type: object
       required:
         [
           req_id,
-          version,
+          req_version,
           req_date,
           pat_name,
           department_name,
           category_name,
           cr_num,
-          charge_type,
-          amount,
+          req_charge_type,
+          req_amount,
         ]
       properties:
         req_id:
@@ -574,27 +667,27 @@ components:
         department_name: { type: string }
         category_name: { type: string }
         cr_num: { type: string }
-        charge_type: { type: string }
-        amount:
+        req_charge_type: { type: string }
+        req_amount:
           {
             type: string,
             example: "480.00",
             description: Decimal amount without currency symbol,
           }
-        version: { type: string, description: Opaque concurrency version }
+        req_version: { type: string, description: Opaque concurrency version }
     PendingRequestMetrics:
       type: object
-      required: [total, byChargeType]
+      required: [pending_request_total, req_charge_type_buckets]
       properties:
-        total: { type: integer, format: int64 }
-        byChargeType:
+        pending_request_total: { type: integer, format: int64 }
+        req_charge_type_buckets:
           type: array
           items:
             type: object
-            required: [chargeType, count]
+            required: [req_charge_type, pending_request_count]
             properties:
-              chargeType: { type: string }
-              count: { type: integer, format: int64 }
+              req_charge_type: { type: string }
+              pending_request_count: { type: integer, format: int64 }
     DashboardEnvelope:
       allOf:
         - { $ref: "#/components/schemas/SuccessEnvelope" }
@@ -604,97 +697,117 @@ components:
       type: object
       required:
         [
-          businessDate,
-          version,
-          generatedAt,
-          kpis,
-          breakdowns,
-          hourlyCollections,
-          recentTransactions,
+          dashboard_business_date,
+          dashboard_version,
+          dashboard_generated_at,
+          dashboard_kpis,
+          dashboard_breakdowns,
+          hourly_collection_buckets,
+          dashboard_recent_transaction_page,
         ]
       properties:
-        businessDate: { type: string, format: date }
-        version: { type: string, description: Opaque dashboard/shift version }
-        generatedAt: { type: string, format: date-time }
-        kpis:
+        dashboard_business_date: { type: string, format: date }
+        dashboard_version:
+          { type: string, description: Opaque dashboard/shift version }
+        dashboard_generated_at: { type: string, format: date-time }
+        dashboard_kpis:
           type: object
           required:
             [
-              totalCollected,
-              refunds,
-              netCollection,
-              bills,
-              cashInDrawer,
-              largestCollection,
+              collection_total_amount,
+              refund_total_amount,
+              net_collection_amount,
+              transaction_count,
+              cash_in_drawer_amount,
+              largest_collection_amount,
             ]
           properties:
-            totalCollected: { type: string }
-            refunds: { type: string }
-            netCollection: { type: string }
-            bills: { type: string }
-            cashInDrawer:
+            collection_total_amount: { type: string }
+            refund_total_amount: { type: string }
+            net_collection_amount: { type: string }
+            transaction_count: { type: string }
+            cash_in_drawer_amount:
               type: string
               description: Same-day cash-payment collections minus cash-payment refunds; dashboard filters do not change it.
-            largestCollection: { type: string }
-        breakdowns:
+            largest_collection_amount: { type: string }
+        dashboard_breakdowns:
           type: object
-          required: [paymentModes, categories, groups, requestTypes]
+          required:
+            [
+              payment_mode_buckets,
+              category_buckets,
+              department_buckets,
+              req_charge_type_buckets,
+            ]
           properties:
-            paymentModes:
+            payment_mode_buckets:
               {
                 type: array,
                 items: { $ref: "#/components/schemas/DashboardBucket" },
               }
-            categories:
+            category_buckets:
               {
                 type: array,
                 items: { $ref: "#/components/schemas/DashboardBucket" },
               }
-            groups:
+            department_buckets:
               {
                 type: array,
                 items: { $ref: "#/components/schemas/DashboardBucket" },
               }
-            requestTypes:
+            req_charge_type_buckets:
               {
                 type: array,
                 items: { $ref: "#/components/schemas/DashboardBucket" },
               }
-        hourlyCollections:
+        hourly_collection_buckets:
           type: array
           items:
             allOf:
               - { $ref: "#/components/schemas/DashboardBucket" }
               - type: object
-                required: [hour]
+                required: [collection_hour]
                 properties:
-                  hour: { type: integer, minimum: 0, maximum: 23 }
-        recentTransactions: { $ref: "#/components/schemas/Page" }
+                  collection_hour: { type: integer, minimum: 0, maximum: 23 }
+        dashboard_recent_transaction_page: { $ref: "#/components/schemas/Page" }
     DashboardBucket:
       type: object
-      required: [id, label, amount, count, percentage]
+      required:
+        [
+          dashboard_bucket_id,
+          dashboard_bucket_label,
+          dashboard_bucket_amount,
+          dashboard_bucket_count,
+          dashboard_bucket_percentage,
+        ]
       properties:
-        id: { type: string }
-        label: { type: string }
-        amount: { type: string }
-        count: { type: string }
-        percentage: { type: string }
+        dashboard_bucket_id: { type: string }
+        dashboard_bucket_label: { type: string }
+        dashboard_bucket_amount: { type: string }
+        dashboard_bucket_count: { type: string }
+        dashboard_bucket_percentage: { type: string }
     DenominationOption:
       type: object
-      required: [code, kind, value, label]
+      required:
+        [
+          denomination_code,
+          denomination_kind,
+          denomination_value,
+          denomination_label,
+        ]
       properties:
-        code:
+        denomination_code:
           { type: string, description: Server-owned stable denomination code }
-        kind: { type: string, enum: [NOTE, COIN] }
-        value: { type: string, pattern: '^\d+(\.\d{2})?$' }
-        label: { type: string }
+        denomination_kind: { type: string, enum: [NOTE, COIN] }
+        denomination_value: { type: string, pattern: '^\d+(\.\d{2})?$' }
+        denomination_label: { type: string }
     ShiftBlocker:
       type: object
-      required: [code, message]
+      required: [shift_blocker_code, shift_blocker_message]
       properties:
-        code: { type: string }
-        message: { type: string }
-        count: { type: string }
+        shift_blocker_code: { type: string }
+        shift_blocker_message: { type: string }
+        shift_blocker_count: { type: string }
     ShiftClosePreparationEnvelope:
       allOf:
         - { $ref: "#/components/schemas/SuccessEnvelope" }
@@ -703,55 +816,57 @@ components:
               type: object
               required:
                 [
-                  shiftId,
-                  version,
-                  businessDate,
-                  status,
-                  canClose,
-                  blockers,
-                  expectedCash,
-                  previousSubmittedCash,
-                  cumulativeExpectedCash,
-                  segmentNumber,
-                  denominations,
+                  shift_id,
+                  shift_version,
+                  shift_business_date,
+                  shift_status,
+                  can_close_shift,
+                  shift_blockers,
+                  expected_cash_amount,
+                  previous_submitted_cash_amount,
+                  cumulative_expected_cash_amount,
+                  shift_segment_number,
+                  denomination_options,
                 ]
               properties:
-                shiftId: { type: string }
-                version:
+                shift_id: { type: string }
+                shift_version:
                   { type: string, description: Opaque concurrency version }
-                businessDate: { type: string, format: date }
-                status: { type: string, enum: [OPEN] }
-                canClose: { type: boolean }
-                blockers:
+                shift_business_date: { type: string, format: date }
+                shift_status: { type: string, enum: [OPEN] }
+                can_close_shift: { type: boolean }
+                shift_blockers:
                   {
                     type: array,
                     items: { $ref: "#/components/schemas/ShiftBlocker" },
                   }
-                expectedCash: { type: string, pattern: '^-?\d+\.\d{2}$' }
-                previousSubmittedCash:
+                expected_cash_amount:
                   { type: string, pattern: '^-?\d+\.\d{2}$' }
-                cumulativeExpectedCash:
+                previous_submitted_cash_amount:
                   { type: string, pattern: '^-?\d+\.\d{2}$' }
-                segmentNumber: { type: string }
-                denominations:
+                cumulative_expected_cash_amount:
+                  { type: string, pattern: '^-?\d+\.\d{2}$' }
+                shift_segment_number: { type: string }
+                denomination_options:
                   {
                     type: array,
                     items: { $ref: "#/components/schemas/DenominationOption" },
                   }
     ShiftCloseCommand:
       type: object
-      required: [version, reconciliationMode, denominations]
+      required: [shift_version, reconciliation_mode, denomination_counts]
       properties:
-        version: { type: string }
-        reconciliationMode: { type: string, enum: [DENOMINATION, SKIPPED] }
-        denominations:
+        shift_version: { type: string }
+        reconciliation_mode: { type: string, enum: [DENOMINATION, SKIPPED] }
+        denomination_counts:
           type: array
           items:
             type: object
-            required: [code, quantity]
+            required: [denomination_code, denomination_quantity]
             properties:
-              code: { type: string }
-              quantity: { type: integer, minimum: 0, maximum: 9999 }
+              denomination_code: { type: string }
+              denomination_quantity:
+                { type: integer, minimum: 0, maximum: 9999 }
       additionalProperties: false
     ClosedShiftEnvelope:
       allOf:
@@ -761,35 +876,35 @@ components:
               type: object
               required:
                 [
-                  shiftId,
-                  version,
-                  status,
-                  businessDate,
-                  closedAt,
-                  expectedCash,
-                  reconciliationMode,
-                  cumulativeCash,
-                  segmentNumber,
-                  summaryNumber,
+                  shift_id,
+                  shift_version,
+                  shift_status,
+                  shift_business_date,
+                  shift_closed_at,
+                  expected_cash_amount,
+                  reconciliation_mode,
+                  cumulative_cash_amount,
+                  shift_segment_number,
+                  shift_summary_number,
                 ]
               properties:
-                shiftId: { type: string }
-                version:
+                shift_id: { type: string }
+                shift_version:
                   {
                     type: string,
                     description: Opaque version required to reopen,
                   }
-                status: { type: string, enum: [CLOSED] }
-                businessDate: { type: string, format: date }
-                closedAt: { type: string, format: date-time }
-                expectedCash: { type: string }
-                countedCash: { type: string, nullable: true }
-                reconciliationMode:
+                shift_status: { type: string, enum: [CLOSED] }
+                shift_business_date: { type: string, format: date }
+                shift_closed_at: { type: string, format: date-time }
+                expected_cash_amount: { type: string }
+                counted_cash_amount: { type: string, nullable: true }
+                reconciliation_mode:
                   { type: string, enum: [DENOMINATION, SKIPPED] }
-                previousSubmittedCash: { type: string }
-                cumulativeCash: { type: string }
-                segmentNumber: { type: string }
-                summaryNumber: { type: string }
+                previous_submitted_cash_amount: { type: string }
+                cumulative_cash_amount: { type: string }
+                shift_segment_number: { type: string }
+                shift_summary_number: { type: string }
     OpenShiftEnvelope:
       allOf:
         - { $ref: "#/components/schemas/SuccessEnvelope" }
@@ -798,41 +913,52 @@ components:
               type: object
               required:
                 [
-                  shiftId,
-                  version,
-                  businessDate,
-                  status,
-                  segmentNumber,
-                  previousSubmittedCash,
+                  shift_id,
+                  shift_version,
+                  shift_business_date,
+                  shift_status,
+                  shift_segment_number,
+                  previous_submitted_cash_amount,
                 ]
               properties:
-                shiftId: { type: string }
-                version: { type: string }
-                businessDate: { type: string, format: date }
-                status: { type: string, enum: [OPEN] }
-                segmentNumber: { type: string }
-                previousSubmittedCash: { type: string }
+                shift_id: { type: string }
+                shift_version: { type: string }
+                shift_business_date: { type: string, format: date }
+                shift_status: { type: string, enum: [OPEN] }
+                shift_segment_number: { type: string }
+                previous_submitted_cash_amount: { type: string }
     BillingRequest:
       type: object
-      required: [id, version, patient, cr, type, dateIso, amount, department]
+      required:
+        [
+          req_id,
+          req_version,
+          pat_name,
+          cr_num,
+          req_charge_type,
+          req_date,
+          req_amount,
+          department_name,
+        ]
       properties:
-        id: { type: string }
-        version: { type: string, description: Opaque concurrency version }
-        patient: { type: string }
-        cr: { type: string }
-        type: { type: string }
-        dateIso: { type: string, format: date }
-        amount: { type: string }
-        department: { type: string }
+        req_id: { type: string }
+        req_version: { type: string, description: Opaque concurrency version }
+        pat_name: { type: string }
+        cr_num: { type: string }
+        req_charge_type: { type: string }
+        req_date: { type: string, format: date }
+        req_amount: { type: string }
+        department_name: { type: string }
+        category_name: { type: string }
       additionalProperties: true
     RequestDetail:
       allOf:
         - { $ref: "#/components/schemas/BillingRequest" }
         - type: object
-          required: [linkedPatient]
+          required: [linked_patient]
           properties:
-            linkedPatient: { $ref: "#/components/schemas/Patient" }
-            lines:
+            linked_patient: { $ref: "#/components/schemas/Patient" }
+            tariff_lines:
               {
                 type: array,
                 items: { $ref: "#/components/schemas/TariffLine" },
@@ -853,118 +979,173 @@ components:
                       }
     Tariff:
       type: object
-      required: [code, name, rate]
+      required: [tariff_code, tariff_name, tariff_rate]
       properties:
-        code: { type: string }
-        name: { type: string }
-        group: { type: string }
-        rate: { type: number, minimum: 0 }
+        tariff_code: { type: string }
+        tariff_name: { type: string }
+        tariff_group_name: { type: string }
+        tariff_rate: { type: number, minimum: 0 }
+        tariff_source: { type: string }
     TariffLine:
       allOf:
         - { $ref: "#/components/schemas/Tariff" }
         - type: object
-          required: [qty, discount]
+          required: [tariff_qty, tariff_discount_percent]
           properties:
-            qty: { type: number, minimum: 0 }
-            discount: { type: number, minimum: 0, maximum: 100 }
+            tariff_qty: { type: number, minimum: 0 }
+            tariff_discount_percent: { type: number, minimum: 0, maximum: 100 }
     PaymentOptions:
       type: object
-      required: [modes, cardTypes, posTerminals]
+      required: [payment_modes, payment_card_types, payment_pos_terminals]
       properties:
-        modes: { type: array, items: { type: string } }
-        cardTypes: { type: array, items: { type: string } }
-        posTerminals: { type: array, items: { type: string } }
-        restrictionsByCategory: { type: object, additionalProperties: true }
+        payment_modes: { type: array, items: { type: string } }
+        payment_card_types: { type: array, items: { type: string } }
+        payment_pos_terminals: { type: array, items: { type: string } }
+        payment_restrictions_by_category:
+          { type: object, additionalProperties: true }
     EligibilityCommand:
       type: object
       required:
         [
-          source,
-          requestType,
-          patientId,
-          crNumber,
-          hospitalServiceId,
-          chargeTypeId,
-          billingServiceId,
-          processingBillingServiceId,
-          workflowId,
+          collection_source,
+          request_type,
+          pat_id,
+          cr_num,
+          hospital_service_id,
+          charge_type_id,
+          billing_service_id,
+          processing_billing_service_id,
+          workflow_id,
         ]
       properties:
-        source: { type: string, enum: [request, direct] }
-        requestId: { type: string, nullable: true }
-        requestVersion: { type: string, nullable: true }
-        requestType: { type: string, enum: [Receipt, Refund, Estimation] }
-        patientId: { type: string }
-        crNumber: { type: string }
-        hospitalServiceId: { type: string }
-        chargeTypeId: { type: string }
-        billingServiceId: { type: string }
-        processingBillingServiceId: { type: string }
-        workflowId: { type: string }
+        collection_source: { type: string, enum: [request, direct] }
+        req_id: { type: string, nullable: true }
+        req_version: { type: string, nullable: true }
+        request_type: { type: string, enum: [Receipt, Refund, Estimation] }
+        pat_id: { type: string }
+        cr_num: { type: string }
+        hospital_service_id: { type: string }
+        charge_type_id: { type: string }
+        billing_service_id: { type: string }
+        processing_billing_service_id: { type: string }
+        workflow_id: { type: string }
     EligibilityResult:
       type: object
-      required: [eligible, code]
+      required: [is_eligible, eligibility_code]
       properties:
-        eligible: { type: boolean }
-        code: { type: string }
-        message: { type: string }
-        patientContextVersion: { type: string }
-        workflowContext: { type: object, additionalProperties: true }
+        is_eligible: { type: boolean }
+        eligibility_code: { type: string }
+        eligibility_message: { type: string }
+        pat_context_version: { type: string }
+        workflow_context: { type: object, additionalProperties: true }
     TerminalPaymentCommand:
       type: object
-      required: [paymentMode, terminalId, amount]
+      required: [payment_mode, pos_terminal_id, payment_amount]
       properties:
-        paymentMode: { type: string, enum: [Card, UPI] }
-        cardType: { type: string, nullable: true }
-        terminalId: { type: string }
-        amount: { type: number, exclusiveMinimum: 0 }
-        patientId: { type: string }
-        description: { type: string, maxLength: 500 }
+        payment_mode: { type: string, enum: [Card, UPI] }
+        card_type: { type: string, nullable: true }
+        pos_terminal_id: { type: string }
+        payment_amount: { type: number, exclusiveMinimum: 0 }
+        pat_id: { type: string }
+        payment_description: { type: string, maxLength: 500 }
     TerminalPayment:
       type: object
-      required: [terminalTransactionId, status]
+      required: [terminal_transaction_id, transaction_status]
       properties:
-        terminalTransactionId: { type: string }
-        status:
+        terminal_transaction_id: { type: string }
+        transaction_status:
           {
             type: string,
             enum: [PENDING, APPROVED, DECLINED, FAILED, CANCELLED, EXPIRED],
           }
-        pollAfterMs: { type: integer, default: 10000 }
-        expiresInSeconds: { type: integer, default: 300 }
-        approvalCode: { type: string }
-        cardLastFour: { type: string }
+        terminal_poll_after_ms: { type: integer, default: 10000 }
+        terminal_expires_in_seconds: { type: integer, default: 300 }
+        payment_approval_code: { type: string }
+        card_last_four: { type: string }
+    PaymentDetails:
+      type: object
+      required: [payment_mode, payment_summary]
+      properties:
+        payment_mode: { type: string }
+        payment_description: { type: string }
+        payment_summary: { type: string }
+        card_type: { type: string, nullable: true }
+        pos_terminal_id: { type: string, nullable: true }
+        terminal_payment:
+          type: object
+          properties:
+            terminal_transaction_id: { type: string }
+            transaction_status: { type: string }
+            payment_approval_code: { type: string }
+            card_last_four: { type: string }
+        manual_payment_details:
+          type: object
+          properties:
+            bank_name: { type: string }
+            payment_reference: { type: string }
+            card_last_four: { type: string }
+            transaction_date: { type: string, format: date }
+            card_type: { type: string }
+            payment_summary: { type: string }
+    TransactionTotals:
+      type: object
+      required: [gross_amount, discount_amount, net_amount]
+      properties:
+        gross_amount: { type: string }
+        discount_amount: { type: string }
+        net_amount: { type: string }
+    PrintableData:
+      type: object
+      required:
+        [
+          transaction_document_no,
+          transaction_document_type,
+          transaction_document_date,
+          patient_details,
+          tariff_lines,
+          payment_details,
+          transaction_totals,
+        ]
+      properties:
+        transaction_document_no: { type: string }
+        transaction_document_type: { type: string }
+        transaction_document_date: { type: string }
+        patient_details: { $ref: "#/components/schemas/Patient" }
+        tariff_lines:
+          { type: array, items: { $ref: "#/components/schemas/TariffLine" } }
+        payment_details: { $ref: "#/components/schemas/PaymentDetails" }
+        transaction_totals: { $ref: "#/components/schemas/TransactionTotals" }
     TransactionCommand:
       type: object
       required:
         [
-          source,
-          requestType,
-          workflowId,
-          processingBillingServiceId,
-          patientId,
-          patientContextVersion,
-          workflowFields,
-          lines,
-          displayedTotal,
-          payment,
-          idempotencyKey,
+          collection_source,
+          request_type,
+          workflow_id,
+          processing_billing_service_id,
+          pat_id,
+          pat_context_version,
+          workflow_fields,
+          tariff_lines,
+          transaction_total,
+          payment_details,
+          idempotency_key,
         ]
       properties:
-        source: { type: string, enum: [request, direct] }
-        requestId: { type: string, nullable: true }
-        requestVersion: { type: string, nullable: true }
-        requestType: { type: string, enum: [Receipt, Refund, Estimation] }
-        workflowId: { type: string }
-        processingBillingServiceId: { type: string }
-        patientId: { type: string }
-        patientContextVersion: { type: string }
-        workflowFields: { type: object, additionalProperties: true }
-        lines:
+        collection_source: { type: string, enum: [request, direct] }
+        req_id: { type: string, nullable: true }
+        req_version: { type: string, nullable: true }
+        request_type: { type: string, enum: [Receipt, Refund, Estimation] }
+        workflow_id: { type: string }
+        processing_billing_service_id: { type: string }
+        pat_id: { type: string }
+        pat_context_version: { type: string }
+        workflow_fields: { type: object, additionalProperties: true }
+        tariff_lines:
           { type: array, items: { $ref: "#/components/schemas/TariffLine" } }
-        displayedTotal: { type: string, pattern: '^\\d+\\.\\d{2}$' }
-        payment: { type: object, additionalProperties: true }
-        idempotencyKey: { type: string }
+        transaction_total: { type: string, pattern: '^\\d+\\.\\d{2}$' }
+        payment_details: { $ref: "#/components/schemas/PaymentDetails" }
+        idempotency_key: { type: string }
       additionalProperties: true
     PostedTransactionEnvelope:
       allOf:
@@ -972,49 +1153,55 @@ components:
         - properties:
             data:
               type: object
-              required: [documentNumber, status, printableData]
+              required:
+                [transaction_document_no, transaction_status, printable_data]
               properties:
-                documentNumber: { type: string }
-                status: { type: string }
-                printableData: { type: object, additionalProperties: true }
+                transaction_document_no: { type: string }
+                transaction_status: { type: string }
+                printable_data: { $ref: "#/components/schemas/PrintableData" }
+                resolved_req_id: { type: string, nullable: true }
+                dashboard_transaction_row:
+                  { $ref: "#/components/schemas/Transaction", nullable: true }
     Transaction:
       type: object
       required:
         [
-          no,
-          patient,
-          cr,
-          dateIso,
-          time,
-          mode,
-          amount,
-          status,
-          department,
-          category,
-          requestType,
+          transaction_no,
+          pat_name,
+          cr_num,
+          transaction_date_iso,
+          transaction_time,
+          payment_mode,
+          transaction_amount,
+          transaction_status,
+          department_name,
+          category_name,
+          req_charge_type,
         ]
       properties:
-        no: { type: string }
-        patient: { type: string }
-        cr: { type: string }
-        dateIso: { type: string, format: date }
-        time: { type: string }
-        mode: { type: string }
-        amount: { type: string }
-        status:
+        transaction_no: { type: string }
+        pat_name: { type: string }
+        cr_num: { type: string }
+        transaction_date_iso: { type: string, format: date }
+        transaction_time: { type: string }
+        payment_mode: { type: string }
+        transaction_amount: { type: string }
+        transaction_status:
           {
             type: string,
             description: "Completed | Refunded | Cancelled | Failed | Unposted",
           }
-        department:
+        department_name:
           { type: string, description: Raising department of the patient }
-        category:
+        category_name:
           { type: string, description: Patient category, e.g. General or CGHS }
-        requestType:
+        req_charge_type:
           {
             type: string,
             description: Request or charge type for the transaction,
           }
+        hospital_service_name: { type: string }
+        billing_service_name: { type: string }
       additionalProperties: true
     TransactionPageEnvelope:
       allOf:

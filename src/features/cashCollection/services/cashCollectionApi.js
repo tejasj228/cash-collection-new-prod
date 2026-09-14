@@ -2,6 +2,32 @@ import { createHttpClient } from "../../../services/httpClient";
 import { mapPendingRequest } from "./pendingRequestMapper";
 import { mapTransactionRow } from "./transactionRowMapper";
 import {
+  mapBootstrapWire,
+  mapClosedShiftWire,
+  mapDashboardWire,
+  mapEligibilityWire,
+  mapOpenShiftWire,
+  mapPaymentOptionsWire,
+  mapPatientSearchWire,
+  mapPostedTransactionWire,
+  mapRequestDetailWire,
+  mapShiftClosePreparationWire,
+  mapTariffSearchWire,
+  mapTerminalPaymentWire,
+  toDashboardQuery,
+  toEligibilityCommand,
+  toPatientSearchQuery,
+  toPaymentOptionsQuery,
+  toPendingRequestQuery,
+  toPendingMetricsQuery,
+  toShiftCloseCommand,
+  toShiftReopenCommand,
+  toTariffQuery,
+  toTerminalPaymentCommand,
+  toTransactionCommand,
+  toTransactionQuery,
+} from "./apiWireMappers";
+import {
   normalizeClosedShift,
   normalizeShiftClosePreparation,
 } from "./shiftApiModels";
@@ -15,85 +41,106 @@ export function createCashCollectionApi(config) {
   return Object.freeze({
     loadBootstrap: async () => {
       const data = await http.request("/bootstrap");
-      return {
-        ...data,
-        ...(Array.isArray(data.requests)
-          ? { requests: data.requests.map(mapPendingRequest) }
-          : {}),
-        ...(Array.isArray(data.recentTransactions)
-          ? {
-              recentTransactions:
-                data.recentTransactions.map(mapTransactionRow),
-            }
-          : {}),
-      };
+      return mapBootstrapWire(data);
     },
-    searchPatients: (query) =>
-      http.request("/patients", {
-        query: typeof query === "object" ? query : { query },
-      }),
+    searchPatients: async (query) =>
+      mapPatientSearchWire(
+        await http.request("/patients", { query: toPatientSearchQuery(query) }),
+      ),
     listPendingRequests: async (filters = {}) => {
-      const data = await http.request("/requests", { query: filters });
+      const data = await http.request("/requests", {
+        query: toPendingRequestQuery(filters),
+      });
       return { ...data, items: (data.items || []).map(mapPendingRequest) };
     },
     getPendingRequestMetrics: (filters = {}) =>
-      http.request("/dashboard/pending-metrics", { query: filters }),
-    getDashboard: (filters = {}) =>
-      http.request("/dashboard", { query: filters }),
-    getRequest: (requestId) =>
-      http.request(`/requests/${encodeURIComponent(requestId)}`),
-    getTariffs: (filters = {}) => http.request("/tariffs", { query: filters }),
-    getPaymentOptions: (context = {}) =>
-      http.request("/payment-options", { query: context }),
-    checkEligibility: (context) =>
-      http.request("/eligibility", { method: "POST", body: context }),
-    initiateTerminalPayment: (command) =>
-      http.request("/terminal-payments", { method: "POST", body: command }),
-    getTerminalPaymentStatus: ({ terminalTransactionId, ...query }) =>
-      http.request(
-        `/terminal-payments/${encodeURIComponent(terminalTransactionId)}`,
-        { query },
-      ),
-    postTransaction: (command) =>
-      http.request("/transactions", {
-        method: "POST",
-        body: command,
-        headers: command.idempotencyKey
-          ? { "Idempotency-Key": command.idempotencyKey }
-          : undefined,
+      http.request("/dashboard/pending-metrics", {
+        query: toPendingMetricsQuery(filters),
       }),
+    getDashboard: async (filters = {}) =>
+      mapDashboardWire(
+        await http.request("/dashboard", { query: toDashboardQuery(filters) }),
+      ),
+    getRequest: async (requestId) =>
+      mapRequestDetailWire(
+        await http.request(`/requests/${encodeURIComponent(requestId)}`),
+      ),
+    getTariffs: async (filters = {}) =>
+      mapTariffSearchWire(
+        await http.request("/tariffs", { query: toTariffQuery(filters) }),
+      ),
+    getPaymentOptions: async (context = {}) =>
+      mapPaymentOptionsWire(
+        await http.request("/payment-options", {
+          query: toPaymentOptionsQuery(context),
+        }),
+      ),
+    checkEligibility: async (context) =>
+      mapEligibilityWire(
+        await http.request("/eligibility", {
+          method: "POST",
+          body: toEligibilityCommand(context),
+        }),
+      ),
+    initiateTerminalPayment: async (command) =>
+      mapTerminalPaymentWire(
+        await http.request("/terminal-payments", {
+          method: "POST",
+          body: toTerminalPaymentCommand(command),
+        }),
+      ),
+    getTerminalPaymentStatus: async ({ terminalTransactionId }) =>
+      mapTerminalPaymentWire(
+        await http.request(
+          `/terminal-payments/${encodeURIComponent(terminalTransactionId)}`,
+        ),
+      ),
+    postTransaction: async (command) =>
+      mapPostedTransactionWire(
+        await http.request("/transactions", {
+          method: "POST",
+          body: toTransactionCommand(command),
+          headers: command.idempotencyKey
+            ? { "Idempotency-Key": command.idempotencyKey }
+            : undefined,
+        }),
+      ),
     listTransactions: async (filters = {}) => {
-      const data = await http.request("/transactions", { query: filters });
+      const data = await http.request("/transactions", {
+        query: toTransactionQuery(filters),
+      });
       return { ...data, items: (data.items || []).map(mapTransactionRow) };
     },
     prepareShiftClose: async () =>
       normalizeShiftClosePreparation(
-        await http.request("/shifts/current/close-preparation"),
+        mapShiftClosePreparationWire(
+          await http.request("/shifts/current/close-preparation"),
+        ),
       ),
     closeShift: async (command) =>
       normalizeClosedShift(
-        await http.request(
-          `/shifts/${encodeURIComponent(command.shiftId)}/close`,
-          {
-            method: "POST",
-            body: {
-              version: command.version,
-              reconciliationMode: command.reconciliationMode,
-              denominations: command.denominations,
+        mapClosedShiftWire(
+          await http.request(
+            `/shifts/${encodeURIComponent(command.shiftId)}/close`,
+            {
+              method: "POST",
+              body: toShiftCloseCommand(command),
+              headers: command.idempotencyKey
+                ? { "Idempotency-Key": command.idempotencyKey }
+                : undefined,
             },
-            headers: command.idempotencyKey
-              ? { "Idempotency-Key": command.idempotencyKey }
-              : undefined,
-          },
+          ),
         ),
       ),
     reopenShift: (command) =>
-      http.request(`/shifts/${encodeURIComponent(command.shiftId)}/reopen`, {
-        method: "POST",
-        body: { version: command.version },
-        headers: command.idempotencyKey
-          ? { "Idempotency-Key": command.idempotencyKey }
-          : undefined,
-      }),
+      http
+        .request(`/shifts/${encodeURIComponent(command.shiftId)}/reopen`, {
+          method: "POST",
+          body: toShiftReopenCommand(command),
+          headers: command.idempotencyKey
+            ? { "Idempotency-Key": command.idempotencyKey }
+            : undefined,
+        })
+        .then(mapOpenShiftWire),
   });
 }

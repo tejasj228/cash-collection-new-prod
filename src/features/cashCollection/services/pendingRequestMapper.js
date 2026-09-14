@@ -3,15 +3,15 @@
 const asDisplayText = (value) => (value == null ? "" : String(value));
 
 export function mapPendingRequest(row) {
-  const reqId = asDisplayText(row.req_id ?? row.id);
-  const date = asDisplayText(row.req_date ?? row.date);
-  const patient = asDisplayText(row.pat_name ?? row.patient);
-  const department = asDisplayText(row.department_name ?? row.department);
-  const category = asDisplayText(row.category_name ?? row.category);
-  const crNumber = asDisplayText(row.cr_num ?? row.cr);
-  const chargeType = asDisplayText(row.charge_type ?? row.type);
-  const amount = asDisplayText(row.amount);
-  const version = asDisplayText(row.version);
+  const reqId = asDisplayText(row.req_id);
+  const date = asDisplayText(row.req_date);
+  const patient = asDisplayText(row.pat_name);
+  const department = asDisplayText(row.department_name);
+  const category = asDisplayText(row.category_name);
+  const crNumber = asDisplayText(row.cr_num);
+  const chargeType = asDisplayText(row.req_charge_type);
+  const amount = asDisplayText(row.req_amount);
+  const version = asDisplayText(row.req_version);
   const parts = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(date || "");
 
   return {
@@ -22,9 +22,9 @@ export function mapPendingRequest(row) {
     department_name: department,
     category_name: category,
     cr_num: crNumber,
-    charge_type: chargeType,
-    amount,
-    version,
+    req_charge_type: chargeType,
+    req_amount: amount,
+    req_version: version,
     id: reqId,
     date,
     dateIso: parts
@@ -35,5 +35,7 @@ export function mapPendingRequest(row) {
     category,
     cr: crNumber,
     type: chargeType,
+    amount,
+    version,
   };
 }
