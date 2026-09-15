@@ -3,7 +3,7 @@
 ## Current state
 
 The **"Cancel bill"** button in Recent Transactions is wired to a purely
-**client-side** action today. `CashCollectionApplication.jsx`'s `cancelBill(no)`
+**client-side** action today. `CashCollection/CashCollection.jsx`'s `cancelBill(no)`
 just patches the row to `status: "Cancelled"` in local React state
 (`txPatches`) — nothing is sent to a server, and a page reload silently
 un-cancels it. `contracts/openapi.yaml` has no cancel operation at all. This
@@ -58,9 +58,9 @@ toward the drawer total the same shift reconciles against.
 
 ### Frontend change required
 
-`components/dashboard/` (`DashboardPage.jsx`'s Cancel-bill confirm dialog,
+`Dashboard/` (`Dashboard/Dashboard.jsx`'s Cancel-bill confirm dialog,
 currently calling straight into `onCancelBill(row.no)` →
-`CashCollectionApplication.jsx`'s local `cancelBill()`) needs its confirm
+`CashCollection/CashCollection.jsx`'s local `cancelBill()`) needs its confirm
 handler changed to call this endpoint and only patch local state on success
 — mirroring how `postTransaction` already works. Until then, treat cancel as
 demo-only; do not rely on it in front of real money.

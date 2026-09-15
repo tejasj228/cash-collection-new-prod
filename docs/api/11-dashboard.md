@@ -4,12 +4,12 @@
 GET /api/cash-collection/dashboard?dashboard_date=2026-09-13&payment_mode=Cash&transaction_status=Completed&collection_hour=10&category_name=General&department_name=Cardiology&req_charge_type=OPD%20Service
 ```
 
-> **Not currently called by the frontend.** `DashboardPage.jsx` aggregates
+> **Not currently called by the frontend.** `Dashboard/Dashboard.jsx` aggregates
 > everything itself from [`GET /transactions`](./10-transactions-list.md)'s
 > rows. This endpoint is fully specified in `contracts/openapi.yaml` and is
 > worth implementing anyway — for a hospital with thousands of transactions
 > a day, shipping every row to the browser to sum up client-side won't
-> scale, and this is the endpoint a future version of `DashboardPage.jsx`
+> scale, and this is the endpoint a future version of `Dashboard/Dashboard.jsx`
 > should switch to calling instead. Implement it to this exact shape so that
 > switch is a small frontend change, not a redesign.
 

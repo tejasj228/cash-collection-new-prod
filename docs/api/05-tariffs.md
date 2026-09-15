@@ -17,7 +17,7 @@ charge") and the group dropdown above it.
 | `workflow_id`     | string | Required selected workflow context.                                                                                |
 | `tariff_search`   | string | Matches tariff code or name, case-insensitive substring.                                                           |
 
-> **Current frontend behavior:** `ChargeBuilder.jsx` calls this once with no
+> **Current frontend behavior:** `CollectionDetails/BillingDetails/BillingDetails.jsx` calls this once with no
 > filters, caches the full `tariffCatalog` from bootstrap, and does the
 > group/text filtering **client-side** (top 6 matches shown as you type). A
 > real backend should still support server-side `tariff_group_id`/`tariff_search` filtering

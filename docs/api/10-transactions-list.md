@@ -8,7 +8,7 @@ This one row shape feeds **everything** on the Dashboard: the Recent
 Transactions table, the KPI tiles, the Payment-Mode donut, the
 Category/Department donut, the OPD/IPD/Emergency billing-service treemap
 (and its IPD drill-down), and the hourly collection chart. **The current
-frontend does not call `GET /dashboard` at all** — `DashboardPage.jsx` loads
+frontend does not call `GET /dashboard` at all** — `Dashboard/Dashboard.jsx` loads
 this row list once (via [bootstrap](./01-bootstrap.md)) and computes every
 KPI/chart client-side in JavaScript. Getting this row shape exactly right is
 therefore the single most important thing for making the real dashboard work

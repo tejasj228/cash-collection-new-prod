@@ -1,7 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "antd/dist/reset.css";
-import "./styles/cashCollection.css";
 import "./styles/application.css";
 import App from "./app/App";
 

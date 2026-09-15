@@ -4,11 +4,11 @@
 
 Two different "reprint" affordances exist in the UI, in two different states:
 
-1. **Recent Transactions → "Reprint"** (per-row, in `DashboardPage.jsx`) —
+1. **Recent Transactions → "Reprint"** (per-row, in `Dashboard/Dashboard.jsx`) —
    the button renders with **no `onClick` handler at all**. Clicking it does
    nothing today.
 2. **Top nav → "Reprint Receipt"** (visible only once a shift has closed,
-   `components/layout/Navigation.jsx`) — wired to a placeholder
+   `CashCollection/CashCollection.jsx`) — wired to a placeholder
    `window.print()` that reprints whatever's already rendered on screen. This
    one is intentionally a same-day "printer jammed" fallback for the shift
    report already visible, and doesn't need a new endpoint.
@@ -71,8 +71,8 @@ Identical shape to `postTransaction`'s `printable_data`:
 
 ### Frontend change required
 
-`DashboardPage.jsx`'s Reprint button needs an `onClick` that calls this
+`Dashboard/Dashboard.jsx`'s Reprint button needs an `onClick` that calls this
 endpoint, populates `<PrintableBill/>` with the result, and calls
-`window.print()` — the same pattern `CollectionWorkspace.jsx`'s
+`window.print()` — the same pattern `CollectionDetails/CollectionDetails.jsx`'s
 `postAndPrint()` already uses for the first print. Until then, the button is
 non-functional; don't present it as a working feature in a real deployment.

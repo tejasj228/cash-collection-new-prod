@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Alert, Button } from "antd";
 import { resolveApplicationRuntime } from "../../services/applicationRuntime";
 import { Loader } from "../../shared/components/ui";
-import CashCollectionApplication from "../../features/cashCollection/CashCollectionApplication";
+import CashCollectionApplication from "../../features/cashCollection/CashCollection/CashCollection.jsx";
 
 export function ApplicationBootstrap() {
   const [state, setState] = useState({
