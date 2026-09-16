@@ -1,6 +1,6 @@
 import { PROTOTYPE_DATA } from "./prototypeData";
 import {
-  RequestChargeType,
+  RequestType,
   HOSPITAL_SERVICE_FAMILIES,
   BILLING_SERVICES_BY_FAMILY,
 } from "../contracts/cashCollection.contract";
@@ -23,7 +23,7 @@ test("prototype pending queue is populated for the dashboard day", () => {
   );
 });
 
-test("prototype dashboard includes every supported request charge type", () => {
+test("prototype dashboard includes every supported request type", () => {
   const sameDayTypes = new Set(
     PROTOTYPE_DATA.recentTransactions
       .filter((row) => row.dateIso === PROTOTYPE_DATA.todayIso)
@@ -31,10 +31,24 @@ test("prototype dashboard includes every supported request charge type", () => {
   );
 
   expect(
-    [...Object.values(RequestChargeType)].every((type) =>
-      sameDayTypes.has(type),
-    ),
+    [...Object.values(RequestType)].every((type) => sameDayTypes.has(type)),
   ).toBe(true);
+});
+
+test("every prototype pending request carries a hospital service and a request type", () => {
+  for (const request of PROTOTYPE_DATA.requests) {
+    expect(HOSPITAL_SERVICE_FAMILIES).toContain(request.hospitalService);
+    expect(Object.values(RequestType)).toContain(request.requestType);
+    expect(request.type).toBeUndefined();
+  }
+  expect(PROTOTYPE_DATA.requestFilterOptions.hospitalServices).toEqual(
+    [
+      ...new Set(PROTOTYPE_DATA.requests.map((row) => row.hospitalService)),
+    ].sort(),
+  );
+  expect(PROTOTYPE_DATA.requestFilterOptions.requestTypes).toEqual(
+    [...new Set(PROTOTYPE_DATA.requests.map((row) => row.requestType))].sort(),
+  );
 });
 
 test("prototype dashboard covers every hospital service × billing service bucket, both collected and refunded", () => {

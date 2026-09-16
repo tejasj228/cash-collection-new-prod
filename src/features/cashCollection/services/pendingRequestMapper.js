@@ -9,7 +9,8 @@ export function mapPendingRequest(row) {
   const department = asDisplayText(row.department_name);
   const category = asDisplayText(row.category_name);
   const crNumber = asDisplayText(row.cr_num);
-  const chargeType = asDisplayText(row.req_charge_type);
+  const hospitalService = asDisplayText(row.hospital_service_name);
+  const requestType = asDisplayText(row.req_type);
   const amount = asDisplayText(row.req_amount);
   const version = asDisplayText(row.req_version);
   const parts = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(date || "");
@@ -22,7 +23,8 @@ export function mapPendingRequest(row) {
     department_name: department,
     category_name: category,
     cr_num: crNumber,
-    req_charge_type: chargeType,
+    hospital_service_name: hospitalService,
+    req_type: requestType,
     req_amount: amount,
     req_version: version,
     id: reqId,
@@ -34,7 +36,8 @@ export function mapPendingRequest(row) {
     department,
     category,
     cr: crNumber,
-    type: chargeType,
+    hospitalService,
+    requestType,
     amount,
     version,
   };

@@ -62,9 +62,8 @@ paths:
         - { $ref: "#/components/parameters/Page" }
         - { $ref: "#/components/parameters/Size" }
         - { $ref: "#/components/parameters/RequestSearch" }
-        - name: req_charge_type
-          in: query
-          schema: { type: string }
+        - { $ref: "#/components/parameters/HospitalServiceName" }
+        - { $ref: "#/components/parameters/RequestType" }
         - name: department_name
           in: query
           schema: { type: string }
@@ -100,9 +99,8 @@ paths:
         - name: department_name
           in: query
           schema: { type: string }
-        - name: req_charge_type
-          in: query
-          schema: { type: string }
+        - { $ref: "#/components/parameters/HospitalServiceName" }
+        - { $ref: "#/components/parameters/RequestType" }
       responses:
         "200":
           description: Server-side pending request aggregates
@@ -145,9 +143,7 @@ paths:
           in: query
           description: Display label for the legacy raising department dimension.
           schema: { type: string }
-        - name: req_charge_type
-          in: query
-          schema: { type: string }
+        - { $ref: "#/components/parameters/RequestType" }
       responses:
         "200":
           description: Filtered same-day dashboard snapshot
@@ -433,6 +429,16 @@ components:
       { name: pat_search, in: query, schema: { type: string, maxLength: 100 } }
     RequestSearch:
       { name: req_search, in: query, schema: { type: string, maxLength: 100 } }
+    HospitalServiceName:
+      name: hospital_service_name
+      in: query
+      description: Exact match on the row's hospital service (OPD / IPD / Emergency).
+      schema: { $ref: "#/components/schemas/HospitalServiceName" }
+    RequestType:
+      name: req_type
+      in: query
+      description: "Exact match on the row's request type (Service, Final Adjustment, ...)."
+      schema: { $ref: "#/components/schemas/RequestTypeName" }
     TariffSearch:
       {
         name: tariff_search,
@@ -515,7 +521,7 @@ components:
                 hospital_services:
                   {
                     type: array,
-                    items: { $ref: "#/components/schemas/HospitalService" },
+                    items: { $ref: "#/components/schemas/HospitalServiceName" },
                   }
                 billing_services_by_hospital_service:
                   { type: object, additionalProperties: true }
@@ -538,7 +544,22 @@ components:
                         description: Same-day cash-payment collections minus cash-payment refunds,
                       }
                 request_filter_options:
-                  { type: object, additionalProperties: true }
+                  type: object
+                  required:
+                    [hospital_service_names, req_types, department_names]
+                  properties:
+                    hospital_service_names:
+                      {
+                        type: array,
+                        items:
+                          { $ref: "#/components/schemas/HospitalServiceName" },
+                      }
+                    req_types:
+                      {
+                        type: array,
+                        items: { $ref: "#/components/schemas/RequestTypeName" },
+                      }
+                    department_names: { type: array, items: { type: string } }
                 patient_seed_list:
                   {
                     type: array,
@@ -648,7 +669,8 @@ components:
           department_name,
           category_name,
           cr_num,
-          req_charge_type,
+          hospital_service_name,
+          req_type,
           req_amount,
         ]
       properties:
@@ -667,7 +689,9 @@ components:
         department_name: { type: string }
         category_name: { type: string }
         cr_num: { type: string }
-        req_charge_type: { type: string }
+        hospital_service_name:
+          { $ref: "#/components/schemas/HospitalServiceName" }
+        req_type: { $ref: "#/components/schemas/RequestTypeName" }
         req_amount:
           {
             type: string,
@@ -675,18 +699,45 @@ components:
             description: Decimal amount without currency symbol,
           }
         req_version: { type: string, description: Opaque concurrency version }
+    HospitalServiceName:
+      type: string
+      description: >-
+        The hospital service a request or transaction belongs to — the HBIMS
+        charge-type family (sblnum_chargetype_id 1/4 → OPD, 2 → IPD,
+        3 → Emergency). Shown as the queue's "Hospital Service" column.
+      enum: [OPD, IPD, Emergency]
+    RequestTypeName:
+      type: string
+      description: >-
+        The request's kind within the queue, independent of hospital service.
+        Shown as the queue's "Request Type" column. Not the Receipt / Refund /
+        Estimation `request_type` used on collection commands. "Part Payment"
+        never arrives as a queue request.
+      enum:
+        [
+          Service,
+          Refund,
+          Advance Deposit,
+          Advance Refund,
+          Final Adjustment,
+          Investigation Charges,
+          Package Collection,
+        ]
     PendingRequestMetrics:
       type: object
-      required: [pending_request_total, req_charge_type_buckets]
+      required: [pending_request_total, req_type_buckets]
       properties:
         pending_request_total: { type: integer, format: int64 }
-        req_charge_type_buckets:
+        req_type_buckets:
           type: array
+          description: One bucket per (hospital_service_name, req_type) pair.
           items:
             type: object
-            required: [req_charge_type, pending_request_count]
+            required: [hospital_service_name, req_type, pending_request_count]
             properties:
-              req_charge_type: { type: string }
+              hospital_service_name:
+                { $ref: "#/components/schemas/HospitalServiceName" }
+              req_type: { $ref: "#/components/schemas/RequestTypeName" }
               pending_request_count: { type: integer, format: int64 }
     DashboardEnvelope:
       allOf:
@@ -737,7 +788,7 @@ components:
               payment_mode_buckets,
               category_buckets,
               department_buckets,
-              req_charge_type_buckets,
+              req_type_buckets,
             ]
           properties:
             payment_mode_buckets:
@@ -755,11 +806,10 @@ components:
                 type: array,
                 items: { $ref: "#/components/schemas/DashboardBucket" },
               }
-            req_charge_type_buckets:
-              {
-                type: array,
-                items: { $ref: "#/components/schemas/DashboardBucket" },
-              }
+            req_type_buckets:
+              type: array
+              description: Grouped by the transaction row's req_type.
+              items: { $ref: "#/components/schemas/DashboardBucket" }
         hourly_collection_buckets:
           type: array
           items:
@@ -935,7 +985,8 @@ components:
           req_version,
           pat_name,
           cr_num,
-          req_charge_type,
+          hospital_service_name,
+          req_type,
           req_date,
           req_amount,
           department_name,
@@ -945,7 +996,9 @@ components:
         req_version: { type: string, description: Opaque concurrency version }
         pat_name: { type: string }
         cr_num: { type: string }
-        req_charge_type: { type: string }
+        hospital_service_name:
+          { $ref: "#/components/schemas/HospitalServiceName" }
+        req_type: { $ref: "#/components/schemas/RequestTypeName" }
         req_date: { type: string, format: date }
         req_amount: { type: string }
         department_name: { type: string }
@@ -1176,7 +1229,9 @@ components:
           transaction_status,
           department_name,
           category_name,
-          req_charge_type,
+          req_type,
+          hospital_service_name,
+          billing_service_name,
         ]
       properties:
         transaction_no: { type: string }
@@ -1195,12 +1250,14 @@ components:
           { type: string, description: Raising department of the patient }
         category_name:
           { type: string, description: Patient category, e.g. General or CGHS }
-        req_charge_type:
-          {
-            type: string,
-            description: Request or charge type for the transaction,
-          }
-        hospital_service_name: { type: string }
+        req_type:
+          type: string
+          description: >-
+            The transaction's request type without the hospital-service
+            prefix — a RequestTypeName value, or "Part Payment" for a
+            direct-collection part payment.
+        hospital_service_name:
+          { $ref: "#/components/schemas/HospitalServiceName" }
         billing_service_name: { type: string }
       additionalProperties: true
     TransactionPageEnvelope:

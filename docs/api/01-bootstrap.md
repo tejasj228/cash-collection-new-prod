@@ -36,7 +36,8 @@ only the first page — the UI re-fetches full pages through
 | `pending_queue_summary.pending_request_count`       | string of int    | Total open pending requests, all dates, this counter's scope.                                                                                                                              |
 | `pending_queue_summary.today_pending_request_count` | string of int    | Open pending requests for `business_date` only.                                                                                                                                            |
 | `pending_queue_summary.cash_in_drawer_amount`       | string decimal   | Today's cash-mode collections minus cash-mode refunds.                                                                                                                                     |
-| `request_filter_options.request_charge_types`       | array of strings | Populates the queue's "Charge Type" filter dropdown.                                                                                                                                       |
+| `request_filter_options.hospital_service_names`     | array of strings | Populates the queue's "Hospital Service" filter dropdown — the distinct `hospital_service_name` values present in the queue (`OPD` / `IPD` / `Emergency`).                                 |
+| `request_filter_options.req_types`                  | array of strings | Populates the queue's "Request Type" filter dropdown — the distinct `req_type` values present in the queue.                                                                                |
 | `request_filter_options.department_names`           | array of strings | Populates the queue's "Department" filter dropdown.                                                                                                                                        |
 
 ### `hospital_services[]`
@@ -181,7 +182,8 @@ Each entry is an **executable workflow descriptor**, not display text:
         "department_name": "Cardiology",
         "category_name": "General",
         "cr_num": "939112600000004",
-        "req_charge_type": "OPD Service",
+        "hospital_service_name": "OPD",
+        "req_type": "Service",
         "req_amount": "480.00",
         "req_version": "1"
       }
@@ -216,7 +218,7 @@ Each entry is an **executable workflow descriptor**, not display text:
         "transaction_status": "Completed",
         "department_name": "General Medicine",
         "category_name": "General",
-        "req_charge_type": "OPD Service",
+        "req_type": "Service",
         "hospital_service_name": "OPD",
         "billing_service_name": "Service"
       }
@@ -236,12 +238,13 @@ Each entry is an **executable workflow descriptor**, not display text:
       "cash_in_drawer_amount": "96672.00"
     },
     "request_filter_options": {
-      "request_charge_types": [
-        "IPD Advance Deposit",
-        "IPD Advance Refund",
-        "IPD Final Adjustment",
-        "OPD Refund",
-        "OPD Service"
+      "hospital_service_names": ["IPD", "OPD"],
+      "req_types": [
+        "Advance Deposit",
+        "Advance Refund",
+        "Final Adjustment",
+        "Refund",
+        "Service"
       ],
       "department_names": [
         "Cardiology",

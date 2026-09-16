@@ -144,7 +144,7 @@ CASH_COLL_PRODUCTION/
 │   │   ├── Print/
 │   │   │   └── PrintableBill.jsx/.css + printableBill.js  print-only receipt
 │   │   ├── model/                pure functions, zero network — the business-logic layer
-│   │   │   ├── workflowRoutes.js     REQUEST_CHARGE_TYPE_ROUTES, isRefundRequest()
+│   │   │   ├── workflowRoutes.js     resolveRequestRoute(), isRefundRequest()
 │   │   │   ├── navigationRoutes.js   CASH_COLLECTION_ROUTES, sectionFromPath()
 │   │   │   ├── chargeCalculations.js lineGross/lineDiscountAmount/lineNet/withKeys — the money math
 │   │   │   ├── shiftSummary.js       computeShiftSummary(), hourOf(), parseAmount() — reconciliation math
@@ -245,14 +245,23 @@ This file is the single source of truth for **shape**. It exports:
   billing option carries one of these in its `uiFamily` field, and the UI
   picks which form component to render from it. **Never** match on labels or
   substrings to decide this — always branch on `uiFamily`.
-- `RequestChargeType` — the 7 "Charge Type" strings a pending-request row can
-  carry (`OPD Service`, `OPD Refund`, `IPD Advance Deposit`,
-  `IPD Advance Refund`, `IPD Final Adjustment`, `Investigation Charges`,
-  `Package Collection`).
+- `HospitalService` — the 3 "Hospital Service" strings a pending-request or
+  transaction row carries (`OPD`, `IPD`, `Emergency`). In HBIMS this is the
+  charge-type family (`sblnum_chargetype_id`). It decides which service tile
+  a queue request opens under (`resolveRequestRoute()` in
+  `model/workflowRoutes.js`).
+- `RequestType` — the 7 "Request Type" strings a pending-request row carries
+  (`Service`, `Refund`, `Advance Deposit`, `Advance Refund`,
+  `Final Adjustment`, `Investigation Charges`, `Package Collection`). It
+  decides the workflow. The two together replaced the old single combined
+  "Charge Type" column (`"IPD Final Adjustment"` → `IPD` + `Final Adjustment`).
+  Do not confuse `requestType` on a _row_ with the `requestType` state /
+  `request_type` command field, which is the `Receipt` / `Refund` /
+  `Estimation` transaction kind.
 - `HOSPITAL_SERVICE_FAMILY` / `HOSPITAL_SERVICE_FAMILIES` /
   `BILLING_SERVICE_BUCKET` / `BILLING_SERVICES_BY_FAMILY` — the **dashboard's
   own** OPD/IPD/Emergency → billing-service taxonomy (a _different_,
-  simpler grouping than `RequestChargeType` above, used only for the
+  simpler grouping than `RequestType` above, used only for the
   dashboard's billing-service breakdown cards). OPD and Emergency only ever
   have one bucket ("Service"); IPD has four ("Service", "Advance",
   "Part Payment", "Bill Settlement" — a billed "Package" folds into
@@ -396,7 +405,7 @@ will work against it with **zero frontend changes** — just flip
 | 1   | `loadBootstrap`            | `GET /bootstrap`                        | Everything needed to render the app cold                        | [`docs/api/01-bootstrap.md`](./api/01-bootstrap.md)                             |
 | 2   | `searchPatients`           | `GET /patients`                         | CR/name/mobile lookup                                           | [`docs/api/04-patient-search.md`](./api/04-patient-search.md)                   |
 | 3   | `listPendingRequests`      | `GET /requests`                         | The queue table                                                 | [`docs/api/02-pending-requests.md`](./api/02-pending-requests.md)               |
-| 4   | `getPendingRequestMetrics` | `GET /dashboard/pending-metrics`        | Queue counts by charge type                                     | [`docs/api/02-pending-requests.md`](./api/02-pending-requests.md)               |
+| 4   | `getPendingRequestMetrics` | `GET /dashboard/pending-metrics`        | Queue counts by hospital service × request type                 | [`docs/api/02-pending-requests.md`](./api/02-pending-requests.md)               |
 | 5   | `getDashboard`             | `GET /dashboard`                        | Server-aggregated dashboard (defined, not yet called by the UI) | [`docs/api/11-dashboard.md`](./api/11-dashboard.md)                             |
 | 6   | `getRequest`               | `GET /requests/{id}`                    | Opening one request                                             | [`docs/api/03-request-detail.md`](./api/03-request-detail.md)                   |
 | 7   | `getTariffs`               | `GET /tariffs`                          | Tariff search/catalogue                                         | [`docs/api/05-tariffs.md`](./api/05-tariffs.md)                                 |

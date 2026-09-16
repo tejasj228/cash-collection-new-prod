@@ -1,5 +1,9 @@
 import React, { useMemo, useState } from "react";
-import { ALL_TYPES, ALL_DEPTS } from "./requestBased";
+import {
+  ALL_HOSPITAL_SERVICES,
+  ALL_REQUEST_TYPES,
+  ALL_DEPTS,
+} from "./requestBased";
 import "./RequestBased.css";
 import { useAppData } from "../../../../app/providers/AppDataProvider";
 import { useEscapeToClose } from "../../../../shared/hooks/useEscapeToClose";
@@ -67,8 +71,10 @@ function RequestWorklist({
   setPage,
   sort,
   toggleSort,
-  typeFilter,
-  setTypeFilter,
+  hospitalServiceFilter,
+  setHospitalServiceFilter,
+  requestTypeFilter,
+  setRequestTypeFilter,
   deptFilter,
   setDeptFilter,
 }) {
@@ -82,11 +88,21 @@ function RequestWorklist({
   const [filterOpen, setFilterOpen] = useState(false);
   useEscapeToClose(() => setFilterOpen(false), filterOpen);
   const pageSize = 10;
-  const typeOptions = useMemo(
+  const hospitalServiceOptions = useMemo(
     () => [
-      ALL_TYPES,
-      ...(requestFilterOptions?.chargeTypes ||
-        Array.from(new Set(requests.map((item) => item.type))).sort()),
+      ALL_HOSPITAL_SERVICES,
+      ...(requestFilterOptions?.hospitalServices ||
+        Array.from(
+          new Set(requests.map((item) => item.hospitalService)),
+        ).sort()),
+    ],
+    [requestFilterOptions, requests],
+  );
+  const requestTypeOptions = useMemo(
+    () => [
+      ALL_REQUEST_TYPES,
+      ...(requestFilterOptions?.requestTypes ||
+        Array.from(new Set(requests.map((item) => item.requestType))).sort()),
     ],
     [requestFilterOptions, requests],
   );
@@ -99,7 +115,9 @@ function RequestWorklist({
     [requestFilterOptions, requests],
   );
   const activeFilters =
-    (typeFilter !== ALL_TYPES ? 1 : 0) + (deptFilter !== ALL_DEPTS ? 1 : 0);
+    (hospitalServiceFilter !== ALL_HOSPITAL_SERVICES ? 1 : 0) +
+    (requestTypeFilter !== ALL_REQUEST_TYPES ? 1 : 0) +
+    (deptFilter !== ALL_DEPTS ? 1 : 0);
   React.useEffect(() => {
     let active = true;
     setLoading(true);
@@ -109,7 +127,14 @@ function RequestWorklist({
           page: page - 1,
           size: pageSize,
           search: search.trim(),
-          chargeType: typeFilter === ALL_TYPES ? undefined : typeFilter,
+          hospitalService:
+            hospitalServiceFilter === ALL_HOSPITAL_SERVICES
+              ? undefined
+              : hospitalServiceFilter,
+          requestType:
+            requestTypeFilter === ALL_REQUEST_TYPES
+              ? undefined
+              : requestTypeFilter,
           department: deptFilter === ALL_DEPTS ? undefined : deptFilter,
           sort: sort ? `${sort.field},${sort.dir}` : undefined,
         });
@@ -133,13 +158,22 @@ function RequestWorklist({
       active = false;
       window.clearTimeout(timer);
     };
-  }, [services, page, search, typeFilter, deptFilter, sort]);
+  }, [
+    services,
+    page,
+    search,
+    hospitalServiceFilter,
+    requestTypeFilter,
+    deptFilter,
+    sort,
+  ]);
   const applyFilter = (setter) => (value) => {
     setter(value);
     setPage(1);
   };
   const clearFilters = () => {
-    setTypeFilter(ALL_TYPES);
+    setHospitalServiceFilter(ALL_HOSPITAL_SERVICES);
+    setRequestTypeFilter(ALL_REQUEST_TYPES);
     setDeptFilter(ALL_DEPTS);
     setPage(1);
   };
@@ -208,10 +242,16 @@ function RequestWorklist({
                     </button>
                   </div>
                   <SelectField
-                    label="Charge Type"
-                    value={typeFilter}
-                    onChange={applyFilter(setTypeFilter)}
-                    options={typeOptions}
+                    label="Hospital Service"
+                    value={hospitalServiceFilter}
+                    onChange={applyFilter(setHospitalServiceFilter)}
+                    options={hospitalServiceOptions}
+                  />
+                  <SelectField
+                    label="Request Type"
+                    value={requestTypeFilter}
+                    onChange={applyFilter(setRequestTypeFilter)}
+                    options={requestTypeOptions}
                   />
                   <SelectField
                     label="Department"
@@ -246,7 +286,8 @@ function RequestWorklist({
               <th>Patient Name</th>
               <th>Department</th>
               <th className="col-c">CR No.</th>
-              <th>Charge Type</th>
+              <th className="col-c">Hospital Service</th>
+              <th>Request Type</th>
               <SortHeader
                 label="Amount"
                 field="amount"
@@ -257,7 +298,7 @@ function RequestWorklist({
             </tr>
           </thead>
           <tbody>
-            {loading && <SkeletonRows rows={skeletonRowCount} cols={8} />}
+            {loading && <SkeletonRows rows={skeletonRowCount} cols={9} />}
             {!loading &&
               visible.map((request) => (
                 <tr
@@ -279,8 +320,11 @@ function RequestWorklist({
                   <td className="col-c mono">
                     {compactIdentifier(request.cr)}
                   </td>
+                  <td className="col-c cell-muted">
+                    {request.hospitalService}
+                  </td>
                   <td>
-                    <span className="type-label">{request.type}</span>
+                    <span className="type-label">{request.requestType}</span>
                   </td>
                   <td className="num amount-cell">₹{request.amount}</td>
                   <td className="action-cell">
@@ -364,4 +408,10 @@ function RequestWorklist({
   );
 }
 
-export { ModeTabs, RequestWorklist, ALL_TYPES, ALL_DEPTS };
+export {
+  ModeTabs,
+  RequestWorklist,
+  ALL_HOSPITAL_SERVICES,
+  ALL_REQUEST_TYPES,
+  ALL_DEPTS,
+};

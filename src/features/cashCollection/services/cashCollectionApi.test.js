@@ -19,7 +19,8 @@ const bootstrapWire = (overrides = {}) => ({
     cash_in_drawer_amount: "0.00",
   },
   request_filter_options: {
-    request_charge_types: [],
+    hospital_service_names: [],
+    req_types: [],
     department_names: [],
   },
   patient_seed_list: [],
@@ -111,14 +112,16 @@ describe("cash collection API adapter", () => {
       date: "2026-09-10",
       category: "General",
       department: "Cardiology",
-      chargeType: "OPD Service",
+      hospitalService: "OPD",
+      requestType: "Service",
     });
     const [url] = global.fetch.mock.calls[0];
     expect(url.toString()).toContain("/dashboard/pending-metrics?");
     expect(url.searchParams.get("pending_date")).toBe("2026-09-10");
     expect(url.searchParams.get("category_name")).toBe("General");
     expect(url.searchParams.get("department_name")).toBe("Cardiology");
-    expect(url.searchParams.get("req_charge_type")).toBe("OPD Service");
+    expect(url.searchParams.get("hospital_service_name")).toBe("OPD");
+    expect(url.searchParams.get("req_type")).toBe("Service");
     expect(url.searchParams.has("payment_mode")).toBe(false);
   });
 
@@ -131,12 +134,13 @@ describe("cash collection API adapter", () => {
       date: "2026-09-10",
       category: "General",
       group: "Cardiology",
-      requestType: "OPD Service",
+      requestType: "Service",
     });
     const [url] = global.fetch.mock.calls[0];
     expect(url.pathname).toContain("/dashboard");
     expect(url.searchParams.get("dashboard_date")).toBe("2026-09-10");
     expect(url.searchParams.get("department_name")).toBe("Cardiology");
+    expect(url.searchParams.get("req_type")).toBe("Service");
   });
 
   test("maps prefixed pending-request fields without changing the UI workflow", async () => {
@@ -147,7 +151,8 @@ describe("cash collection API adapter", () => {
       department_name: "General Medicine",
       category_name: "General",
       cr_num: "093911260000001",
-      req_charge_type: "OPD Refund",
+      hospital_service_name: "OPD",
+      req_type: "Refund",
       req_amount: 480,
       req_version: 2,
     };
@@ -170,10 +175,12 @@ describe("cash collection API adapter", () => {
       patient: row.pat_name,
       department: row.department_name,
       cr: row.cr_num,
-      type: row.req_charge_type,
+      hospitalService: "OPD",
+      requestType: "Refund",
       amount: "480",
       version: "2",
     });
+    expect(result.items[0].type).toBeUndefined();
     expect(result.items[0].req_amount).toBe("480");
     expect(result.items[0].req_version).toBe("2");
     expect(result.total).toBe(25);
@@ -187,7 +194,8 @@ describe("cash collection API adapter", () => {
       department_name: "General Medicine",
       category_name: "General",
       cr_num: "093911260000001",
-      req_charge_type: "OPD Refund",
+      hospital_service_name: "IPD",
+      req_type: "Advance Refund",
       req_amount: "480.00",
       req_version: "2",
     };
@@ -195,7 +203,14 @@ describe("cash collection API adapter", () => {
       ok: true,
       json: async () => ({
         success: true,
-        data: bootstrapWire({ pending_request_queue: [row] }),
+        data: bootstrapWire({
+          pending_request_queue: [row],
+          request_filter_options: {
+            hospital_service_names: ["IPD", "OPD"],
+            req_types: ["Advance Refund", "Service"],
+            department_names: ["General Medicine"],
+          },
+        }),
       }),
     });
     const api = createCashCollectionApi({
@@ -206,7 +221,13 @@ describe("cash collection API adapter", () => {
     expect(result.requests[0]).toMatchObject({
       id: row.req_id,
       patient: row.pat_name,
-      type: row.req_charge_type,
+      hospitalService: "IPD",
+      requestType: "Advance Refund",
+    });
+    expect(result.requestFilterOptions).toEqual({
+      hospitalServices: ["IPD", "OPD"],
+      requestTypes: ["Advance Refund", "Service"],
+      departments: ["General Medicine"],
     });
   });
 
@@ -220,7 +241,9 @@ describe("cash collection API adapter", () => {
       payment_mode: "Cash",
       transaction_amount: 4280,
       transaction_status: "Completed",
-      req_charge_type: "OPD Service",
+      req_type: "Service",
+      hospital_service_name: "OPD",
+      billing_service_name: "Service",
     };
     global.fetch.mockResolvedValueOnce({
       ok: true,
@@ -244,7 +267,9 @@ describe("cash collection API adapter", () => {
       mode: "Cash",
       amount: "4280",
       status: "Completed",
-      requestType: "OPD Service",
+      requestType: "Service",
+      hospitalService: "OPD",
+      billingService: "Service",
     });
     expect(result.items[0].transaction_amount).toBe("4280");
     expect(result.total).toBe(25);
@@ -260,7 +285,9 @@ describe("cash collection API adapter", () => {
       payment_mode: "Cash",
       transaction_amount: "4280.00",
       transaction_status: "Completed",
-      req_charge_type: "OPD Service",
+      req_type: "Service",
+      hospital_service_name: "OPD",
+      billing_service_name: "Service",
     };
     global.fetch.mockResolvedValueOnce({
       ok: true,
@@ -379,7 +406,9 @@ describe("cash collection API adapter", () => {
             transaction_status: "Completed",
             department_name: "Cardiology",
             category_name: "General",
-            req_charge_type: "OPD Service",
+            req_type: "Service",
+            hospital_service_name: "OPD",
+            billing_service_name: "Service",
           },
           printable_data: {
             transaction_document_no: "REC-1",

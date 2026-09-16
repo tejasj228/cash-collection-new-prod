@@ -51,7 +51,8 @@ test("posting a pending request resolves it and adds it to the dashboard data", 
       patient: patient.name,
       amount: "100.00",
       status: "Completed",
-      requestType: request.type,
+      requestType: request.requestType,
+      hospitalService: request.hospitalService,
     }),
   );
 

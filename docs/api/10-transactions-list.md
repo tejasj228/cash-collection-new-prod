@@ -27,21 +27,21 @@ therefore the single most important thing for making the real dashboard work
 
 ## Response fields — return these exact names, every value a string
 
-| Column shown                            | Field name              | Notes                                                                                                                                                                                                    |
-| --------------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Bill No.                                | `transaction_no`        | e.g. `"REC-2026-088241"`, `"REF-…"`.                                                                                                                                                                     |
-| Patient Name                            | `pat_name`              |                                                                                                                                                                                                          |
-| CR No.                                  | `cr_num`                |                                                                                                                                                                                                          |
-| _(used for grouping/sort)_              | `transaction_date_iso`  | `YYYY-MM-DD`.                                                                                                                                                                                            |
-| _(shown under Bill No.)_                | `transaction_time`      | `"10:38 AM"`. Parsed client-side into an hour-of-day (0–23) for the hourly chart.                                                                                                                        |
-| Payment Mode                            | `payment_mode`          | `"Cash"` \| `"Card"` \| `"UPI"` \| `"Cheque"`. Powers the Payment-Mode donut.                                                                                                                            |
-| Amount                                  | `transaction_amount`    | Decimal string, no currency symbol.                                                                                                                                                                      |
-| Bill Type (status pill)                 | `transaction_status`    | `"Completed"` \| `"Refunded"` \| `"Cancelled"`. (`"Failed"` / `"Unposted"` are reserved but not currently rendered.)                                                                                     |
-| _(dashboard grouping only)_             | `department_name`       | Patient's raising department — feeds the "Group" view of the second donut. A view exposing `department_name` is also accepted.                                                                           |
-| _(dashboard grouping only)_             | `category_name`         | Patient category — feeds the "Patient Category" view of the second donut. `pat_category` is also accepted.                                                                                               |
-| _(dashboard grouping only)_             | `req_charge_type`       | The charge type / billing-service label for this row (e.g. `"OPD Service"`, `"Bill Settlement"`).                                                                                                        |
-| **feeds the OPD/IPD/Emergency treemap** | `hospital_service_name` | **Must be exactly** `"OPD"` \| `"IPD"` \| `"Emergency"`. See the mapping table in [`post-transaction.md`](./09-post-transaction.md#dashboard_transaction_row--the-row-that-feeds-every-dashboard-chart). |
-| **feeds the treemap's IPD drill-down**  | `billing_service_name`  | **Must be exactly** `"Service"` \| `"Advance"` \| `"Part Payment"` \| `"Bill Settlement"` (a billed `"Package"` folds into `"Service"` here — see `BILLING_SERVICE_BUCKET`).                             |
+| Column shown                            | Field name              | Notes                                                                                                                                                                                                                                                                     |
+| --------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bill No.                                | `transaction_no`        | e.g. `"REC-2026-088241"`, `"REF-…"`.                                                                                                                                                                                                                                      |
+| Patient Name                            | `pat_name`              |                                                                                                                                                                                                                                                                           |
+| CR No.                                  | `cr_num`                |                                                                                                                                                                                                                                                                           |
+| _(used for grouping/sort)_              | `transaction_date_iso`  | `YYYY-MM-DD`.                                                                                                                                                                                                                                                             |
+| _(shown under Bill No.)_                | `transaction_time`      | `"10:38 AM"`. Parsed client-side into an hour-of-day (0–23) for the hourly chart.                                                                                                                                                                                         |
+| Payment Mode                            | `payment_mode`          | `"Cash"` \| `"Card"` \| `"UPI"` \| `"Cheque"`. Powers the Payment-Mode donut.                                                                                                                                                                                             |
+| Amount                                  | `transaction_amount`    | Decimal string, no currency symbol.                                                                                                                                                                                                                                       |
+| Bill Type (status pill)                 | `transaction_status`    | `"Completed"` \| `"Refunded"` \| `"Cancelled"`. (`"Failed"` / `"Unposted"` are reserved but not currently rendered.)                                                                                                                                                      |
+| _(dashboard grouping only)_             | `department_name`       | Patient's raising department — feeds the "Group" view of the second donut. A view exposing `department_name` is also accepted.                                                                                                                                            |
+| _(dashboard grouping only)_             | `category_name`         | Patient category — feeds the "Patient Category" view of the second donut. `pat_category` is also accepted.                                                                                                                                                                |
+| _(dashboard grouping only)_             | `req_type`              | The request type for this row — one of the `RequestType` values (`"Service"`, `"Final Adjustment"`, …), **without** the hospital-service prefix; that lives in `hospital_service_name` below. `"Part Payment"` is also accepted here for direct-collection part payments. |
+| **feeds the OPD/IPD/Emergency treemap** | `hospital_service_name` | **Must be exactly** `"OPD"` \| `"IPD"` \| `"Emergency"`. See the mapping table in [`post-transaction.md`](./09-post-transaction.md#dashboard_transaction_row--the-row-that-feeds-every-dashboard-chart).                                                                  |
+| **feeds the treemap's IPD drill-down**  | `billing_service_name`  | **Must be exactly** `"Service"` \| `"Advance"` \| `"Part Payment"` \| `"Bill Settlement"` (a billed `"Package"` folds into `"Service"` here — see `BILLING_SERVICE_BUCKET`).                                                                                              |
 
 Do not return JSON numbers for `transaction_amount`, `cr_num`, or `transaction_no`. `transaction_status` is one of
 `Completed` / `Refunded` / `Cancelled`. The same row contract applies to the
@@ -68,7 +68,7 @@ remains numeric.
         "transaction_status": "Completed",
         "department_name": "General Medicine",
         "category_name": "General",
-        "req_charge_type": "OPD Service",
+        "req_type": "Service",
         "hospital_service_name": "OPD",
         "billing_service_name": "Service"
       },
@@ -83,7 +83,7 @@ remains numeric.
         "transaction_status": "Refunded",
         "department_name": "Gynaecology",
         "category_name": "General",
-        "req_charge_type": "IPD Advance Refund",
+        "req_type": "Advance Refund",
         "hospital_service_name": "IPD",
         "billing_service_name": "Advance"
       }

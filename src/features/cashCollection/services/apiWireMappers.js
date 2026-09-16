@@ -187,7 +187,8 @@ export function mapBootstrapWire(row = {}) {
       cashInDrawer: displayText(queue.cash_in_drawer_amount),
     },
     requestFilterOptions: {
-      chargeTypes: requestFilters.request_charge_types || [],
+      hospitalServices: requestFilters.hospital_service_names || [],
+      requestTypes: requestFilters.req_types || [],
       departments: requestFilters.department_names || [],
     },
     patients: (row.patient_seed_list || []).map(mapPatient),
@@ -321,9 +322,7 @@ export function mapDashboardWire(row = {}) {
       ),
       categories: (breakdowns.category_buckets || []).map(mapDashboardBucket),
       groups: (breakdowns.department_buckets || []).map(mapDashboardBucket),
-      requestTypes: (breakdowns.req_charge_type_buckets || []).map(
-        mapDashboardBucket,
-      ),
+      requestTypes: (breakdowns.req_type_buckets || []).map(mapDashboardBucket),
     },
     hourlyCollections: (row.hourly_collection_buckets || []).map(
       mapDashboardBucket,
@@ -412,7 +411,8 @@ export function toPendingRequestQuery(filters = {}) {
     page: filters.page,
     size: filters.size,
     req_search: filters.search,
-    req_charge_type: filters.chargeType,
+    hospital_service_name: filters.hospitalService,
+    req_type: filters.requestType,
     department_name: filters.department,
     category_name: filters.category,
     req_date: filters.date,
@@ -431,7 +431,7 @@ export function toDashboardQuery(filters = {}) {
     collection_hour: filters.hour,
     category_name: filters.category,
     department_name: filters.group,
-    req_charge_type: filters.requestType,
+    req_type: filters.requestType,
   };
 }
 
@@ -440,7 +440,8 @@ export function toPendingMetricsQuery(filters = {}) {
     pending_date: filters.date,
     category_name: filters.category,
     department_name: filters.department,
-    req_charge_type: filters.chargeType,
+    hospital_service_name: filters.hospitalService,
+    req_type: filters.requestType,
   };
 }
 

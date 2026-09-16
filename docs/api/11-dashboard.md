@@ -1,7 +1,7 @@
 # Dashboard (server-side aggregation)
 
 ```http
-GET /api/cash-collection/dashboard?dashboard_date=2026-09-13&payment_mode=Cash&transaction_status=Completed&collection_hour=10&category_name=General&department_name=Cardiology&req_charge_type=OPD%20Service
+GET /api/cash-collection/dashboard?dashboard_date=2026-09-13&payment_mode=Cash&transaction_status=Completed&collection_hour=10&category_name=General&department_name=Cardiology&req_type=Service
 ```
 
 > **Not currently called by the frontend.** `Dashboard/Dashboard.jsx` aggregates
@@ -23,7 +23,7 @@ GET /api/cash-collection/dashboard?dashboard_date=2026-09-13&payment_mode=Cash&t
 | `collection_hour`    | integer | no       | `0`–`23`.                                                                                                                                   |
 | `category_name`      | string  | no       |                                                                                                                                             |
 | `department_name`    | string  | no       | Department.                                                                                                                                 |
-| `req_charge_type`    | string  | no       |                                                                                                                                             |
+| `req_type`           | string  | no       | Exact match on the transaction row's `req_type` (`Service`, `Final Adjustment`, …).                                                         |
 
 Calculate every KPI and every breakdown from **the same frozen query scope**
 so the numbers reconcile with each other. Do not send thousands of
@@ -32,23 +32,23 @@ buckets and a small paged `dashboard_recent_transaction_page` sample.
 
 ## Response fields
 
-| Field                                          | Type                                           | Notes                                                                                                                                                                                                                     |
-| ---------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dashboard_business_date`                      | string                                         | `YYYY-MM-DD`.                                                                                                                                                                                                             |
-| `dashboard_version`                            | string                                         | Opaque — bump it when the shift closes, so a client can detect a stale cached dashboard.                                                                                                                                  |
-| `dashboard_generated_at`                       | string                                         | ISO 8601 timestamp.                                                                                                                                                                                                       |
-| `dashboard_kpis.collection_total_amount`       | string decimal                                 |                                                                                                                                                                                                                           |
-| `dashboard_kpis.refund_total_amount`           | string decimal                                 |                                                                                                                                                                                                                           |
-| `dashboard_kpis.net_collection_amount`         | string decimal                                 | `collection_total_amount - refund_total_amount`.                                                                                                                                                                          |
-| `dashboard_kpis.transaction_count`             | string of int                                  | Completed-collection count.                                                                                                                                                                                               |
-| `dashboard_kpis.cash_in_drawer_amount`         | string decimal                                 | **Same-day cash-mode collections minus cash-mode refunds, unfiltered by any of the above filters.** This is the figure shift-close reconciliation checks against — it must never move when someone clicks a chart filter. |
-| `dashboard_kpis.largest_collection_amount`     | string decimal                                 |                                                                                                                                                                                                                           |
-| `dashboard_breakdowns.payment_mode_buckets`    | array of [`DashboardBucket`](#dashboardbucket) |                                                                                                                                                                                                                           |
-| `dashboard_breakdowns.category_buckets`        | array of `DashboardBucket`                     |                                                                                                                                                                                                                           |
-| `dashboard_breakdowns.department_buckets`      | array of `DashboardBucket`                     | Department breakdown.                                                                                                                                                                                                     |
-| `dashboard_breakdowns.req_charge_type_buckets` | array of `DashboardBucket`                     |                                                                                                                                                                                                                           |
-| `hourly_collection_buckets`                    | array of `DashboardBucket` + `collection_hour` | One entry per hour, `0`–`23`, even if `dashboard_bucket_count` is `0` for that hour.                                                                                                                                      |
-| `dashboard_recent_transaction_page`            | `{ items, total, page, size }`                 | A small page (5 rows in the mock) — the full list is [`GET /transactions`](./10-transactions-list.md).                                                                                                                    |
+| Field                                       | Type                                           | Notes                                                                                                                                                                                                                     |
+| ------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dashboard_business_date`                   | string                                         | `YYYY-MM-DD`.                                                                                                                                                                                                             |
+| `dashboard_version`                         | string                                         | Opaque — bump it when the shift closes, so a client can detect a stale cached dashboard.                                                                                                                                  |
+| `dashboard_generated_at`                    | string                                         | ISO 8601 timestamp.                                                                                                                                                                                                       |
+| `dashboard_kpis.collection_total_amount`    | string decimal                                 |                                                                                                                                                                                                                           |
+| `dashboard_kpis.refund_total_amount`        | string decimal                                 |                                                                                                                                                                                                                           |
+| `dashboard_kpis.net_collection_amount`      | string decimal                                 | `collection_total_amount - refund_total_amount`.                                                                                                                                                                          |
+| `dashboard_kpis.transaction_count`          | string of int                                  | Completed-collection count.                                                                                                                                                                                               |
+| `dashboard_kpis.cash_in_drawer_amount`      | string decimal                                 | **Same-day cash-mode collections minus cash-mode refunds, unfiltered by any of the above filters.** This is the figure shift-close reconciliation checks against — it must never move when someone clicks a chart filter. |
+| `dashboard_kpis.largest_collection_amount`  | string decimal                                 |                                                                                                                                                                                                                           |
+| `dashboard_breakdowns.payment_mode_buckets` | array of [`DashboardBucket`](#dashboardbucket) |                                                                                                                                                                                                                           |
+| `dashboard_breakdowns.category_buckets`     | array of `DashboardBucket`                     |                                                                                                                                                                                                                           |
+| `dashboard_breakdowns.department_buckets`   | array of `DashboardBucket`                     | Department breakdown.                                                                                                                                                                                                     |
+| `dashboard_breakdowns.req_type_buckets`     | array of `DashboardBucket`                     | Grouped by the transaction row's `req_type`; `dashboard_bucket_id` / `dashboard_bucket_label` are the `req_type` value.                                                                                                   |
+| `hourly_collection_buckets`                 | array of `DashboardBucket` + `collection_hour` | One entry per hour, `0`–`23`, even if `dashboard_bucket_count` is `0` for that hour.                                                                                                                                      |
+| `dashboard_recent_transaction_page`         | `{ items, total, page, size }`                 | A small page (5 rows in the mock) — the full list is [`GET /transactions`](./10-transactions-list.md).                                                                                                                    |
 
 ### `DashboardBucket`
 
@@ -113,10 +113,10 @@ buckets and a small paged `dashboard_recent_transaction_page` sample.
           "dashboard_bucket_percentage": "8.00"
         }
       ],
-      "req_charge_type_buckets": [
+      "req_type_buckets": [
         {
-          "dashboard_bucket_id": "OPD Service",
-          "dashboard_bucket_label": "OPD Service",
+          "dashboard_bucket_id": "Service",
+          "dashboard_bucket_label": "Service",
           "dashboard_bucket_amount": "54432.00",
           "dashboard_bucket_count": "22",
           "dashboard_bucket_percentage": "13.00"
@@ -154,7 +154,7 @@ buckets and a small paged `dashboard_recent_transaction_page` sample.
           "transaction_status": "Completed",
           "department_name": "General Medicine",
           "category_name": "General",
-          "req_charge_type": "OPD Service",
+          "req_type": "Service",
           "hospital_service_name": "OPD",
           "billing_service_name": "Service"
         }

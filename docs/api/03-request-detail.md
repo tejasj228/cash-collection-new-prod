@@ -49,7 +49,8 @@ Same base fields as [a pending-request row](./02-pending-requests.md), plus:
     "pat_name": "Sunita Rao",
     "department_name": "Cardiology",
     "cr_num": "939112600000002",
-    "req_charge_type": "OPD Refund",
+    "hospital_service_name": "OPD",
+    "req_type": "Refund",
     "req_amount": "1240.00",
     "req_version": "3",
     "linked_patient": {

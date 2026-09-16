@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import "./CollectionDetails.css";
 import {
   WorkflowFamily,
-  RequestChargeType,
+  HospitalService,
+  RequestType,
 } from "../../../contracts/cashCollection.contract";
 import { useAppData } from "../../../app/providers/AppDataProvider";
 import { money, firstContextValue } from "../../../shared/utils/formatters";
@@ -188,9 +189,12 @@ function CollectionWorkspace({
   );
   // Legacy Tariff Details popup only exists for an IPD Final Adjustment
   // (bill settlement) request raised through the queue — check the request's
-  // own Charge Type enum directly rather than the resolved workflow.
+  // own Hospital Service / Request Type directly rather than the resolved
+  // workflow.
   const showTariffDetails =
-    isRequest && request?.type === RequestChargeType.IPD_FINAL_ADJUSTMENT;
+    isRequest &&
+    request?.hospitalService === HospitalService.IPD &&
+    request?.requestType === RequestType.FINAL_ADJUSTMENT;
   const handleDetails = showTariffDetails
     ? (groupLines) => setDetailsGroup(groupLines)
     : undefined;

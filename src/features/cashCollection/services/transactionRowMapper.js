@@ -21,7 +21,9 @@ export function mapTransactionRow(row) {
   const status = row?.transaction_status;
   const department = row?.department_name;
   const category = row?.category_name;
-  const requestType = row?.req_charge_type;
+  const hospitalService = row?.hospital_service_name;
+  const billingService = row?.billing_service_name;
+  const requestType = row?.req_type;
   return {
     ...base,
     ...(transactionNo != null ? { no: asDisplayText(transactionNo) } : {}),
@@ -34,6 +36,12 @@ export function mapTransactionRow(row) {
     ...(status != null ? { status: asDisplayText(status) } : {}),
     ...(department != null ? { department: asDisplayText(department) } : {}),
     ...(category != null ? { category: asDisplayText(category) } : {}),
+    ...(hospitalService != null
+      ? { hospitalService: asDisplayText(hospitalService) }
+      : {}),
+    ...(billingService != null
+      ? { billingService: asDisplayText(billingService) }
+      : {}),
     ...(requestType != null ? { requestType: asDisplayText(requestType) } : {}),
   };
 }

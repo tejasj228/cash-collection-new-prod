@@ -58,7 +58,8 @@ const eligibilityFor = (command, pendingRequests = PROTOTYPE_DATA.requests) => {
       };
     if (
       request.cr !== command.crNumber ||
-      isRefundRequestType(request.type) !== (command.requestType === "Refund")
+      isRefundRequestType(request.requestType) !==
+        (command.requestType === "Refund")
     ) {
       return {
         eligible: false,
@@ -234,7 +235,8 @@ export function createPrototypeServices({ now = () => Date.now() } = {}) {
       page = 0,
       size = 10,
       search = "",
-      chargeType,
+      hospitalService,
+      requestType,
       department,
       category,
       date,
@@ -247,7 +249,8 @@ export function createPrototypeServices({ now = () => Date.now() } = {}) {
             `${row.patient} ${row.cr} ${row.id}`
               .toLowerCase()
               .includes(term)) &&
-          (!chargeType || row.type === chargeType) &&
+          (!hospitalService || row.hospitalService === hospitalService) &&
+          (!requestType || row.requestType === requestType) &&
           (!department || row.department === department) &&
           (!category || row.category === category) &&
           (!date || row.dateIso === date),
@@ -279,24 +282,33 @@ export function createPrototypeServices({ now = () => Date.now() } = {}) {
       date,
       category,
       department,
-      chargeType,
+      hospitalService,
+      requestType,
     } = {}) {
       const rows = pendingRequests.filter(
         (row) =>
           (!date || row.dateIso === date) &&
           (!category || row.category === category) &&
           (!department || row.department === department) &&
-          (!chargeType || row.type === chargeType),
+          (!hospitalService || row.hospitalService === hospitalService) &&
+          (!requestType || row.requestType === requestType),
       );
       const counts = rows.reduce((map, row) => {
-        map.set(row.type, (map.get(row.type) || 0) + 1);
+        const key = `${row.hospitalService}::${row.requestType}`;
+        const current = map.get(key) || {
+          hospitalService: row.hospitalService,
+          requestType: row.requestType,
+          count: 0,
+        };
+        current.count += 1;
+        map.set(key, current);
         return map;
       }, new Map());
       return withLatency({
         total: rows.length,
-        byChargeType: [...counts]
-          .map(([value, count]) => ({ chargeType: value, count }))
-          .sort((left, right) => right.count - left.count),
+        byRequestType: [...counts.values()].sort(
+          (left, right) => right.count - left.count,
+        ),
       });
     },
     async getDashboard(filters = {}) {
@@ -498,15 +510,16 @@ export function createPrototypeServices({ now = () => Date.now() } = {}) {
               status:
                 command.requestType === "Refund" ? "Refunded" : "Completed",
               requestType:
-                pendingRequest?.type ||
+                pendingRequest?.requestType ||
                 command.billingServiceName ||
                 command.requestType,
               // OPD/IPD/Emergency × billing-service, for the dashboard's
-              // request-type breakdown — kept separate from `requestType`
-              // above (the Pending-Requests Charge Type / workflow label)
-              // since that field's existing shape is depended on elsewhere.
+              // request-type breakdown — the queue request's own Hospital
+              // Service wins when this collection came from the queue.
               hospitalService:
-                HOSPITAL_SERVICE_FAMILY[command.hospitalServiceId] || "OPD",
+                pendingRequest?.hospitalService ||
+                HOSPITAL_SERVICE_FAMILY[command.hospitalServiceId] ||
+                "OPD",
               billingService:
                 BILLING_SERVICE_BUCKET[command.billingServiceName] || "Service",
               department:

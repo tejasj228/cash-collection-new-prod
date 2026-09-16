@@ -147,7 +147,7 @@ BILLING_SERVICE_BUCKET  = { "Service": "Service", "Package": "Service", "Advance
       "transaction_status": "Completed",
       "department_name": "Cardiology",
       "category_name": "General",
-      "req_charge_type": "OPD Service",
+      "req_type": "Service",
       "hospital_service_name": "OPD",
       "billing_service_name": "Service"
     },

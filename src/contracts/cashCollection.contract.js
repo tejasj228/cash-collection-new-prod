@@ -14,41 +14,50 @@ export const WorkflowFamily = Object.freeze({
   PART_PAYMENT_REFUND: "part-payment-refund",
 });
 
-// Canonical "Charge Type" values a billing request can carry in the Pending
-// Requests queue — used to classify a request (e.g. is this an IPD Final
-// Adjustment or an OPD Refund?) instead of matching substrings of free text.
-export const RequestChargeType = Object.freeze({
-  OPD_SERVICE: "OPD Service",
-  OPD_REFUND: "OPD Refund",
-  IPD_ADVANCE_DEPOSIT: "IPD Advance Deposit",
-  IPD_ADVANCE_REFUND: "IPD Advance Refund",
-  IPD_FINAL_ADJUSTMENT: "IPD Final Adjustment",
+// The hospital service a pending request or posted transaction belongs to.
+// Shown as its own "Hospital Service" column; in HBIMS this is the charge
+// type (`sblnum_chargetype_id`) family.
+export const HospitalService = Object.freeze({
+  OPD: "OPD",
+  IPD: "IPD",
+  EMERGENCY: "Emergency",
+});
+
+// Canonical "Request Type" values a billing request can carry in the Pending
+// Requests queue, independent of hospital service — used to classify a
+// request (e.g. is this a Final Adjustment or a Refund?) instead of matching
+// substrings of free text. Not to be confused with the Receipt / Refund /
+// Estimation transaction kind (`requestType` on a collection command).
+export const RequestType = Object.freeze({
+  SERVICE: "Service",
+  REFUND: "Refund",
+  ADVANCE_DEPOSIT: "Advance Deposit",
+  ADVANCE_REFUND: "Advance Refund",
+  FINAL_ADJUSTMENT: "Final Adjustment",
   INVESTIGATION_CHARGES: "Investigation Charges",
   PACKAGE_COLLECTION: "Package Collection",
 });
 
-export const REFUND_REQUEST_CHARGE_TYPES = Object.freeze([
-  RequestChargeType.OPD_REFUND,
-  RequestChargeType.IPD_ADVANCE_REFUND,
+export const REFUND_REQUEST_TYPES = Object.freeze([
+  RequestType.REFUND,
+  RequestType.ADVANCE_REFUND,
 ]);
 
 // The dashboard's "Cash Collected/Refunded by Request Type" breakdown drills
-// OPD/IPD/Emergency → billing service, not the Pending-Requests Charge Type
+// OPD/IPD/Emergency → billing service, not the Pending-Requests Request Type
 // above (a different, request-queue-specific taxonomy). This mirrors
 // `serviceOptions`/`billingByService`: OPD Normal and OPD Special both fold
 // into "OPD" (both only ever bill a generic "Service"); Emergency likewise
 // only bills "Service"; IPD is the only context with more than one option.
 export const HOSPITAL_SERVICE_FAMILY = Object.freeze({
-  "opd-normal": "OPD",
-  "opd-special": "OPD",
-  ipd: "IPD",
-  emergency: "Emergency",
+  "opd-normal": HospitalService.OPD,
+  "opd-special": HospitalService.OPD,
+  ipd: HospitalService.IPD,
+  emergency: HospitalService.EMERGENCY,
 });
-export const HOSPITAL_SERVICE_FAMILIES = Object.freeze([
-  "OPD",
-  "IPD",
-  "Emergency",
-]);
+export const HOSPITAL_SERVICE_FAMILIES = Object.freeze(
+  Object.values(HospitalService),
+);
 // A billed "Package" is service revenue for this breakdown's purposes — it
 // doesn't get its own top-level bucket, it folds into "Service".
 export const BILLING_SERVICE_BUCKET = Object.freeze({

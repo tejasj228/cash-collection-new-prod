@@ -5,10 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { normalizeCashCollectionData } from "../../../contracts/cashCollection.contract";
 import { AppDataProvider } from "../../../app/providers/AppDataProvider";
 import { optionValue, optionLabel } from "../../../shared/utils/formatters";
-import {
-  isRefundRequest,
-  REQUEST_CHARGE_TYPE_ROUTES,
-} from "../model/workflowRoutes";
+import { isRefundRequest, resolveRequestRoute } from "../model/workflowRoutes";
 import {
   CASH_COLLECTION_ROUTES,
   sectionFromPath,
@@ -19,7 +16,8 @@ import { ConfirmModal } from "../../../shared/components/ConfirmModal";
 import {
   ModeTabs,
   RequestWorklist,
-  ALL_TYPES,
+  ALL_HOSPITAL_SERVICES,
+  ALL_REQUEST_TYPES,
   ALL_DEPTS,
 } from "../Collection/RequestBased/RequestBased.jsx";
 import { useSort } from "../../../shared/hooks/useSort";
@@ -169,13 +167,16 @@ export default function CashCollectionApplication({
   // switching the Collection/Direct mode tab, starting an estimate — resets
   // it explicitly below, so only that one button preserves it.
   const [requestSearch, setRequestSearch] = useState("");
-  const [requestTypeFilter, setRequestTypeFilter] = useState(ALL_TYPES);
+  const [requestHospitalServiceFilter, setRequestHospitalServiceFilter] =
+    useState(ALL_HOSPITAL_SERVICES);
+  const [requestTypeFilter, setRequestTypeFilter] = useState(ALL_REQUEST_TYPES);
   const [requestDeptFilter, setRequestDeptFilter] = useState(ALL_DEPTS);
   const [requestPage, setRequestPage] = useState(1);
   const [requestSort, toggleRequestSort, resetRequestSort] = useSort();
   const resetRequestWorklist = () => {
     setRequestSearch("");
-    setRequestTypeFilter(ALL_TYPES);
+    setRequestHospitalServiceFilter(ALL_HOSPITAL_SERVICES);
+    setRequestTypeFilter(ALL_REQUEST_TYPES);
     setRequestDeptFilter(ALL_DEPTS);
     setRequestPage(1);
     resetRequestSort();
@@ -412,30 +413,24 @@ export default function CashCollectionApplication({
       );
       return;
     }
-    // Resolve service + workflow from the request's Charge Type enum first;
-    // fall back to the old label-matching heuristic only for a charge type a
-    // real backend sends that isn't one of our known enum values yet.
-    const route = REQUEST_CHARGE_TYPE_ROUTES[resolvedRequest.type];
-    const nextService = route
-      ? serviceOptions.find((option) => option.id === route.serviceId) ||
-        firstService
-      : resolvedRequest.type.includes("IPD")
-        ? serviceOptions.find((option) => option.id === "ipd") || firstService
-        : resolvedRequest.type.includes("Emergency")
-          ? serviceOptions.find((option) => option.id === "emergency") ||
-            firstService
-          : firstService;
+    // The request's Hospital Service picks the service tile; its Request Type
+    // picks the workflow. Fall back to label-matching only for a request type
+    // a real backend sends that isn't one of our known enum values yet.
+    const route = resolveRequestRoute(resolvedRequest);
+    const nextService =
+      serviceOptions.find((option) => option.id === route.serviceId) ||
+      firstService;
     const nextRequestType = isRefundRequest(resolvedRequest)
       ? "Refund"
       : "Receipt";
     const options = billingOptionsFor(nextService, nextRequestType);
     let workflow;
-    if (route) {
+    if (route.workflowFamily) {
       workflow =
         options.find((option) => option.uiFamily === route.workflowFamily) ||
         options[0];
     } else {
-      const requestKey = resolvedRequest.type
+      const requestKey = String(resolvedRequest.requestType || "")
         .toLowerCase()
         .replace(/[^a-z]/g, "");
       workflow =
@@ -645,8 +640,10 @@ export default function CashCollectionApplication({
                     setPage={setRequestPage}
                     sort={requestSort}
                     toggleSort={toggleRequestSort}
-                    typeFilter={requestTypeFilter}
-                    setTypeFilter={setRequestTypeFilter}
+                    hospitalServiceFilter={requestHospitalServiceFilter}
+                    setHospitalServiceFilter={setRequestHospitalServiceFilter}
+                    requestTypeFilter={requestTypeFilter}
+                    setRequestTypeFilter={setRequestTypeFilter}
                     deptFilter={requestDeptFilter}
                     setDeptFilter={setRequestDeptFilter}
                   />

@@ -1,7 +1,8 @@
 // Standalone design-review fixtures only. The HBIMS bundle does not import this file.
 import {
   WorkflowFamily,
-  RequestChargeType,
+  HospitalService,
+  RequestType,
 } from "../contracts/cashCollection.contract.js";
 
 const serviceOptions = [
@@ -569,7 +570,8 @@ const requests = [
     dateIso: isoMinus(0),
     patient: "Rajesh Kumar Mehta",
     cr: crNo(1),
-    type: RequestChargeType.IPD_FINAL_ADJUSTMENT,
+    hospitalService: HospitalService.IPD,
+    requestType: RequestType.FINAL_ADJUSTMENT,
     location: "Ward 4B · Bed 12",
     date: "03/09/2024",
     amount: "17,390.00",
@@ -584,7 +586,8 @@ const requests = [
     dateIso: isoMinus(0),
     patient: "Sunita Rao",
     cr: crNo(2),
-    type: RequestChargeType.OPD_REFUND,
+    hospitalService: HospitalService.OPD,
+    requestType: RequestType.REFUND,
     location: "OPD Cardiology",
     date: "03/09/2024",
     amount: "1,240.00",
@@ -624,7 +627,8 @@ const requests = [
     dateIso: isoMinus(0),
     patient: "Ajay Deshmukh",
     cr: crNo(4),
-    type: RequestChargeType.IPD_ADVANCE_DEPOSIT,
+    hospitalService: HospitalService.IPD,
+    requestType: RequestType.ADVANCE_DEPOSIT,
     location: "Ward 2A",
     date: "03/09/2024",
     amount: "8,000.00",
@@ -648,7 +652,8 @@ const requests = [
     dateIso: isoMinus(0),
     patient: "Meena Kumari",
     cr: crNo(5),
-    type: RequestChargeType.IPD_ADVANCE_REFUND,
+    hospitalService: HospitalService.IPD,
+    requestType: RequestType.ADVANCE_REFUND,
     location: "Ward 1B",
     date: "03/09/2024",
     amount: "2,450.00",
@@ -671,22 +676,32 @@ const requests = [
 
 // Part Payment cannot arrive as a billing request in HBIMS — OFFRECPARTPAY only
 // runs through the direct-collection screen, so the request-based queue must
-// never generate or display that charge type.
-const fixtureRequestTypes = [
-  RequestChargeType.OPD_SERVICE,
-  RequestChargeType.IPD_ADVANCE_DEPOSIT,
-  RequestChargeType.INVESTIGATION_CHARGES,
-  RequestChargeType.PACKAGE_COLLECTION,
-  RequestChargeType.OPD_REFUND,
+// never generate or display that request type. Each entry pairs the Hospital
+// Service with the Request Type the queue shows in its two columns.
+const fixtureRequestKinds = [
+  { hospitalService: HospitalService.OPD, requestType: RequestType.SERVICE },
+  {
+    hospitalService: HospitalService.IPD,
+    requestType: RequestType.ADVANCE_DEPOSIT,
+  },
+  {
+    hospitalService: HospitalService.OPD,
+    requestType: RequestType.INVESTIGATION_CHARGES,
+  },
+  {
+    hospitalService: HospitalService.OPD,
+    requestType: RequestType.PACKAGE_COLLECTION,
+  },
+  { hospitalService: HospitalService.OPD, requestType: RequestType.REFUND },
 ];
-// The queue's Charge Type column shows the request TYPE, but the Tariff Name
+// The queue's Request Type column shows the request TYPE, but the Tariff Name
 // column inside each request must show an actual tariff line, not that same
 // category label repeated back — pick a real catalog-style item per type.
 const requestLineOptions = {
   // A real OPD Service bill is a consultation plus whatever was done
   // alongside it — never just one line — so this pool splits into a
   // consultation half and an add-on half the generator below combines.
-  [RequestChargeType.OPD_SERVICE]: [
+  [RequestType.SERVICE]: [
     {
       code: "CONS-118",
       name: "Consultation — General Medicine",
@@ -702,16 +717,16 @@ const requestLineOptions = {
     { code: "INV-2201", name: "Complete blood count", group: "Investigation" },
     { code: "PROC-410", name: "Dressing — minor", group: "Procedure" },
   ],
-  [RequestChargeType.IPD_ADVANCE_DEPOSIT]: [
+  [RequestType.ADVANCE_DEPOSIT]: [
     { code: "ADV-0001", name: "Admission advance deposit", group: "Advance" },
   ],
-  [RequestChargeType.INVESTIGATION_CHARGES]: [
+  [RequestType.INVESTIGATION_CHARGES]: [
     { code: "INV-2201", name: "Complete blood count", group: "Investigation" },
     { code: "INV-3410", name: "Lipid profile", group: "Investigation" },
     { code: "INV-3455", name: "Liver function test", group: "Investigation" },
     { code: "INV-3312", name: "ECG — 12 lead", group: "Investigation" },
   ],
-  [RequestChargeType.PACKAGE_COLLECTION]: [
+  [RequestType.PACKAGE_COLLECTION]: [
     { code: "PKG-9001", name: "Day Care Package — General", group: "Package" },
     {
       code: "PKG-9002",
@@ -719,7 +734,7 @@ const requestLineOptions = {
       group: "Package",
     },
   ],
-  [RequestChargeType.OPD_REFUND]: [
+  [RequestType.REFUND]: [
     {
       code: "CONS-118",
       name: "Consultation — General Medicine",
@@ -733,15 +748,15 @@ requests.push(
   ...patients.slice(3, 24).map((patient, index) => {
     const isRefund = index % 7 === 6;
     const amount = 480 + ((index * 735) % 11800);
-    const requestType = isRefund
-      ? RequestChargeType.OPD_REFUND
-      : fixtureRequestTypes[index % (fixtureRequestTypes.length - 1)];
+    const { hospitalService, requestType } = isRefund
+      ? fixtureRequestKinds[fixtureRequestKinds.length - 1]
+      : fixtureRequestKinds[index % (fixtureRequestKinds.length - 1)];
     const offset = 0;
     const elapsedMinutes = 20 + index * 37;
     const lineOptions = requestLineOptions[requestType];
     let lines;
     let lineTotal = amount;
-    if (requestType === RequestChargeType.OPD_SERVICE) {
+    if (requestType === RequestType.SERVICE) {
       // A walk-in OPD Service visit is a consultation plus whatever else was
       // done alongside it — one line was never realistic here.
       const consultations = lineOptions.filter(
@@ -801,7 +816,8 @@ requests.push(
       id: `${isRefund ? "REF" : "BIL"}-2024-${String(1200 + index).padStart(4, "0")}`,
       patient: patient.name,
       cr: patient.cr,
-      type: requestType,
+      hospitalService,
+      requestType,
       location:
         patient.ipd === "—"
           ? `OPD ${patient.department}`
@@ -971,8 +987,8 @@ const recentTransactions = [
     amount: "4,280.00",
     time: "10:38 AM",
     status: "Completed",
-    requestType: RequestChargeType.IPD_FINAL_ADJUSTMENT,
-    hospitalService: "IPD",
+    requestType: RequestType.FINAL_ADJUSTMENT,
+    hospitalService: HospitalService.IPD,
     billingService: "Bill Settlement",
     ...segmentFor(crNo(1)),
   },
@@ -985,8 +1001,8 @@ const recentTransactions = [
     amount: "860.00",
     time: "10:31 AM",
     status: "Completed",
-    requestType: RequestChargeType.OPD_SERVICE,
-    hospitalService: "OPD",
+    requestType: RequestType.SERVICE,
+    hospitalService: HospitalService.OPD,
     billingService: "Service",
     ...segmentFor(crNo(6)),
   },
@@ -999,8 +1015,8 @@ const recentTransactions = [
     amount: "2,450.00",
     time: "10:12 AM",
     status: "Refunded",
-    requestType: RequestChargeType.OPD_REFUND,
-    hospitalService: "OPD",
+    requestType: RequestType.REFUND,
+    hospitalService: HospitalService.OPD,
     billingService: "Service",
     ...segmentFor(crNo(5)),
   },
@@ -1013,8 +1029,8 @@ const recentTransactions = [
     amount: "11,400.00",
     time: "09:57 AM",
     status: "Completed",
-    requestType: RequestChargeType.INVESTIGATION_CHARGES,
-    hospitalService: "OPD",
+    requestType: RequestType.INVESTIGATION_CHARGES,
+    hospitalService: HospitalService.OPD,
     billingService: "Service",
     ...segmentFor(crNo(7)),
   },
@@ -1027,8 +1043,8 @@ const recentTransactions = [
     amount: "1,240.00",
     time: "09:44 AM",
     status: "Completed",
-    requestType: RequestChargeType.OPD_SERVICE,
-    hospitalService: "OPD",
+    requestType: RequestType.SERVICE,
+    hospitalService: HospitalService.OPD,
     billingService: "Service",
     ...segmentFor(crNo(2)),
   },
@@ -1046,28 +1062,25 @@ const to12Time = (hour24, minute) => {
 // Collected/Refunded by Request Type" cards drill through (OPD only ever
 // bills "Service"; IPD spans Service/Advance/Part Payment/Bill Settlement;
 // Emergency only bills "Service") — rather than cycling a flat list of
-// Pending-Requests Charge Types and hoping the split comes out sensible.
-// Two buckets (IPD Part Payment, Emergency Service) have no corresponding
-// value in the `RequestChargeType` enum at all — a real, descriptive
-// `requestType` string is used for those instead.
+// Pending-Requests Request Types and hoping the split comes out sensible.
+// The hospital service is carried on each row separately, so these are bare
+// Request Types. Part Payment and its refunds have no corresponding value in
+// the `RequestType` enum at all — a real, descriptive string is used instead.
 const REQUEST_TYPE_BY_BUCKET = {
-  "OPD::Service": [
-    RequestChargeType.OPD_SERVICE,
-    RequestChargeType.INVESTIGATION_CHARGES,
-  ],
-  "IPD::Service": [RequestChargeType.PACKAGE_COLLECTION],
-  "IPD::Advance": [RequestChargeType.IPD_ADVANCE_DEPOSIT],
-  "IPD::Part Payment": ["IPD Part Payment"],
-  "IPD::Bill Settlement": [RequestChargeType.IPD_FINAL_ADJUSTMENT],
-  "Emergency::Service": ["Emergency Service"],
+  "OPD::Service": [RequestType.SERVICE, RequestType.INVESTIGATION_CHARGES],
+  "IPD::Service": [RequestType.PACKAGE_COLLECTION],
+  "IPD::Advance": [RequestType.ADVANCE_DEPOSIT],
+  "IPD::Part Payment": ["Part Payment"],
+  "IPD::Bill Settlement": [RequestType.FINAL_ADJUSTMENT],
+  "Emergency::Service": [RequestType.SERVICE],
 };
 const REFUND_REQUEST_TYPE_BY_BUCKET = {
-  "OPD::Service": [RequestChargeType.OPD_REFUND],
+  "OPD::Service": [RequestType.REFUND],
   "IPD::Service": ["Package Refund"],
-  "IPD::Advance": [RequestChargeType.IPD_ADVANCE_REFUND],
-  "IPD::Part Payment": ["IPD Part Payment Refund"],
-  "IPD::Bill Settlement": ["IPD Final Adjustment Refund"],
-  "Emergency::Service": ["Emergency Refund"],
+  "IPD::Advance": [RequestType.ADVANCE_REFUND],
+  "IPD::Part Payment": ["Part Payment Refund"],
+  "IPD::Bill Settlement": ["Final Adjustment Refund"],
+  "Emergency::Service": [RequestType.REFUND],
 };
 // { family, service, collected, refunded, base, span } — `base`/`span` set a
 // realistic amount range per bucket (an IPD Advance or Bill Settlement bill
@@ -1271,8 +1284,11 @@ export const PROTOTYPE_DATA = Object.freeze({
     cashInDrawer: prototypeCashInDrawer.toFixed(2),
   }),
   requestFilterOptions: Object.freeze({
-    chargeTypes: Object.freeze(
-      [...new Set(requests.map((row) => row.type))].sort(),
+    hospitalServices: Object.freeze(
+      [...new Set(requests.map((row) => row.hospitalService))].sort(),
+    ),
+    requestTypes: Object.freeze(
+      [...new Set(requests.map((row) => row.requestType))].sort(),
     ),
     departments: Object.freeze(
       [...new Set(requests.map((row) => row.department))].sort(),
