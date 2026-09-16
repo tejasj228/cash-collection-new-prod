@@ -387,7 +387,6 @@ function AccountWorkflowBuilder({
   total,
   workflowContext,
   selections,
-  setSelections,
   onDetails,
   onPay,
 }) {
@@ -397,19 +396,18 @@ function AccountWorkflowBuilder({
     WorkflowFamily.BILL_SETTLEMENT_REFUND,
   ].includes(workflow.uiFamily);
   const isRefund = requestType === "Refund";
-  const choices = (values, fallback) =>
-    Array.isArray(values) && values.length
-      ? values
-      : [fallback || "Not available"];
-  const select = (key, values, fallback, label, required = false) => (
-    <SelectField
+  // Each of these is fixed by the patient's episode — the backend only ever
+  // returns one value — so they are shown read-only rather than as pickers.
+  const select = (key, values, fallback, label) => (
+    <TextField
       label={label}
-      value={selections[key] || firstContextValue(values, fallback)}
-      onChange={(value) =>
-        setSelections((current) => ({ ...current, [key]: value }))
+      value={
+        selections[key] ||
+        firstContextValue(values, fallback) ||
+        "Not available"
       }
-      options={choices(values, fallback)}
-      required={required}
+      onChange={() => {}}
+      readOnly
     />
   );
   const heading = isSettlement

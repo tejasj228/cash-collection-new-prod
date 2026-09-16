@@ -44,7 +44,7 @@ function CollectionWorkspace({
   const [receiptNo, setReceiptNo] = useState("Generated after posting");
   const [printDocument, setPrintDocument] = useState(null);
   const [idempotencyKey] = useState(createIdempotencyKey);
-  const [workflowSelections, setWorkflowSelections] = useState(() => ({
+  const [workflowSelections] = useState(() => ({
     raisingDepartmentId: firstContextValue(
       workflowContext?.raisingDepartments,
       selectedPatient?.department,
@@ -233,7 +233,6 @@ function CollectionWorkspace({
               requestType={requestType}
               workflowContext={workflowContext}
               selections={workflowSelections}
-              setSelections={setWorkflowSelections}
               lines={chosenLines}
               total={total}
               amount={Number(lines[0]?.rate || 0)}
