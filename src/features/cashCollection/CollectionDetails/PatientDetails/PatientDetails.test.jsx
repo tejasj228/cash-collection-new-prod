@@ -1,6 +1,6 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
-import { PatientBanner } from "./PatientDetails.jsx";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { PatientBanner, MorePatientInfo } from "./PatientDetails.jsx";
 
 test("patient banner labels every value and keeps admission limited to IPD", () => {
   const patient = {
@@ -44,4 +44,44 @@ test("patient banner labels every value and keeps admission limited to IPD", () 
     />,
   );
   expect(screen.getByText("12345").tagName).toBe("STRONG");
+});
+
+test("fallback vectors follow the API sex without guessing from names", () => {
+  const { rerender } = render(
+    <PatientBanner
+      patient={{ name: "Patient", sex: "Male" }}
+      patientMode="existing"
+      hospitalService="OPD"
+    />,
+  );
+  expect(
+    screen.getByRole("img", { name: "Male patient avatar" }),
+  ).not.toBeNull();
+  rerender(
+    <PatientBanner
+      patient={{ name: "Patient", sex: "F" }}
+      patientMode="existing"
+      hospitalService="OPD"
+    />,
+  );
+  expect(
+    screen.getByRole("img", { name: "Female patient avatar" }),
+  ).not.toBeNull();
+});
+
+test("more patient info opens an empty dialog", () => {
+  const original = HTMLDialogElement.prototype.showModal;
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute("open", "");
+  };
+  const { container } = render(<MorePatientInfo />);
+  fireEvent.click(screen.getByRole("button", { name: "More patient info" }));
+  expect(
+    screen.getByRole("dialog", { name: "More patient info" }),
+  ).not.toBeNull();
+  expect(
+    container.querySelector(".more-patient-info-body").childElementCount,
+  ).toBe(0);
+  if (original) HTMLDialogElement.prototype.showModal = original;
+  else delete HTMLDialogElement.prototype.showModal;
 });

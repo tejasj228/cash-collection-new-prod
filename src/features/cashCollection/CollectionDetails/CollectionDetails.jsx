@@ -14,7 +14,10 @@ import {
 } from "../model/chargeCalculations";
 import { createIdempotencyKey } from "../services/idempotency";
 import { Icon } from "../../../shared/components/Icon";
-import { PatientBanner } from "./PatientDetails/PatientDetails.jsx";
+import {
+  PatientBanner,
+  MorePatientInfo,
+} from "./PatientDetails/PatientDetails.jsx";
 import {
   AccountWorkflowBuilder,
   ChargeBuilder,
@@ -179,6 +182,7 @@ function CollectionWorkspace({
   const [detailsGroup, setDetailsGroup] = useState(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [tariffModalOpen, setTariffModalOpen] = useState(false);
+  const [patientInfoOpen, setPatientInfoOpen] = useState(false);
   const tariffContext = useMemo(
     () => ({
       crNumber: selectedPatient?.cr,
@@ -194,12 +198,16 @@ function CollectionWorkspace({
   const [payOpen, setPayOpen] = useState(false);
   useEffect(() => {
     onModalVisibilityChange?.(
-      Boolean(detailsGroup) || paymentModalOpen || tariffModalOpen,
+      Boolean(detailsGroup) ||
+        paymentModalOpen ||
+        tariffModalOpen ||
+        patientInfoOpen,
     );
   }, [
     detailsGroup,
     paymentModalOpen,
     tariffModalOpen,
+    patientInfoOpen,
     onModalVisibilityChange,
   ]);
   useEffect(
@@ -238,6 +246,7 @@ function CollectionWorkspace({
               ? "Back to Pending Requests"
               : "Back to Transaction Setup"}
           </button>
+          <MorePatientInfo onModalVisibilityChange={setPatientInfoOpen} />
         </div>
       )}
       <PatientBanner

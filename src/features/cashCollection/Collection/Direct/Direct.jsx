@@ -388,8 +388,7 @@ function PatientSearchPopover({
                 <div>
                   <strong>{patient.name}</strong>
                   <span>
-                    CR {compactIdentifier(patient.cr)} · {patient.mobile} ·{" "}
-                    {patient.episode}
+                    CR {compactIdentifier(patient.cr)} · {patient.mobile}
                   </span>
                 </div>
                 <Icon name="chevron" size={15} />

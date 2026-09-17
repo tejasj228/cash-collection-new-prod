@@ -1,5 +1,10 @@
 /* PatientDetails owns styles for this feature folder. Shared foundations remain in CashCollection.css. */
 
+.hbims-cash-collection .patient-banner .patient-state {
+  position: relative;
+  top: -6px;
+}
+
 .hbims-cash-collection .patient-banner .patient-chips {
   flex-wrap: wrap;
   gap: 8px;
@@ -22,4 +27,21 @@
 
 .hbims-cash-collection .patient-detail strong {
   font-weight: 700 !important;
+}
+.hbims-cash-collection .more-patient-info {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.hbims-cash-collection .more-patient-info-dialog {
+  width: min(520px, calc(100vw - 32px));
+  box-sizing: border-box;
+  color: var(--ink);
+}
+.more-patient-info-dialog::backdrop {
+  background: rgba(32, 52, 79, 0.36);
+}
+.hbims-cash-collection .more-patient-info-body {
+  min-height: 160px;
 }
