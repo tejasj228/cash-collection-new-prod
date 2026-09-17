@@ -17,4 +17,11 @@ export const runtimeConfig = Object.freeze({
   useMocks:
     process.env.NODE_ENV === "development" &&
     process.env.REACT_APP_USE_MOCKS === "true",
+  // Staged rollout only: the real pending-requests endpoint, wired in ahead
+  // of the rest of the backend. Machine-specific, so set it in a local,
+  // untracked .env.development.local rather than the committed .env files.
+  legacyPendingRequestsUrl:
+    browserConfig.legacyPendingRequestsUrl ||
+    process.env.REACT_APP_LEGACY_PENDING_REQUESTS_URL ||
+    "",
 });

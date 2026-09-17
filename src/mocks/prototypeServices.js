@@ -8,6 +8,10 @@ import {
   HOSPITAL_SERVICE_FAMILY,
   BILLING_SERVICE_BUCKET,
 } from "../contracts/cashCollection.contract.js";
+import {
+  queryPendingRequests,
+  summarizePendingRequestsByType,
+} from "../features/cashCollection/model/pendingRequestsQuery.js";
 
 let sequence = 88500;
 const reference = (prefix) =>
@@ -231,85 +235,13 @@ export function createPrototypeServices({ now = () => Date.now() } = {}) {
         );
       return withLatency(matches.slice(0, size));
     },
-    async listPendingRequests({
-      page = 0,
-      size = 10,
-      search = "",
-      hospitalService,
-      requestType,
-      department,
-      category,
-      date,
-      sort,
-    } = {}) {
-      const term = String(search).trim().toLowerCase();
-      let items = pendingRequests.filter(
-        (row) =>
-          (!term ||
-            `${row.patient} ${row.cr} ${row.id}`
-              .toLowerCase()
-              .includes(term)) &&
-          (!hospitalService || row.hospitalService === hospitalService) &&
-          (!requestType || row.requestType === requestType) &&
-          (!department || row.department === department) &&
-          (!category || row.category === category) &&
-          (!date || row.dateIso === date),
-      );
-      if (sort) {
-        const [field, direction] = String(sort).split(",");
-        const value =
-          field === "amount"
-            ? (row) => Number(String(row.amount).replace(/,/g, ""))
-            : (row) => row.dateIso;
-        items = [...items].sort(
-          (left, right) =>
-            (value(left) > value(right)
-              ? 1
-              : value(left) < value(right)
-                ? -1
-                : 0) * (direction === "desc" ? -1 : 1),
-        );
-      }
-      const start = Number(page) * Number(size);
-      return withLatency({
-        items: items.slice(start, start + Number(size)),
-        total: items.length,
-        page: Number(page),
-        size: Number(size),
-      });
+    async listPendingRequests(filters = {}) {
+      return withLatency(queryPendingRequests(pendingRequests, filters));
     },
-    async getPendingRequestMetrics({
-      date,
-      category,
-      department,
-      hospitalService,
-      requestType,
-    } = {}) {
-      const rows = pendingRequests.filter(
-        (row) =>
-          (!date || row.dateIso === date) &&
-          (!category || row.category === category) &&
-          (!department || row.department === department) &&
-          (!hospitalService || row.hospitalService === hospitalService) &&
-          (!requestType || row.requestType === requestType),
+    async getPendingRequestMetrics(filters = {}) {
+      return withLatency(
+        summarizePendingRequestsByType(pendingRequests, filters),
       );
-      const counts = rows.reduce((map, row) => {
-        const key = `${row.hospitalService}::${row.requestType}`;
-        const current = map.get(key) || {
-          hospitalService: row.hospitalService,
-          requestType: row.requestType,
-          count: 0,
-        };
-        current.count += 1;
-        map.set(key, current);
-        return map;
-      }, new Map());
-      return withLatency({
-        total: rows.length,
-        byRequestType: [...counts.values()].sort(
-          (left, right) => right.count - left.count,
-        ),
-      });
     },
     async getDashboard(filters = {}) {
       const date = filters.date || PROTOTYPE_DATA.todayIso;
