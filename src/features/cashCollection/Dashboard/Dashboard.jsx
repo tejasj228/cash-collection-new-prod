@@ -1016,7 +1016,11 @@ export function Dashboard({
               {Math.min(currentPage * pageSize, filteredRows.length)} of{" "}
               {filteredRows.length}
             </span>
-            <Pagination page={currentPage} pageCount={pageCount} onChange={setPage} />
+            <Pagination
+              page={currentPage}
+              pageCount={pageCount}
+              onChange={setPage}
+            />
           </div>
         )}
         {!filteredRows.length && (

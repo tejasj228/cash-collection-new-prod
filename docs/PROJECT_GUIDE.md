@@ -22,7 +22,7 @@ reference while you implement each endpoint.
 1. [What this project is](#1-what-this-project-is)
 2. [Quick start](#2-quick-start)
 3. [Folder and file structure](#3-folder-and-file-structure)
-4. [Environment variables and runtime configuration](#4-environment-variables-and-runtime-configuration)
+4. [Runtime and session configuration](#4-runtime-and-session-configuration)
 5. [How data flows through the app](#5-how-data-flows-through-the-app)
 6. [Every screen and feature, mapped to code](#6-every-screen-and-feature-mapped-to-code)
 7. [The mock backend (`src/mocks/`)](#7-the-mock-backend-srcmocks)
@@ -59,11 +59,11 @@ billing clerk uses this app to:
 - **open and close a counter shift** with denomination-level cash
   reconciliation.
 
-**The backend does not exist yet.** Today the app runs entirely against an
-in-memory JavaScript mock (`src/mocks/`) that pretends to be the server. This
-document's main job (§8–§9) is to tell you exactly what a real backend needs
-to implement to replace that mock, and how that backend should talk to the
-existing HBIMS system underneath.
+**The full backend does not exist yet.** Two legacy read endpoints are active
+today: `pendinglist` supplies the request queue and `patinfo` supplies the
+patient header. The remaining operations use the prototype service shell.
+This document's main job (§8–§9) is to define what a complete backend must
+implement and how it should talk to the existing HBIMS system underneath.
 
 The intended production backend is a **Spring Boot REST service**. It is
 authoritative for eligibility, prices, totals, document numbers, payment
@@ -77,19 +77,17 @@ total, or permission on its own.
 
 ```bash
 npm install         # install dependencies
-npm start           # dev server on http://localhost:3000, uses the in-memory mock
+npm start           # dev server on http://localhost:3000, live pendinglist/patinfo required
 npm test            # Jest + React Testing Library, single run
-npm run build       # production bundle into build/ (calls the real backend, no mock)
+npm run build       # production bundle into build/
 npm run format      # Prettier — writes src/**, contracts/**, docs/**, README.md, package.json
 npm run format:check
 ```
 
-`npm start` works immediately with **no backend running** — it loads
-`src/mocks/prototypeData.js` and `src/mocks/prototypeServices.js` instead of
-making network calls. This is controlled by `.env.development` (see §4).
-
-There is no `.env` file to create yourself for local dev — `.env.development`
-already ships in the repo with `REACT_APP_USE_MOCKS=true`.
+Launch the app through HBIMS so the SSO ticket is present in the URL, or use
+a tab whose `sessionStorage` already holds that ticket. Development bootstrap
+always loads the live pending queue. If the ticket/backend fails, the UI shows
+the retry/error screen; it never substitutes fixture patients.
 
 ---
 
@@ -98,8 +96,7 @@ already ships in the repo with `REACT_APP_USE_MOCKS=true`.
 ```text
 CASH_COLL_PRODUCTION/
 ├── public/
-│   ├── index.html               HTML shell; loads runtime-config.js before the JS bundle
-│   └── runtime-config.js        window.HBIMS_CASH_COLLECTION_CONFIG = {} (deploy-time override point)
+│   └── index.html               HTML shell
 ├── src/
 │   ├── index.js                 CRA entry point — mounts <App/>
 │   ├── app/                     composition only: routing, antd theme, bootstrap boundary
@@ -110,12 +107,14 @@ CASH_COLL_PRODUCTION/
 │   │   │   └── AppDataProvider.jsx        React context — useAppData() anywhere below it
 │   │   └── theme/antdTheme.js      the frozen Ant Design theme object
 │   ├── config/
-│   │   └── runtimeConfig.js     merges window.HBIMS_CASH_COLLECTION_CONFIG > REACT_APP_* > defaults
+│   │   └── runtimeConfig.js     typed view of constants exported by sessionService.js
 │   ├── contracts/
 │   │   └── cashCollection.contract.js   the canonical data-shape contract (see §5)
 │   ├── services/                 transport + runtime wiring, feature-agnostic
 │   │   ├── httpClient.js           fetch wrapper: envelope unwrap, timeout, ApiError
-│   │   ├── applicationRuntime.js   THE mock-vs-real switch (see §5)
+│   │   ├── applicationRuntime.js   development live-queue bridge / production REST switch
+│   │   ├── legacyHbimsPendingRequests.js  raw pendinglist → internal queue rows
+│   │   ├── legacyHbimsPatientInfo.js      raw patinfo → internal patient
 │   │   └── legacyHbimsBridge.js    HBIMS constants for reference only — see §9, not on any live path
 │   ├── features/cashCollection/  the entire feature — grouped by the screen or workflow each folder owns
 │   │   ├── CashCollection/
@@ -166,6 +165,8 @@ CASH_COLL_PRODUCTION/
 │   │   ├── components/ConfirmModal.jsx  the shared modal base every dialog is built on
 │   │   ├── hooks/                    useSort, useEscapeToClose, useModalClose, useFakeLoad, useCountUp
 │   │   └── utils/formatters.js       displayDate, money, compactIdentifier, optionValue/Label, …
+│   ├── utilities/
+│   │   └── sessionService.js      sole API/session/backend/endpoint configuration source
 │   └── styles/
 │       └── application.css           app-shell + global antd popup polish (portal-rendered, unscoped)
 ├── contracts/openapi.yaml         OpenAPI 3.0.3 — the REST contract a Spring Boot backend implements
@@ -174,9 +175,6 @@ CASH_COLL_PRODUCTION/
 │   └── api/                       one file per endpoint — exact fields + example JSON (see §8)
 ├── .claude/launch.json            dev-server launch config for the Claude Code browser preview
 ├── package.json                   scripts + deps (see §11)
-├── .env.development               REACT_APP_USE_MOCKS=true (loaded by `npm start`)
-├── .env.production                REACT_APP_USE_MOCKS=false (loaded by `npm run build`)
-├── .env.example                   documents the 3 supported env vars
 └── README.md                      short pointer at this file
 ```
 
@@ -199,37 +197,24 @@ code out of a production build entirely.
 
 ---
 
-## 4. Environment variables and runtime configuration
+## 4. Runtime and session configuration
 
-| Var                            | Default                | Effect                                                             |
-| ------------------------------ | ---------------------- | ------------------------------------------------------------------ |
-| `REACT_APP_API_BASE_URL`       | `/api/cash-collection` | Base URL every REST call is built against.                         |
-| `REACT_APP_REQUEST_TIMEOUT_MS` | `30000`                | Per-request abort timeout (`AbortController`).                     |
-| `REACT_APP_USE_MOCKS`          | `false`                | `true` **and** `NODE_ENV=development` → load `src/mocks/` instead. |
+There are no `.env` files, `REACT_APP_*` switches, or
+`window.HBIMS_CASH_COLLECTION_CONFIG` overrides. The single source is
+`src/utilities/sessionService.js`, which owns:
 
-These are read at **build time** (baked into the bundle). They can also be
-overridden at **deploy time**, without rebuilding, by setting
-`window.HBIMS_CASH_COLLECTION_CONFIG` before the bundle loads — see
-`public/runtime-config.js`, which the hosting environment (a reverse proxy,
-or a small server-rendered snippet) can replace:
+- target REST base URL, cookie credentials policy, and timeout;
+- local legacy backend origin and both legacy endpoint paths;
+- SSO ticket query/storage keys, User-Agent, and `mode=1`;
+- same-origin/local-proxy URL resolution and `fetchLegacyJson`.
 
-```html
-<script>
-  window.HBIMS_CASH_COLLECTION_CONFIG = {
-    apiBaseUrl: "/api/cash-collection",
-    credentials: "include",
-    requestTimeoutMs: 30000,
-  };
-</script>
-```
+`src/config/runtimeConfig.js` only exposes the REST constants in the shape
+expected by `createCashCollectionApi`. `src/setupProxy.js` imports the local
+backend origin from `sessionService.js`; it does not duplicate the IP.
 
-`credentials: "include"` means the browser sends cookies on every request —
-this app expects **cookie-based session auth**, riding whatever login session
-HBIMS already establishes. It never sends a bearer token or carries its own
-identity (see §9.4).
-
-Priority order (`src/config/runtimeConfig.js`): `window.HBIMS_CASH_COLLECTION_CONFIG`
-→ `process.env.REACT_APP_*` → hard-coded defaults.
+HBIMS provides `varSSOTicketGrantingTicket` before the hash route. It is held
+in memory plus `sessionStorage` (tab lifetime), never `localStorage`. Details:
+[`docs/api/17-legacy-hbims-bridge-STAGED.md`](./api/17-legacy-hbims-bridge-STAGED.md).
 
 ---
 
@@ -278,19 +263,24 @@ This file is the single source of truth for **shape**. It exports:
 - `assertCashCollectionServices(services)` — throws listing exactly which of
   those 16 methods is missing.
 
-### 5.2 The mock/real switch (`src/services/applicationRuntime.js`)
+### 5.2 Runtime selection (`src/services/applicationRuntime.js`)
 
 ```js
 export async function resolveApplicationRuntime() {
-  if (process.env.NODE_ENV === "development" && runtimeConfig.useMocks) {
-    // dynamic import → tree-shaken out of production builds entirely
+  if (process.env.NODE_ENV === "development") {
     const [{ PROTOTYPE_DATA }, { createPrototypeServices }] = await Promise.all(
       [import("../mocks/prototypeData"), import("../mocks/prototypeServices")],
     );
     const services = createPrototypeServices();
+    const liveRequests = await fetchLegacyPendingRequests();
+    // Replace queue bootstrap/query/detail operations with live data.
     return {
-      data: normalizeCashCollectionData(PROTOTYPE_DATA),
-      integration: { mode: "prototype", services, events: {} },
+      data: normalizeCashCollectionData({
+        ...PROTOTYPE_DATA,
+        requests: liveRequests,
+        queueSummary: withLiveQueueSummary(...),
+      }),
+      integration: { mode: "legacy-hbims", services, events: {} },
     };
   }
   const services = assertCashCollectionServices(
@@ -301,14 +291,15 @@ export async function resolveApplicationRuntime() {
 }
 ```
 
-This is **the one place** that decides mock vs. real. Nothing else needs to
-change when the backend becomes available — flip `REACT_APP_USE_MOCKS` to
-`false` (already the default for `npm run build`) and point
-`REACT_APP_API_BASE_URL` at the real service.
+Development uses prototype implementations only as a shell for endpoints
+that do not exist yet. The queue, count, request lookup, and patient header
+are live and mandatory. Live fetch failures reject bootstrap instead of
+falling back to `PROTOTYPE_DATA.requests`. Production uses the target REST
+adapter with constants supplied by `sessionService.js`.
 
 ### 5.3 Bootstrap → render
 
-1. `public/index.html` loads `runtime-config.js`, then the JS bundle.
+1. `public/index.html` loads the JS bundle; no runtime-config script exists.
 2. `src/index.js` mounts `<App/>` → `ConfigProvider`(antd theme) → `HashRouter` → `AppRoutes`.
 3. The matched route renders `<ApplicationBootstrap/>`, which calls `resolveApplicationRuntime()` on mount.
 4. While pending: a branded full-screen `<Loader/>`. On failure: an antd `<Alert>` with a **Retry** button — nothing crashes silently.
@@ -368,6 +359,10 @@ resurrecting it from a global store.
 reference for exact request/response shapes (see `docs/api/`), but it also
 takes shortcuts a real backend must not:
 
+In the current development integration, `applicationRuntime.js` replaces its
+pending-list, metrics, request-detail, and patient-header reads with live
+legacy data. The remaining prototype methods are still active scaffolding.
+
 - Every method wraps its result in a fixed ~1 second artificial delay
   (`withLatency()`) purely so the UI's loading/skeleton states are visible —
   **not** something to reproduce on purpose, but also not something to
@@ -394,9 +389,9 @@ the `NODE_ENV === "development"` check.
 The frontend already defines the _exact_ contract a backend must satisfy:
 `contracts/openapi.yaml` (machine-readable, OpenAPI 3.0.3) and
 `src/contracts/cashCollection.contract.js` (the runtime validator). Implement
-against those, verify with `docs/api/*.md` for exact field names, and the UI
-will work against it with **zero frontend changes** — just flip
-`REACT_APP_USE_MOCKS=false` (already the default for a production build).
+against those and verify with `docs/api/*.md` for exact field names. Once the
+complete surface is ready, replace the staged development adapter explicitly.
+Do not add a fixture fallback for production values.
 
 ### 8.1 The 16 methods you must implement
 
@@ -798,19 +793,20 @@ intentional prototype scaffolding, some of it is a real gap the backend
 needs to close, and some of it is genuinely dead code left over from an
 earlier iteration of this app.
 
-| What                                                                                           | Status                                                                                                                                                                                                                                                                                                                                             | What to do                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Confirmation/Confirmation.jsx` (`<Confirmation/>`, the "Collection Confirmed" success screen) | **Dead code.** Nothing ever sets `stage` to `"confirmation"`. The real flow prints and returns straight to the queue (`CashCollection/CashCollection.jsx`'s `confirm()` calls `resetHome()` directly).                                                                                                                                             | Either delete the file, or wire it in if you want an explicit success screen — currently the UX is intentionally "print and move on."                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `Collection/Direct/Direct.jsx`'s `EstimatesHome` + `stage: "estimates"`                        | **Dead code / unreachable.** `startEstimate()` sets `mode: "direct"`, `stage: "home"` — it never sets `"estimates"`. Estimates are actually reached by setting Direct Collection's **Transaction Type** dropdown to "Estimation".                                                                                                                  | Delete `EstimatesHome` and the `stage === "estimates"` branch, or repurpose them as a shortcut into the same flow.                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `mocks/prototypeData.js`'s `collectionModes` fixture                                           | **Unused by the current dashboard.** `Dashboard/Dashboard.jsx` derives its own payment-mode donut from `recentTransactions` directly.                                                                                                                                                                                                              | Safe to ignore; don't spend backend effort computing this field unless you reintroduce a consumer.                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| Dashboard aggregation (`getDashboard` / `getPendingRequestMetrics`)                            | **Defined in the contract, not called by the UI.** `Dashboard/Dashboard.jsx` never calls a service method — it loads `recentTransactions` once (via bootstrap) and computes every KPI/chart/breakdown client-side in JavaScript.                                                                                                                   | Implement `getDashboard` anyway (it's in the 16-method contract and the OpenAPI spec) for future scale, but know that **today**, the thing the real backend must get right is returning a complete, correctly-tagged `recentTransactions` array — see [`docs/api/10`](./api/10-transactions-list.md) for exactly which fields the client-side aggregation reads (including `hospitalService`/`billingService`, added for the OPD/IPD/Emergency treemap, which is **not yet in `contracts/openapi.yaml`**'s `Transaction` schema — add it). |
-| "Cancel bill" (Recent Transactions table)                                                      | **Client-only.** `CashCollection/CashCollection.jsx`'s `cancelBill(no)` just marks a row `Cancelled` in local React state (`txPatches`); nothing is sent to a server.                                                                                                                                                                              | Add a real endpoint (proposed shape: [`docs/api/15-cancel-transaction-GAP.md`](./api/15-cancel-transaction-GAP.md)) and wire the button to call it before trusting this feature in production — right now a page reload silently undoes every "cancelled" bill.                                                                                                                                                                                                                                                                            |
-| "Reprint" (Recent Transactions table)                                                          | **Not wired at all** — the button renders with no `onClick` handler.                                                                                                                                                                                                                                                                               | Decide whether reprint re-opens the stored `printableData` for that document (needs the backend to persist and return it) or just re-triggers `window.print()` against data already in memory. Proposed shape: [`docs/api/16-reprint-GAP.md`](./api/16-reprint-GAP.md).                                                                                                                                                                                                                                                                    |
-| "Reprint Receipt" (top nav, after End Shift)                                                   | **Placeholder.** Calls `window.print()` directly with whatever's currently rendered; does not re-fetch anything.                                                                                                                                                                                                                                   | Fine as-is for a same-day printer-jam fallback, since the shift report is already on screen when it's clicked.                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| Cross-day "shift left open overnight" detection                                                | **Prototype-only workaround.** Because the mock's `businessDate` never advances (always `PROTOTYPE_DATA.todayIso`), `model/reportDates.js` invented `shiftOpenedAt`/`todayLocalIso`/`readShiftOpenedAt`/`writeShiftOpenedAt` — real wall-clock timestamps kept in `localStorage` — purely so the UI has _something_ to compare against for a demo. | **Delete this workaround once the real backend returns a real `businessDate`** in `prepareShiftClose()`'s response (§9.6) — the existing UI logic in `Shift/Shift.jsx` (`isStaleShift`) already compares `businessDate` correctly; the `localStorage` code only exists to fake that field's realism against the mock.                                                                                                                                                                                                                      |
-| `src/services/legacyHbimsBridge.js`                                                            | **Reference only, not on any live path.** No code imports it outside its own tests (if any). It documents Option A from §9.7.                                                                                                                                                                                                                      | Keep it as documentation, or delete it if you commit to Option B (standalone Spring Boot) and want to avoid confusion.                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| Ant Design (`antd`, `@ant-design/icons`)                                                       | Used only for `ConfigProvider`, `Alert`, `Button` (in the bootstrap loader/retry screen) and `Loader`. The rest of the app is hand-written feature CSS under `src/features/cashCollection/` plus `src/styles/application.css`, not Ant components.                                                                                                 | Don't assume every control is an antd component — check the file before changing a form field.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `docs/` before this rewrite                                                                    | Described an app shape (`OverviewPage.jsx` + `ReportsPage.jsx` as separate dashboard/report screens, a `SideRail` left-nav, `src/services/cashCollectionApi.js`) that no longer matches this repo — those pages were consolidated into today's single `Dashboard/Dashboard.jsx`, and the nav is `TopNav` (Collection / Dashboard).                 | Nothing to do — this document replaces those. If you find old references elsewhere (e.g. in commit messages), trust the current source over them.                                                                                                                                                                                                                                                                                                                                                                                          |
+| What                                                                                                     | Status                                                                                                                                                                                                                                                                                                                                                             | What to do                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Confirmation/Confirmation.jsx` (`<Confirmation/>`, the "Collection Confirmed" success screen)           | **Dead code.** Nothing ever sets `stage` to `"confirmation"`. The real flow prints and returns straight to the queue (`CashCollection/CashCollection.jsx`'s `confirm()` calls `resetHome()` directly).                                                                                                                                                             | Either delete the file, or wire it in if you want an explicit success screen — currently the UX is intentionally "print and move on."                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `Collection/Direct/Direct.jsx`'s `EstimatesHome` + `stage: "estimates"`                                  | **Dead code / unreachable.** `startEstimate()` sets `mode: "direct"`, `stage: "home"` — it never sets `"estimates"`. Estimates are actually reached by setting Direct Collection's **Transaction Type** dropdown to "Estimation".                                                                                                                                  | Delete `EstimatesHome` and the `stage === "estimates"` branch, or repurpose them as a shortcut into the same flow.                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `mocks/prototypeData.js`'s `collectionModes` fixture                                                     | **Unused by the current dashboard.** `Dashboard/Dashboard.jsx` derives its own payment-mode donut from `recentTransactions` directly.                                                                                                                                                                                                                              | Safe to ignore; don't spend backend effort computing this field unless you reintroduce a consumer.                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Dashboard aggregation (`getDashboard` / `getPendingRequestMetrics`)                                      | **Defined in the contract, not called by the UI.** `Dashboard/Dashboard.jsx` never calls a service method — it loads `recentTransactions` once (via bootstrap) and computes every KPI/chart/breakdown client-side in JavaScript.                                                                                                                                   | Implement `getDashboard` anyway (it's in the 16-method contract and the OpenAPI spec) for future scale, but know that **today**, the thing the real backend must get right is returning a complete, correctly-tagged `recentTransactions` array — see [`docs/api/10`](./api/10-transactions-list.md) for exactly which fields the client-side aggregation reads (including `hospitalService`/`billingService`, added for the OPD/IPD/Emergency treemap, which is **not yet in `contracts/openapi.yaml`**'s `Transaction` schema — add it). |
+| "Cancel bill" (Recent Transactions table)                                                                | **Client-only.** `CashCollection/CashCollection.jsx`'s `cancelBill(no)` just marks a row `Cancelled` in local React state (`txPatches`); nothing is sent to a server.                                                                                                                                                                                              | Add a real endpoint (proposed shape: [`docs/api/15-cancel-transaction-GAP.md`](./api/15-cancel-transaction-GAP.md)) and wire the button to call it before trusting this feature in production — right now a page reload silently undoes every "cancelled" bill.                                                                                                                                                                                                                                                                            |
+| "Reprint" (Recent Transactions table)                                                                    | **Not wired at all** — the button renders with no `onClick` handler.                                                                                                                                                                                                                                                                                               | Decide whether reprint re-opens the stored `printableData` for that document (needs the backend to persist and return it) or just re-triggers `window.print()` against data already in memory. Proposed shape: [`docs/api/16-reprint-GAP.md`](./api/16-reprint-GAP.md).                                                                                                                                                                                                                                                                    |
+| "Reprint Receipt" (top nav, after End Shift)                                                             | **Placeholder.** Calls `window.print()` directly with whatever's currently rendered; does not re-fetch anything.                                                                                                                                                                                                                                                   | Fine as-is for a same-day printer-jam fallback, since the shift report is already on screen when it's clicked.                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Cross-day "shift left open overnight" detection                                                          | **Prototype-only workaround.** Because the mock's `businessDate` never advances (always `PROTOTYPE_DATA.todayIso`), `model/reportDates.js` invented `shiftOpenedAt`/`todayLocalIso`/`readShiftOpenedAt`/`writeShiftOpenedAt` — real wall-clock timestamps kept in `localStorage` — purely so the UI has _something_ to compare against for a demo.                 | **Delete this workaround once the real backend returns a real `businessDate`** in `prepareShiftClose()`'s response (§9.6) — the existing UI logic in `Shift/Shift.jsx` (`isStaleShift`) already compares `businessDate` correctly; the `localStorage` code only exists to fake that field's realism against the mock.                                                                                                                                                                                                                      |
+| `src/services/legacyHbimsBridge.js`                                                                      | **Reference only, not on any live path.** No code imports it outside its own tests (if any). It documents Option A from §9.7.                                                                                                                                                                                                                                      | Keep it as documentation, or delete it if you commit to Option B (standalone Spring Boot) and want to avoid confusion.                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `src/utilities/sessionService.js`, `src/services/{legacyHbimsPendingRequests,legacyHbimsPatientInfo}.js` | **Live, but temporary.** Development bootstrap always fetches `pendinglist`, replaces the fixture queue/count, and uses `patinfo` by CR number when a request opens. A failed ticket/backend call produces the error screen; no dummy-request fallback exists. Full detail: [`docs/api/17-legacy-hbims-bridge-STAGED.md`](./api/17-legacy-hbims-bridge-STAGED.md). | Replace the staged mappers once the real `GET /requests`, `GET /requests/{req_no}`, and `POST /eligibility` exist. Preserve the no-fallback behavior and keep session/backend constants centralized in `sessionService.js`.                                                                                                                                                                                                                                                                                                                |
+| Ant Design (`antd`, `@ant-design/icons`)                                                                 | Used only for `ConfigProvider`, `Alert`, `Button` (in the bootstrap loader/retry screen) and `Loader`. The rest of the app is hand-written feature CSS under `src/features/cashCollection/` plus `src/styles/application.css`, not Ant components.                                                                                                                 | Don't assume every control is an antd component — check the file before changing a form field.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `docs/` before this rewrite                                                                              | Described an app shape (`OverviewPage.jsx` + `ReportsPage.jsx` as separate dashboard/report screens, a `SideRail` left-nav, `src/services/cashCollectionApi.js`) that no longer matches this repo — those pages were consolidated into today's single `Dashboard/Dashboard.jsx`, and the nav is `TopNav` (Collection / Dashboard).                                 | Nothing to do — this document replaces those. If you find old references elsewhere (e.g. in commit messages), trust the current source over them.                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ---
 
@@ -818,9 +814,9 @@ earlier iteration of this app.
 
 ```bash
 npm install
-npm start             # dev server, port 3000, mock backend
+npm start             # dev server, port 3000, live pendinglist/patinfo
 npm test               # Jest + RTL
-npm run build           # production bundle, real backend required at runtime
+npm run build           # production bundle
 npm run format          # Prettier over src/**, contracts/**, docs/**, README.md, package.json
 npm run format:check    # CI-friendly check, no writes
 ```
@@ -878,7 +874,7 @@ errors already).
 ## 13. If you are an AI agent building the backend from this doc
 
 Suggested order, each step independently testable against the existing
-frontend by flipping `REACT_APP_USE_MOCKS` off once that piece is ready:
+frontend through an explicit adapter change once the complete surface is ready:
 
 1. Stand up the envelope/error/session/counter-resolution plumbing shared by every endpoint (§8.2, §9.4).
 2. Implement the read-only endpoints first: `/bootstrap`, `/requests`, `/requests/{id}`, `/patients`, `/tariffs`, `/payment-options`, `/dashboard/pending-metrics`. Verify each against its file in `docs/api/`.
@@ -889,7 +885,7 @@ frontend by flipping `REACT_APP_USE_MOCKS` off once that piece is ready:
 7. Implement `/dashboard` and `/transactions` (`GET`) so the dashboard has real data to aggregate (client-side aggregation continues to work unchanged as long as the row shape in [`docs/api/10`](./api/10-transactions-list.md) is exact, including `hospitalService`/`billingService`).
 8. Close the two gaps in §10: a real cancel-transaction endpoint, and a real reprint path — both are currently client-only or unwired.
 9. Delete the prototype-only `localStorage` shift-timing shim in `model/reportDates.js` once step 6 returns a real `businessDate` (§10).
-10. Run through the full checklist in §12 before switching `REACT_APP_USE_MOCKS` to `false` in production.
+10. Run through the full checklist in §12 before switching production to the complete REST adapter.
 
 Do not modify any file under `src/mocks/` to "make the backend match" — it is
 throwaway fixture data for design review only. Match the contract instead

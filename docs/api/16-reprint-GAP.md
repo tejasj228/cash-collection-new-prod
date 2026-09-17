@@ -46,7 +46,6 @@ Identical shape to `postTransaction`'s `printable_data`:
     "transaction_document_type": "Receipt",
     "transaction_document_date": "13/09/2026",
     "patient_details": {
-      "pat_id": "4",
       "pat_name": "Ajay Deshmukh",
       "cr_num": "939112600000004"
     },

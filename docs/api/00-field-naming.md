@@ -10,7 +10,7 @@ by the API protocol: `success`, `data`, `error`, `page`, `size`, `total`, and
 
 | Domain                      | Prefix                                   | Examples                                                                             |
 | --------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------ |
-| Patient                     | `pat_`                                   | `pat_id`, `pat_name`, `pat_age`, `mobile_num`, `cr_num`                              |
+| Patient                     | `pat_` / `cr_`                           | `pat_name`, `pat_age`, `mobile_num`, `cr_num`                                        |
 | Pending request             | `req_`                                   | `req_no`, `req_date`, `req_amount`, `req_type`, `req_version`                        |
 | Tariff                      | `tariff_`                                | `tariff_code`, `tariff_name`, `tariff_rate`, `tariff_qty`                            |
 | Transaction                 | `transaction_`                           | `transaction_no`, `transaction_amount`, `transaction_status`, `transaction_date_iso` |

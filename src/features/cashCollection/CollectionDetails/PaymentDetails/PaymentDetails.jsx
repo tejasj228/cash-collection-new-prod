@@ -187,7 +187,7 @@ function PaymentCard({
         cardType,
         terminalId: terminal,
         amount: total,
-        patientId: patient?.id || null,
+        crNumber: patient?.cr || null,
         description: description.trim(),
       });
       if (!result?.terminalTransactionId)

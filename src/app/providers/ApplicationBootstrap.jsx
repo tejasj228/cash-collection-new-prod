@@ -20,7 +20,7 @@ export function ApplicationBootstrap() {
   if (state.loading)
     return (
       <div className="hbims-cash-collection">
-        <div className="application-state app-loader-screen">
+        <div className="application-state">
           <Loader label="Loading cash collection…" size={52} />
         </div>
       </div>

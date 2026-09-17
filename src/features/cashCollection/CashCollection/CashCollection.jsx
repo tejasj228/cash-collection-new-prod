@@ -446,7 +446,6 @@ export default function CashCollectionApplication({
         source: "request",
         requestId: resolvedRequest.id,
         requestVersion: resolvedRequest.version || null,
-        patientId: patient.id,
         crNumber: resolvedRequest.cr,
         hospitalServiceId: nextService.id,
         chargeTypeId: nextService.legacyChargeTypeId,

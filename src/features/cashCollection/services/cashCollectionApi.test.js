@@ -1,4 +1,11 @@
 import { createCashCollectionApi } from "./cashCollectionApi";
+import {
+  toEligibilityCommand,
+  toPaymentOptionsQuery,
+  toTariffQuery,
+  toTerminalPaymentCommand,
+  toTransactionCommand,
+} from "./apiWireMappers";
 
 const bootstrapWire = (overrides = {}) => ({
   business_date: "2026-09-10",
@@ -46,6 +53,22 @@ describe("cash collection API adapter", () => {
   });
 
   afterEach(() => jest.restoreAllMocks());
+
+  test("uses CR number as the sole patient identifier on every wire command", () => {
+    const crNumber = "939112600000001";
+    const payloads = [
+      toTariffQuery({ crNumber }),
+      toPaymentOptionsQuery({ crNumber }),
+      toEligibilityCommand({ crNumber }),
+      toTerminalPaymentCommand({ crNumber }),
+      toTransactionCommand({ crNumber }),
+    ];
+
+    payloads.forEach((payload) => {
+      expect(payload.cr_num).toBe(crNumber);
+      expect(payload).not.toHaveProperty("pat_id");
+    });
+  });
 
   test("sends request filters as query parameters", async () => {
     const api = createCashCollectionApi({
@@ -320,7 +343,7 @@ describe("cash collection API adapter", () => {
       requestType: "Receipt",
       workflowId: "tariff-entry",
       processingBillingServiceId: "10",
-      patientId: "p-1",
+      crNumber: "939112600000001",
       patientContextVersion: "pat-v1",
       workflowFields: { department_name: "Cardiology" },
       lines: [
@@ -355,7 +378,7 @@ describe("cash collection API adapter", () => {
       request_type: "Receipt",
       workflow_id: "tariff-entry",
       processing_billing_service_id: "10",
-      pat_id: "p-1",
+      cr_num: "939112600000001",
       pat_context_version: "pat-v1",
       workflow_fields: { department_name: "Cardiology" },
       tariff_lines: [
@@ -415,7 +438,6 @@ describe("cash collection API adapter", () => {
             transaction_document_type: "Receipt",
             transaction_document_date: "10/09/2026",
             patient_details: {
-              pat_id: "p-1",
               pat_name: "Example Patient",
               cr_num: "939112600000001",
             },

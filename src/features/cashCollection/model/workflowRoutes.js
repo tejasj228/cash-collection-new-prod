@@ -9,6 +9,11 @@ const isRefundRequest = (request) =>
   Boolean(
     request &&
     (REFUND_REQUEST_TYPES.includes(request.requestType) ||
+      // A live backend row's requestType isn't split down to the bare enum
+      // value (e.g. "Refund/Advance Refund"), so also catch it by substring.
+      String(request.requestType || "")
+        .toLowerCase()
+        .includes("refund") ||
       String(request.id).toUpperCase().startsWith("REF")),
   );
 
@@ -30,11 +35,28 @@ const REQUEST_TYPE_WORKFLOWS = Object.freeze({
   [RequestType.PACKAGE_COLLECTION]: WorkflowFamily.TARIFF_ENTRY,
 });
 
+// Longest enum value first, so "Advance Refund" is checked before the more
+// generic "Refund" it also contains.
+const REQUEST_TYPE_KEYS_BY_LENGTH = Object.keys(REQUEST_TYPE_WORKFLOWS).sort(
+  (left, right) => right.length - left.length,
+);
+
+// A live backend row's requestType is shown exactly as sent, e.g.
+// "Receipt/Final Adjustment" rather than the bare enum value, so fall back
+// to a substring match against the known RequestType values.
+const workflowFamilyFor = (requestType) => {
+  if (REQUEST_TYPE_WORKFLOWS[requestType])
+    return REQUEST_TYPE_WORKFLOWS[requestType];
+  const value = String(requestType || "");
+  const match = REQUEST_TYPE_KEYS_BY_LENGTH.find((key) => value.includes(key));
+  return match ? REQUEST_TYPE_WORKFLOWS[match] : undefined;
+};
+
 // `serviceId` is always resolved; `workflowFamily` is undefined for a request
 // type a real backend sends that isn't one of the known enum values yet.
 const resolveRequestRoute = (request) => ({
   serviceId: HOSPITAL_SERVICE_ROUTE_IDS[request?.hospitalService],
-  workflowFamily: REQUEST_TYPE_WORKFLOWS[request?.requestType],
+  workflowFamily: workflowFamilyFor(request?.requestType),
 });
 
 export {

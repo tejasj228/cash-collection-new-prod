@@ -1,8 +1,10 @@
 # HBIMS Cash Collection
 
-Production-oriented Create React App frontend for the HBIMS cash-collection
-counter. Runs today against an in-memory mock backend; a real Spring Boot
-service is not built yet.
+Create React App frontend for the HBIMS cash-collection counter. The current
+local integration loads the pending-request queue and patient tile from the
+legacy HBIMS endpoints; the remaining transaction, tariff, dashboard, and
+shift operations still use prototype service implementations until their
+real endpoints are delivered.
 
 ## Run locally
 
@@ -11,19 +13,22 @@ npm install
 npm start
 ```
 
-Opens on `http://localhost:3000` with the mock backend (`REACT_APP_USE_MOCKS=true`
-in `.env.development` — nothing else to configure).
+Open the app through the HBIMS launch URL so
+`varSSOTicketGrantingTicket` reaches the frontend. The ticket is retained in
+`sessionStorage` for that browser tab. A missing/expired ticket or failed
+legacy call produces the bootstrap error screen; the app does not substitute
+dummy pending requests.
 
 ```bash
 npm test
-npm run build     # production bundle; requires the real backend at runtime
-npm run format
+npm run build
+npm run format:check
 ```
 
 ## Documentation
 
 - **[`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md)** — start here. Full
-  architecture, folder-by-folder structure, environment variables, how data
+  architecture, folder-by-folder structure, runtime/session configuration, how data
   flows through the app, every screen mapped to its code, and a complete
   step-by-step guide to building the real backend and connecting it to the
   legacy HBIMS system.
@@ -34,17 +39,11 @@ npm run format
 
 ## Runtime configuration
 
-Set at build time (`.env.*`) or at deploy time, before the bundle loads:
-
-```html
-<script>
-  window.HBIMS_CASH_COLLECTION_CONFIG = {
-    apiBaseUrl: "/api/cash-collection",
-    credentials: "include",
-    requestTimeoutMs: 30000,
-  };
-</script>
-```
+There are no `.env` files and no `window.*` runtime configuration object.
+All API defaults, the local HBIMS backend origin, endpoint paths, SSO ticket
+handling, User-Agent parameter, mode, and request helper live in
+`src/utilities/sessionService.js`. The CRA development proxy imports its
+backend origin from that same file.
 
 Routes are hash-based (`/#/cash-collection/collection`,
 `/#/cash-collection/overview`), so the hosting server needs no SPA rewrite

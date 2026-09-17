@@ -6,32 +6,19 @@ import { Icon } from "../../../../shared/components/Icon";
 import "./PatientDetails.css";
 import { patientDisplayName } from "./patientDetails";
 
-function PatientBanner({ patient, patientMode }) {
+function PatientBanner({ patient, patientMode, hospitalService }) {
   const known = patientMode === "existing" && patient;
   const name = patientDisplayName(patient, known);
   const hasPhoto = Boolean(known && patient.photoUrl);
   const [photoOpen, setPhotoOpen] = useState(false);
-  const facts = known
-    ? [
-        ["CR No.", patient.cr, true],
-        ["Admission No.", patient.ipd, true],
-        ["Account No.", patient.account, true],
-        ["Department / Unit", `${patient.department} / ${patient.unit}`, false],
-        [
-          "Ward / Bed",
-          patient.ward === "—" ? "—" : `${patient.ward} / ${patient.bed}`,
-          false,
-        ],
-        ["Room Type", patient.roomType, false],
-        ["Consultant Name", patient.consultant, false],
-        ["Admitted On", patient.admittedOn, false],
-      ]
-    : [
-        ["CR No.", "Generated after registration", true],
-        ["Admission No.", "—", true],
-        ["Account No.", "—", true],
-        ["Department / Unit", "—", false],
-      ];
+  const admissionNumber =
+    known && hospitalService === "IPD" ? patient.ipd || "—" : "—";
+  const hospitalServiceTone =
+    hospitalService === "IPD"
+      ? "blue"
+      : hospitalService === "OPD"
+        ? "green"
+        : "amber";
   return (
     <section className="patient-banner">
       <div className="patient-identity">
@@ -56,40 +43,39 @@ function PatientBanner({ patient, patientMode }) {
           <div className="patient-chips">
             {known && (
               <>
-                <span className="chip">{patient.age} yr</span>
-                <span className="chip">{patient.sex}</span>
-                <span className="chip strong">{patient.category}</span>
-                <span className="chip">{patient.episode}</span>
-                <span className="chip muted">
+                <span className="chip muted" title="CR No.">
+                  {compactIdentifier(patient.cr)}
+                </span>
+                <span className="chip muted" title="Admission No.">
+                  {compactIdentifier(admissionNumber)}
+                </span>
+                <span className="chip" title="Age / Sex">
+                  {patient.age} / {patient.sex}
+                </span>
+                <span className="chip strong" title="Category">
+                  {patient.category}
+                </span>
+                <span className="chip muted" title="Mobile Number">
                   {compactIdentifier(patient.mobile)}
                 </span>
-                {patient.abhaNumber && (
-                  <span className="chip muted">ABHA {patient.abhaNumber}</span>
-                )}
-                {patient.abhaAddress && (
-                  <span className="chip muted">{patient.abhaAddress}</span>
-                )}
+                <span className="chip muted" title="ABHA Number">
+                  {patient.abhaNumber}
+                </span>
+                <span className="chip muted" title="ABHA Address">
+                  {patient.abhaAddress}
+                </span>
               </>
             )}
           </div>
         </div>
         <span
-          className={`patient-state ${known && patient.status === "Admitted" ? "blue" : known ? "green" : "amber"}`}
+          className={`patient-state ${known ? hospitalServiceTone : "amber"}`}
+          title="Hospital Service"
         >
           <span className="status-dot" />
-          {known ? patient.status : "Identity pending"}
+          {known ? hospitalService || "—" : "Identity pending"}
         </span>
       </div>
-      <dl className="patient-facts">
-        {facts.map(([label, value, mono]) => (
-          <div key={label}>
-            <dt>{label}</dt>
-            <dd className={mono ? "mono" : ""}>
-              {mono ? compactIdentifier(value) : value}
-            </dd>
-          </div>
-        ))}
-      </dl>
       {photoOpen && (
         <PatientPhotoLightbox
           name={name}

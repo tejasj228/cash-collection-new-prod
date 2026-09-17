@@ -18,7 +18,7 @@ POST /api/cash-collection/terminal-payments
 | `card_type`           | string, nullable | `"Debit Card"` \| `"Credit Card"` — only for `Card`.                                             |
 | `pos_terminal_id`     | string           | Must be one of the counter's `posTerminals` — verify server-side, don't trust the client's list. |
 | `payment_amount`      | number           | Must be `> 0`.                                                                                   |
-| `pat_id`              | string           |                                                                                                  |
+| `cr_num`              | string           | Sole patient identifier.                                                                         |
 | `payment_description` | string, optional | Free-text operator note, max 500 chars.                                                          |
 
 ```json
@@ -27,7 +27,7 @@ POST /api/cash-collection/terminal-payments
   "card_type": "Debit Card",
   "pos_terminal_id": "T1",
   "payment_amount": 480.0,
-  "pat_id": "4",
+  "cr_num": "939112600000004",
   "payment_description": ""
 }
 ```

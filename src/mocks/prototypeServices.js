@@ -29,7 +29,7 @@ const workflowFor = (command) => {
 
 const eligibilityFor = (command, pendingRequests = PROTOTYPE_DATA.requests) => {
   const patient = PROTOTYPE_DATA.patients.find(
-    (row) => row.id === command.patientId,
+    (row) => row.cr === command.crNumber,
   );
   const workflow = workflowFor(command);
   if (!patient)
@@ -131,7 +131,7 @@ const eligibilityFor = (command, pendingRequests = PROTOTYPE_DATA.requests) => {
     eligible: true,
     code: "ELIGIBLE",
     workflow,
-    patientContextVersion: `patient-${patient.id}-v1`,
+    patientContextVersion: `patient-${patient.cr}-v1`,
     workflowContext: patient.workflowContext || {},
   };
 };
@@ -413,7 +413,7 @@ export function createPrototypeServices({ now = () => Date.now() } = {}) {
         return sum + (gross * percentage) / 100;
       }, 0);
       const patient =
-        PROTOTYPE_DATA.patients.find((row) => row.id === command.patientId) ||
+        PROTOTYPE_DATA.patients.find((row) => row.cr === command.crNumber) ||
         null;
       const pendingRequest = pendingRequests.find(
         (row) => row.id === command.requestId,

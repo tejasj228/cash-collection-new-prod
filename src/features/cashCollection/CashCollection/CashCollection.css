@@ -2522,23 +2522,11 @@
 }
 .patient-facts {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  align-content: start;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 18px 21.6px;
   margin: 20.4px 0 0;
   padding: 19.2px 0 0;
   border-top: 1px solid #edf1f5;
-}
-/* eight facts, so only column counts that divide eight — never a part-empty row */
-@media (min-width: 1320px) {
-  .patient-facts {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-  }
-}
-@media (max-width: 700px) {
-  .patient-facts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 .patient-facts > div {
   min-width: 0;

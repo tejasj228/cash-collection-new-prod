@@ -54,7 +54,6 @@ Same base fields as [a pending-request row](./02-pending-requests.md), plus:
     "req_amount": "1240.00",
     "req_version": "3",
     "linked_patient": {
-      "pat_id": "2",
       "pat_name": "Sunita Rao",
       "cr_num": "939112600000002",
       "episode_name": "OPD / Cardiology",

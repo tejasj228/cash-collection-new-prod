@@ -5,8 +5,11 @@ GET /api/cash-collection/requests?page=0&size=10
 ```
 
 Powers the **Pending Requests** table on the Collection screen — the search
-box, the Filter panel (Hospital Service / Request Type / Department),
-sorting, and pagination are all server-side.
+box, the Filter panel (Hospital Service / Request Type), sorting, and
+pagination are all server-side. `department_name` is still returned per row
+and accepted as a query filter (for the dashboard's cross-filtering and any
+future UI), but the Filter panel itself no longer exposes a Department
+dropdown.
 
 ## Query parameters
 
@@ -32,13 +35,13 @@ user's authorized counter scope — never the whole table.
 | Req No.          | `req_no`                | Unique request number, used to open the request.                                                                                                                                                                                                                    |
 | Req Date         | `req_date`              | `DD/MM/YYYY`, e.g. `"09/09/2026"`.                                                                                                                                                                                                                                  |
 | Patient Name     | `pat_name`              |                                                                                                                                                                                                                                                                     |
-| Department       | `department_name`       |                                                                                                                                                                                                                                                                     |
 | CR No.           | `cr_num`                | String — never strip or reformat; the UI does display-only compaction.                                                                                                                                                                                              |
 | Hospital Service | `hospital_service_name` | **Must be exactly** `"OPD"` \| `"IPD"` \| `"Emergency"` — the `HospitalService` enum. In HBIMS this is the charge-type family (`sblnum_chargetype_id` 1/4 → OPD, 2 → IPD, 3 → Emergency). Decides which service tile the request opens under.                       |
 | Request Type     | `req_type`              | One of the 7 `RequestType` values (`Service`, `Refund`, `Advance Deposit`, `Advance Refund`, `Final Adjustment`, `Investigation Charges`, `Package Collection`). Decides the workflow. **Not** the `Receipt`/`Refund`/`Estimation` `request_type` used on commands. |
 | Amount           | `req_amount`            | Decimal string, no currency symbol, e.g. `"480.00"`.                                                                                                                                                                                                                |
 | _(not shown)_    | `req_version`           | Opaque concurrency token, re-sent when the request is opened/posted.                                                                                                                                                                                                |
 | _(not shown)_    | `category_name`         | Patient category — used by the dashboard's cross-filtering, not shown as a queue column.                                                                                                                                                                            |
+| _(not shown)_    | `department_name`       | No longer a queue column or a Filter panel option — still returned per row and accepted as a query filter.                                                                                                                                                          |
 
 The two columns are independent dimensions. The combinations HBIMS can
 actually raise through the queue today:

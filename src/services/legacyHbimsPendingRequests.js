@@ -2,17 +2,17 @@
 // raw legacy DB columns (sblnum_chargetype_id, req_type: "Receipt/Service",
 // numeric amounts, DD-Mon-YYYY dates) instead of the shape documented in
 // docs/api/02-pending-requests.md, so this file translates one to the other.
-// It also carries the varSSOTicketGrantingTicket the HBIMS shell launches
-// this app with (query string, before the HashRouter's #) since this
-// endpoint authenticates via that ticket rather than a session cookie.
+// Session/env concerns (the SSO ticket, User-Agent, endpoint URL) live in
+// utilities/sessionService.js.
 import { money, displayDate } from "../shared/utils/formatters";
 import {
   queryPendingRequests,
   summarizePendingRequestsByType,
 } from "../features/cashCollection/model/pendingRequestsQuery";
-
-const SSO_TICKET_PARAM = "varSSOTicketGrantingTicket";
-const SSO_TICKET_STORAGE_KEY = "hbims_sso_ticket";
+import {
+  fetchLegacyJson,
+  PENDING_REQUESTS_URL,
+} from "../utilities/sessionService";
 
 const HOSPITAL_SERVICE_BY_CHARGE_TYPE_ID = {
   1: "OPD",
@@ -44,17 +44,31 @@ function parseLegacyDate(value) {
   return { date: displayDate(dateIso), dateIso };
 }
 
-// The backend combines the command type and the queue's own request type
-// into one string, e.g. "Receipt/Service" or "Refund/Advance Refund" — only
-// the part after the slash is the RequestType enum value we display/filter.
-function parseLegacyRequestType(value) {
-  const text = String(value || "");
+// The query combines two independent values into REQ_TYPE:
+//   get_receipt_name(HBLNUM_REQ_TYPE) / getbservicename(...)
+// For example, "Refund/Service" must become the canonical queue type
+// "Refund". Keeping only the text after the slash incorrectly turns that row
+// into a collection. Prefer the raw numeric request kind selected by the same
+// query, and retain the text prefix as a compatibility fallback.
+function parseLegacyRequestType(row) {
+  const text = String(row.req_type || "").trim();
   const slash = text.indexOf("/");
-  return slash === -1 ? text : text.slice(slash + 1);
+  const operation = (slash === -1 ? "" : text.slice(0, slash))
+    .trim()
+    .toLowerCase();
+  const billingService = (slash === -1 ? text : text.slice(slash + 1)).trim();
+  const isRefund =
+    Number(row.hblnum_req_type) === 2 || operation.includes("refund");
+
+  if (!isRefund) return billingService;
+  return billingService.toLowerCase().includes("advance")
+    ? "Advance Refund"
+    : "Refund";
 }
 
 export function mapLegacyPendingRequestRow(row) {
   const { date, dateIso } = parseLegacyDate(row.req_date);
+  const requestTypeLabel = String(row.req_type || "").trim();
   return {
     id: String(row.req_no),
     date,
@@ -65,64 +79,30 @@ export function mapLegacyPendingRequestRow(row) {
     cr: String(row.cr_num ?? ""),
     hospitalService:
       HOSPITAL_SERVICE_BY_CHARGE_TYPE_ID[row.sblnum_chargetype_id] || "",
-    requestType: parseLegacyRequestType(row.req_type),
+    requestType: parseLegacyRequestType(row),
+    requestTypeLabel,
     amount: money(row.req_amount),
     version: "",
   };
 }
 
-function readTicketFromLocation() {
-  if (typeof window === "undefined") return "";
-  return new URLSearchParams(window.location.search).get(SSO_TICKET_PARAM) || "";
-}
-
-let cachedTicket = null;
-
-export function getSsoTicket() {
-  if (cachedTicket) return cachedTicket;
-  const fromUrl = readTicketFromLocation();
-  if (fromUrl) {
-    cachedTicket = fromUrl;
-    try {
-      window.sessionStorage.setItem(SSO_TICKET_STORAGE_KEY, fromUrl);
-    } catch {
-      // Storage can be unavailable (private browsing); the in-memory cache
-      // still covers the rest of this page's lifetime.
-    }
-    return cachedTicket;
-  }
-  try {
-    cachedTicket = window.sessionStorage.getItem(SSO_TICKET_STORAGE_KEY) || "";
-  } catch {
-    cachedTicket = "";
-  }
-  return cachedTicket;
-}
-
-export async function fetchLegacyPendingRequests(endpointUrl) {
-  if (!endpointUrl) return [];
-  const params = new URLSearchParams({
-    [SSO_TICKET_PARAM]: getSsoTicket(),
-    "User-Agent": typeof navigator === "undefined" ? "" : navigator.userAgent,
-    mode: "1",
-  });
-  const response = await fetch(`${endpointUrl}?${params.toString()}`);
-  if (!response.ok)
-    throw new Error(`Pending request queue failed to load (${response.status}).`);
-  const rows = await response.json();
+export async function fetchLegacyPendingRequests() {
+  const rows = await fetchLegacyJson(PENDING_REQUESTS_URL);
   return Array.isArray(rows) ? rows.map(mapLegacyPendingRequestRow) : [];
 }
 
-// Wraps the already-fetched live rows so they can stand in for the
-// prototype's listPendingRequests/getPendingRequestMetrics without
+// Wraps the bootstrap-loaded live rows so they can stand in for
+// the prototype's listPendingRequests/getPendingRequestMetrics without
 // duplicating the search/filter/sort/pagination contract those expect.
-export function createLegacyPendingRequestQueries(requests) {
+// The endpoint has no page/size params, so every table interaction reuses the
+// single array fetched before the application renders.
+export function createLegacyPendingRequestQueries(loadRequests) {
   return {
     async listPendingRequests(filters = {}) {
-      return queryPendingRequests(requests, filters);
+      return queryPendingRequests(await loadRequests(), filters);
     },
     async getPendingRequestMetrics(filters = {}) {
-      return summarizePendingRequestsByType(requests, filters);
+      return summarizePendingRequestsByType(await loadRequests(), filters);
     },
   };
 }

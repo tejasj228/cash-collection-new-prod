@@ -1,7 +1,7 @@
 # Payment options
 
 ```http
-GET /api/cash-collection/payment-options?pat_id=4&category_name=General%20—%20CGHS&hospital_service_id=ipd&billing_service_id=35
+GET /api/cash-collection/payment-options?cr_num=939112600000004&category_name=General%20—%20CGHS&hospital_service_id=ipd&billing_service_id=35
 ```
 
 Populates the Payment Mode / Card Type / POS Terminal dropdowns on the
@@ -12,7 +12,7 @@ the current patient's category.
 
 | Param                 | Type   | Notes                                                                                                                                                                                                                                                                         |
 | --------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pat_id`              | string | Optional patient context.                                                                                                                                                                                                                                                     |
+| `cr_num`              | string | Optional patient context and the sole patient identifier.                                                                                                                                                                                                                     |
 | `category_name`       | string | Optional context — lets the server pre-filter `payment_restrictions_by_category` for just this patient rather than shipping the whole table. The frontend today calls this with no context and applies `payment_restrictions_by_category` client-side; either approach works. |
 | `hospital_service_id` | string | Optional selected hospital-service context.                                                                                                                                                                                                                                   |
 | `billing_service_id`  | string | Optional selected billing-service context.                                                                                                                                                                                                                                    |

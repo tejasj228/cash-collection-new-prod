@@ -242,7 +242,7 @@ function PatientSearchPopover({
             !searchError &&
             results.map((patient) => (
               <button
-                key={patient.id}
+                key={patient.cr}
                 className="patient-result"
                 onClick={() => onSelect(patient)}
               >
@@ -328,7 +328,6 @@ function DirectSetup({
       if (typeof services?.checkEligibility !== "function")
         throw new Error("Patient eligibility service is unavailable.");
       const result = await services.checkEligibility({
-        patientId: selectedPatient.id,
         crNumber: selectedPatient.cr,
         hospitalServiceId: service.id,
         chargeTypeId: service.legacyChargeTypeId,

@@ -25,7 +25,7 @@ anything is written.
 | `request_type`                  | string           | `"Receipt"` \| `"Refund"` \| `"Estimation"`.                                                                                                                                             |
 | `processing_billing_service_id` | string           | The chosen option's `processing_billing_service_id`. The server **re-resolves and verifies** this — never dispatches on the client's copy.                                               |
 | `workflow_id`                   | string           | The chosen option's `workflow_family`.                                                                                                                                                   |
-| `pat_id`                        | string, nullable |                                                                                                                                                                                          |
+| `cr_num`                        | string           | Sole patient identifier.                                                                                                                                                                 |
 | `pat_context_version`           | string           | Must match the version [`checkEligibility`](./07-eligibility.md) returned — reject a stale one.                                                                                          |
 | `workflow_fields`               | object           | The department/episode/category/ward/room IDs picked from `workflow_context` — every value must be one the eligibility response actually offered.                                        |
 | `tariff_lines`                  | array            | `[{ tariff_code, tariff_name, tariff_rate, tariff_qty, tariff_discount_percent, tariff_source }]` — recompute gross/discount/net server-side per line; never trust the client's numbers. |
@@ -55,8 +55,8 @@ anything is written.
   "request_type": "Receipt",
   "processing_billing_service_id": "10",
   "workflow_id": "tariff-entry",
-  "pat_id": "4",
-  "pat_context_version": "patient-4-v1",
+  "cr_num": "939112600000004",
+  "pat_context_version": "patient-939112600000004-v1",
   "workflow_fields": {},
   "tariff_lines": [
     {
@@ -155,7 +155,6 @@ BILLING_SERVICE_BUCKET  = { "Service": "Service", "Package": "Service", "Advance
       "transaction_document_type": "Receipt",
       "transaction_document_date": "13/09/2026",
       "patient_details": {
-        "pat_id": "4",
         "pat_name": "Ajay Deshmukh",
         "cr_num": "939112600000004",
         "episode_name": "IPD / Cardiology"

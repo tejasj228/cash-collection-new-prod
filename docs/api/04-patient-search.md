@@ -27,7 +27,6 @@ episodes/accounts the logged-in user is allowed to bill.
 
 | Field                       | Type             | Notes                                                                                                                                              |
 | --------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pat_id`                    | string           | Opaque patient key.                                                                                                                                |
 | `pat_name`                  | string           |                                                                                                                                                    |
 | `pat_age`                   | number           |                                                                                                                                                    |
 | `pat_sex`                   | string           | `"Male"` \| `"Female"` \| …                                                                                                                        |
@@ -51,6 +50,13 @@ episodes/accounts the logged-in user is allowed to bill.
 | `ipd_account_open`          | boolean          | Whether an IPD account is currently open — gates Advance/Part-Payment/Settlement eligibility.                                                      |
 | `refundable_document_count` | number           | How many prior receipts have refundable balance — `0` blocks refund eligibility.                                                                   |
 
+The patient banner displays CR number, Admission No., Age / Sex, Category,
+Mobile, ABHA Number, and ABHA Address in its first chip row. Admission No. is
+`ipd_admission_num` for IPD and `-` for OPD. The former second banner row
+(Department/Unit, Ward/Bed, Room Type, Consultant, Admitted On) has been
+removed; those fields remain in the patient contract for workflow/context
+consumers and the five settlement-context boxes.
+
 ## Example response
 
 ```json
@@ -59,7 +65,6 @@ episodes/accounts the logged-in user is allowed to bill.
   "trace_id": "trace-301",
   "data": [
     {
-      "pat_id": "3",
       "pat_name": "Vikram Singh",
       "pat_age": 61,
       "pat_sex": "Male",

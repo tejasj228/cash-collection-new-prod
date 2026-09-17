@@ -1,27 +1,11 @@
-const browserConfig =
-  typeof window === "undefined"
-    ? {}
-    : window.HBIMS_CASH_COLLECTION_CONFIG || {};
+import {
+  API_BASE_URL,
+  API_CREDENTIALS,
+  REQUEST_TIMEOUT_MS,
+} from "../utilities/sessionService";
 
 export const runtimeConfig = Object.freeze({
-  apiBaseUrl:
-    browserConfig.apiBaseUrl ||
-    process.env.REACT_APP_API_BASE_URL ||
-    "/api/cash-collection",
-  credentials: browserConfig.credentials || "include",
-  requestTimeoutMs: Number(
-    browserConfig.requestTimeoutMs ||
-      process.env.REACT_APP_REQUEST_TIMEOUT_MS ||
-      30000,
-  ),
-  useMocks:
-    process.env.NODE_ENV === "development" &&
-    process.env.REACT_APP_USE_MOCKS === "true",
-  // Staged rollout only: the real pending-requests endpoint, wired in ahead
-  // of the rest of the backend. Machine-specific, so set it in a local,
-  // untracked .env.development.local rather than the committed .env files.
-  legacyPendingRequestsUrl:
-    browserConfig.legacyPendingRequestsUrl ||
-    process.env.REACT_APP_LEGACY_PENDING_REQUESTS_URL ||
-    "",
+  apiBaseUrl: API_BASE_URL,
+  credentials: API_CREDENTIALS,
+  requestTimeoutMs: REQUEST_TIMEOUT_MS,
 });

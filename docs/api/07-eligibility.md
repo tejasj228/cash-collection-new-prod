@@ -22,8 +22,7 @@ file only documents the wire shape, not the business rules.
 | `req_no`                        | string, nullable | Present only when `collection_source: "request"`.                                                                                                                                                  |
 | `req_version`                   | string, nullable | The request's `req_version`, for staleness detection.                                                                                                                                              |
 | `request_type`                  | string           | `"Receipt"` \| `"Refund"` \| `"Estimation"`.                                                                                                                                                       |
-| `pat_id`                        | string           |                                                                                                                                                                                                    |
-| `cr_num`                        | string           |                                                                                                                                                                                                    |
+| `cr_num`                        | string           | Sole patient identifier.                                                                                                                                                                           |
 | `hospital_service_id`           | string           | `opd-normal` \| `opd-special` \| `ipd` \| `emergency`.                                                                                                                                             |
 | `charge_type_id`                | string           | The service's `legacyChargeTypeId` (`"1"`–`"4"`).                                                                                                                                                  |
 | `billing_service_id`            | string           | The chosen billing option's `billing_service_id` from `billing_services_by_hospital_service`.                                                                                                      |
@@ -36,7 +35,6 @@ file only documents the wire shape, not the business rules.
   "req_no": null,
   "req_version": null,
   "request_type": "Receipt",
-  "pat_id": "1",
   "cr_num": "939112600000001",
   "hospital_service_id": "ipd",
   "charge_type_id": "2",

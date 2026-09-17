@@ -13,7 +13,7 @@ function toWireSort(sort, fieldNames = {}) {
 function mapPatient(row = {}) {
   return {
     ...row,
-    id: displayText(row.pat_id),
+    id: displayText(row.cr_num),
     name: displayText(row.pat_name),
     age: row.pat_age,
     sex: displayText(row.pat_sex),
@@ -448,7 +448,7 @@ export function toPendingMetricsQuery(filters = {}) {
 export function toTariffQuery(filters = {}) {
   return {
     tariff_group_id: filters.groupId,
-    pat_id: filters.patientId,
+    cr_num: filters.crNumber,
     workflow_id: filters.workflowId,
     tariff_search: filters.search,
   };
@@ -456,7 +456,7 @@ export function toTariffQuery(filters = {}) {
 
 export function toPaymentOptionsQuery(context = {}) {
   return {
-    pat_id: context.patientId,
+    cr_num: context.crNumber,
     category_name: context.category,
     hospital_service_id: context.hospitalServiceId,
     billing_service_id: context.billingServiceId,
@@ -469,7 +469,6 @@ export function toEligibilityCommand(command = {}) {
     req_no: command.requestId,
     req_version: command.requestVersion,
     request_type: command.requestType,
-    pat_id: command.patientId,
     cr_num: command.crNumber,
     hospital_service_id: command.hospitalServiceId,
     charge_type_id: command.chargeTypeId,
@@ -485,7 +484,7 @@ export function toTerminalPaymentCommand(command = {}) {
     card_type: command.cardType,
     pos_terminal_id: command.terminalId,
     payment_amount: command.amount,
-    pat_id: command.patientId,
+    cr_num: command.crNumber,
     payment_description: command.description,
   };
 }
@@ -498,7 +497,7 @@ export function toTransactionCommand(command = {}) {
     request_type: command.requestType,
     workflow_id: command.workflowId,
     processing_billing_service_id: command.processingBillingServiceId,
-    pat_id: command.patientId,
+    cr_num: command.crNumber,
     pat_context_version: command.patientContextVersion,
     workflow_fields: command.workflowFields,
     tariff_lines: (command.lines || []).map((line) => ({

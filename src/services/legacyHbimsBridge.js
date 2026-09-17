@@ -36,11 +36,7 @@ const trimTrailingSlash = (value) =>
  * coupling the React views to Struts, session attributes, or a specific transport.
  */
 export function createIntegrationContext(options = {}) {
-  const browserOptions =
-    typeof window === "undefined"
-      ? {}
-      : window.HBIMS_CASH_COLLECTION_CONFIG || {};
-  const merged = { ...browserOptions, ...options };
+  const merged = { ...options };
   const contextPath = trimTrailingSlash(
     merged.contextPath || HBIMS_DEFAULT_PATHS.contextPath,
   );

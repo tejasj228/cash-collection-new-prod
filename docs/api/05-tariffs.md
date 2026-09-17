@@ -1,7 +1,7 @@
 # Tariff catalogue
 
 ```http
-GET /api/cash-collection/tariffs?tariff_group_id=Investigation&pat_id=4&workflow_id=tariff-entry&tariff_search=blood
+GET /api/cash-collection/tariffs?tariff_group_id=Investigation&cr_num=939112600000004&workflow_id=tariff-entry&tariff_search=blood
 ```
 
 Powers the tariff type-ahead search in **Tariff Details** / **Estimated
@@ -13,7 +13,7 @@ charge") and the group dropdown above it.
 | Param             | Type   | Notes                                                                                                              |
 | ----------------- | ------ | ------------------------------------------------------------------------------------------------------------------ |
 | `tariff_group_id` | string | One of the `tariff_group_names` strings from [bootstrap](./01-bootstrap.md), or omit/`"All groups"` for no filter. |
-| `pat_id`          | string | Required patient context; the backend uses it to authorize tariffs.                                                |
+| `cr_num`          | string | Required patient context and the sole patient identifier.                                                          |
 | `workflow_id`     | string | Required selected workflow context.                                                                                |
 | `tariff_search`   | string | Matches tariff code or name, case-insensitive substring.                                                           |
 

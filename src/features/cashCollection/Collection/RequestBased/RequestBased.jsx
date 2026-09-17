@@ -292,7 +292,9 @@ function RequestWorklist({
                     {request.hospitalService}
                   </td>
                   <td>
-                    <span className="type-label">{request.requestType}</span>
+                    <span className="type-label">
+                      {request.requestTypeLabel || request.requestType}
+                    </span>
                   </td>
                   <td className="num amount-cell">₹{request.amount}</td>
                   <td className="action-cell">
@@ -342,7 +344,11 @@ function RequestWorklist({
             {Math.min(currentPage * pageSize, pageData.total)} of{" "}
             {pageData.total}
           </span>
-          <Pagination page={currentPage} pageCount={pageCount} onChange={setPage} />
+          <Pagination
+            page={currentPage}
+            pageCount={pageCount}
+            onChange={setPage}
+          />
         </div>
       )}
     </section>

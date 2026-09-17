@@ -180,7 +180,7 @@ paths:
         - name: tariff_group_id
           in: query
           schema: { type: string }
-        - name: pat_id
+        - name: cr_num
           in: query
           required: true
           schema: { type: string }
@@ -206,7 +206,7 @@ paths:
       summary: Load allowed payment modes, card types and POS terminals
       operationId: getPaymentOptions
       parameters:
-        - name: pat_id
+        - name: cr_num
           in: query
           schema: { type: string }
         - name: category_name
@@ -593,9 +593,8 @@ components:
                   }
     Patient:
       type: object
-      required: [pat_id, cr_num, pat_name]
+      required: [cr_num, pat_name]
       properties:
-        pat_id: { type: string }
         cr_num: { type: string }
         pat_name: { type: string }
         pat_age: { type: integer }
@@ -1062,7 +1061,6 @@ components:
         [
           collection_source,
           request_type,
-          pat_id,
           cr_num,
           hospital_service_id,
           charge_type_id,
@@ -1075,7 +1073,6 @@ components:
         req_no: { type: string, nullable: true }
         req_version: { type: string, nullable: true }
         request_type: { type: string, enum: [Receipt, Refund, Estimation] }
-        pat_id: { type: string }
         cr_num: { type: string }
         hospital_service_id: { type: string }
         charge_type_id: { type: string }
@@ -1093,13 +1090,13 @@ components:
         workflow_context: { type: object, additionalProperties: true }
     TerminalPaymentCommand:
       type: object
-      required: [payment_mode, pos_terminal_id, payment_amount]
+      required: [payment_mode, pos_terminal_id, payment_amount, cr_num]
       properties:
         payment_mode: { type: string, enum: [Card, UPI] }
         card_type: { type: string, nullable: true }
         pos_terminal_id: { type: string }
         payment_amount: { type: number, exclusiveMinimum: 0 }
-        pat_id: { type: string }
+        cr_num: { type: string }
         payment_description: { type: string, maxLength: 500 }
     TerminalPayment:
       type: object
@@ -1176,7 +1173,7 @@ components:
           request_type,
           workflow_id,
           processing_billing_service_id,
-          pat_id,
+          cr_num,
           pat_context_version,
           workflow_fields,
           tariff_lines,
@@ -1191,7 +1188,7 @@ components:
         request_type: { type: string, enum: [Receipt, Refund, Estimation] }
         workflow_id: { type: string }
         processing_billing_service_id: { type: string }
-        pat_id: { type: string }
+        cr_num: { type: string }
         pat_context_version: { type: string }
         workflow_fields: { type: object, additionalProperties: true }
         tariff_lines:

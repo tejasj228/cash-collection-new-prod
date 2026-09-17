@@ -77,7 +77,6 @@ function CollectionWorkspace({
       legacyMode: workflow.legacyMode,
       hospitalServiceId: service.id,
       chargeTypeId: service.legacyChargeTypeId,
-      patientId: selectedPatient?.id || null,
       crNumber: selectedPatient?.cr || null,
       patientContextVersion: patientContextVersion || null,
       workflowFields: workflowSelections,
@@ -221,7 +220,11 @@ function CollectionWorkspace({
           </button>
         </div>
       )}
-      <PatientBanner patient={selectedPatient} patientMode={patientMode} />
+      <PatientBanner
+        patient={selectedPatient}
+        patientMode={patientMode}
+        hospitalService={request?.hospitalService || service?.short}
+      />
 
       <div className="workspace-stack">
         {!payOpen &&
