@@ -151,12 +151,12 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/DashboardEnvelope" }
         default: { $ref: "#/components/responses/Error" }
-  /requests/{req_id}:
+  /requests/{req_no}:
     get:
       summary: Reload authoritative request and linked patient before collection
       operationId: getRequest
       parameters:
-        - name: req_id
+        - name: req_no
           in: path
           required: true
           schema: { type: string }
@@ -662,7 +662,7 @@ components:
       type: object
       required:
         [
-          req_id,
+          req_no,
           req_version,
           req_date,
           pat_name,
@@ -674,7 +674,7 @@ components:
           req_amount,
         ]
       properties:
-        req_id:
+        req_no:
           {
             type: string,
             description: Unique request number used to open the request,
@@ -981,7 +981,7 @@ components:
       type: object
       required:
         [
-          req_id,
+          req_no,
           req_version,
           pat_name,
           cr_num,
@@ -992,7 +992,7 @@ components:
           department_name,
         ]
       properties:
-        req_id: { type: string }
+        req_no: { type: string }
         req_version: { type: string, description: Opaque concurrency version }
         pat_name: { type: string }
         cr_num: { type: string }
@@ -1072,7 +1072,7 @@ components:
         ]
       properties:
         collection_source: { type: string, enum: [request, direct] }
-        req_id: { type: string, nullable: true }
+        req_no: { type: string, nullable: true }
         req_version: { type: string, nullable: true }
         request_type: { type: string, enum: [Receipt, Refund, Estimation] }
         pat_id: { type: string }
@@ -1186,7 +1186,7 @@ components:
         ]
       properties:
         collection_source: { type: string, enum: [request, direct] }
-        req_id: { type: string, nullable: true }
+        req_no: { type: string, nullable: true }
         req_version: { type: string, nullable: true }
         request_type: { type: string, enum: [Receipt, Refund, Estimation] }
         workflow_id: { type: string }
@@ -1212,7 +1212,7 @@ components:
                 transaction_document_no: { type: string }
                 transaction_status: { type: string }
                 printable_data: { $ref: "#/components/schemas/PrintableData" }
-                resolved_req_id: { type: string, nullable: true }
+                resolved_req_no: { type: string, nullable: true }
                 dashboard_transaction_row:
                   { $ref: "#/components/schemas/Transaction", nullable: true }
     Transaction:

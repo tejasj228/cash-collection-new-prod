@@ -284,7 +284,6 @@ function RequestWorklist({
                 align="col-c"
               />
               <th>Patient Name</th>
-              <th>Department</th>
               <th className="col-c">CR No.</th>
               <th className="col-c">Hospital Service</th>
               <th>Request Type</th>
@@ -298,7 +297,7 @@ function RequestWorklist({
             </tr>
           </thead>
           <tbody>
-            {loading && <SkeletonRows rows={skeletonRowCount} cols={9} />}
+            {loading && <SkeletonRows rows={skeletonRowCount} cols={8} />}
             {!loading &&
               visible.map((request) => (
                 <tr
@@ -316,7 +315,6 @@ function RequestWorklist({
                   <td>
                     <strong>{request.patient}</strong>
                   </td>
-                  <td className="cell-muted">{request.department}</td>
                   <td className="col-c mono">
                     {compactIdentifier(request.cr)}
                   </td>

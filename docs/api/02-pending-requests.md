@@ -29,7 +29,7 @@ user's authorized counter scope — never the whole table.
 
 | Column shown     | Field name              | Notes                                                                                                                                                                                                                                                               |
 | ---------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Req No.          | `req_id`                | Unique request number, used to open the request.                                                                                                                                                                                                                    |
+| Req No.          | `req_no`                | Unique request number, used to open the request.                                                                                                                                                                                                                    |
 | Req Date         | `req_date`              | `DD/MM/YYYY`, e.g. `"09/09/2026"`.                                                                                                                                                                                                                                  |
 | Patient Name     | `pat_name`              |                                                                                                                                                                                                                                                                     |
 | Department       | `department_name`       |                                                                                                                                                                                                                                                                     |
@@ -70,7 +70,7 @@ field-name set.
   "data": {
     "items": [
       {
-        "req_id": "REQ-100001",
+        "req_no": "REQ-100001",
         "req_date": "09/09/2026",
         "pat_name": "Example Patient",
         "department_name": "General Medicine",
@@ -81,7 +81,7 @@ field-name set.
         "req_version": "1"
       },
       {
-        "req_id": "ADJ-2026-0882",
+        "req_no": "ADJ-2026-0882",
         "req_date": "09/09/2026",
         "pat_name": "Rajesh Kumar Mehta",
         "department_name": "General Medicine",

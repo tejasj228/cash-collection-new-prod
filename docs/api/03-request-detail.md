@@ -1,11 +1,11 @@
 # Request detail
 
 ```http
-GET /api/cash-collection/requests/{req_id}
+GET /api/cash-collection/requests/{req_no}
 ```
 
 Called the moment a clerk clicks **Collect** or **Refund** on a queue row.
-`req_id` is the row's request identifier. Reload the request **authoritatively** —
+`req_no` is the row's request identifier. Reload the request **authoritatively** —
 never trust the amount/lines shown in the queue table; those are discovery
 data only.
 
@@ -44,7 +44,7 @@ Same base fields as [a pending-request row](./02-pending-requests.md), plus:
   "success": true,
   "trace_id": "trace-201",
   "data": {
-    "req_id": "REF-2024-0193",
+    "req_no": "REF-2024-0193",
     "req_date": "03/09/2024",
     "pat_name": "Sunita Rao",
     "department_name": "Cardiology",

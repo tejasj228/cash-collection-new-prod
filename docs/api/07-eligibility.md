@@ -19,7 +19,7 @@ file only documents the wire shape, not the business rules.
 | Field                           | Type             | Notes                                                                                                                                                                                              |
 | ------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `collection_source`             | string           | `"request"` \| `"direct"`.                                                                                                                                                                         |
-| `req_id`                        | string, nullable | Present only when `collection_source: "request"`.                                                                                                                                                  |
+| `req_no`                        | string, nullable | Present only when `collection_source: "request"`.                                                                                                                                                  |
 | `req_version`                   | string, nullable | The request's `req_version`, for staleness detection.                                                                                                                                              |
 | `request_type`                  | string           | `"Receipt"` \| `"Refund"` \| `"Estimation"`.                                                                                                                                                       |
 | `pat_id`                        | string           |                                                                                                                                                                                                    |
@@ -33,7 +33,7 @@ file only documents the wire shape, not the business rules.
 ```json
 {
   "collection_source": "direct",
-  "req_id": null,
+  "req_no": null,
   "req_version": null,
   "request_type": "Receipt",
   "pat_id": "1",

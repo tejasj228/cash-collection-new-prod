@@ -3,7 +3,7 @@
 const asDisplayText = (value) => (value == null ? "" : String(value));
 
 export function mapPendingRequest(row) {
-  const reqId = asDisplayText(row.req_id);
+  const reqNo = asDisplayText(row.req_no);
   const date = asDisplayText(row.req_date);
   const patient = asDisplayText(row.pat_name);
   const department = asDisplayText(row.department_name);
@@ -17,7 +17,7 @@ export function mapPendingRequest(row) {
 
   return {
     ...row,
-    req_id: reqId,
+    req_no: reqNo,
     req_date: date,
     pat_name: patient,
     department_name: department,
@@ -27,7 +27,7 @@ export function mapPendingRequest(row) {
     req_type: requestType,
     req_amount: amount,
     req_version: version,
-    id: reqId,
+    id: reqNo,
     date,
     dateIso: parts
       ? `${parts[3]}-${parts[2]}-${parts[1]}`

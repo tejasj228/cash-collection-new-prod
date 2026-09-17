@@ -280,7 +280,7 @@ export function mapPostedTransactionWire(row = {}) {
           },
         }
       : undefined,
-    resolvedRequestId: displayText(row.resolved_req_id) || null,
+    resolvedRequestId: displayText(row.resolved_req_no) || null,
     dashboardTransaction: row.dashboard_transaction_row
       ? mapTransactionRow(row.dashboard_transaction_row)
       : null,
@@ -466,7 +466,7 @@ export function toPaymentOptionsQuery(context = {}) {
 export function toEligibilityCommand(command = {}) {
   return {
     collection_source: command.source,
-    req_id: command.requestId,
+    req_no: command.requestId,
     req_version: command.requestVersion,
     request_type: command.requestType,
     pat_id: command.patientId,
@@ -493,7 +493,7 @@ export function toTerminalPaymentCommand(command = {}) {
 export function toTransactionCommand(command = {}) {
   return {
     collection_source: command.source,
-    req_id: command.requestId,
+    req_no: command.requestId,
     req_version: command.requestVersion,
     request_type: command.requestType,
     workflow_id: command.workflowId,

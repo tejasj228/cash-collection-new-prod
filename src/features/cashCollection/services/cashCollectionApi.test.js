@@ -145,7 +145,7 @@ describe("cash collection API adapter", () => {
 
   test("maps prefixed pending-request fields without changing the UI workflow", async () => {
     const row = {
-      req_id: "REQ-100001",
+      req_no: "REQ-100001",
       req_date: "09/09/2026",
       pat_name: "Example Patient",
       department_name: "General Medicine",
@@ -169,7 +169,7 @@ describe("cash collection API adapter", () => {
     });
     const result = await api.listPendingRequests();
     expect(result.items[0]).toMatchObject({
-      id: row.req_id,
+      id: row.req_no,
       date: row.req_date,
       dateIso: "2026-09-09",
       patient: row.pat_name,
@@ -188,7 +188,7 @@ describe("cash collection API adapter", () => {
 
   test("maps bootstrap's prefixed pending-request fields", async () => {
     const row = {
-      req_id: "REQ-100001",
+      req_no: "REQ-100001",
       req_date: "09/09/2026",
       pat_name: "Example Patient",
       department_name: "General Medicine",
@@ -219,7 +219,7 @@ describe("cash collection API adapter", () => {
     });
     const result = await api.loadBootstrap();
     expect(result.requests[0]).toMatchObject({
-      id: row.req_id,
+      id: row.req_no,
       patient: row.pat_name,
       hospitalService: "IPD",
       requestType: "Advance Refund",
@@ -394,7 +394,7 @@ describe("cash collection API adapter", () => {
         data: {
           transaction_document_no: "REC-1",
           transaction_status: "Completed",
-          resolved_req_id: "REQ-1",
+          resolved_req_no: "REQ-1",
           dashboard_transaction_row: {
             transaction_no: "REC-1",
             pat_name: "Example Patient",

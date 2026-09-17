@@ -11,7 +11,7 @@ you implement against.
 | 00  | [field-naming.md](./00-field-naming.md)                       | Shared wire-format rule                                                       | All endpoints                                                                 |
 | 01  | [bootstrap.md](./01-bootstrap.md)                             | `GET /bootstrap`                                                              | Whole app, on load                                                            |
 | 02  | [pending-requests.md](./02-pending-requests.md)               | `GET /requests`, `GET /dashboard/pending-metrics`                             | Pending Requests table + filter panel                                         |
-| 03  | [request-detail.md](./03-request-detail.md)                   | `GET /requests/{req_id}`                                                      | Opening a queued request                                                      |
+| 03  | [request-detail.md](./03-request-detail.md)                   | `GET /requests/{req_no}`                                                      | Opening a queued request                                                      |
 | 04  | [patient-search.md](./04-patient-search.md)                   | `GET /patients`                                                               | CR lookup popover, IPD "Existing Patients" list                               |
 | 05  | [tariffs.md](./05-tariffs.md)                                 | `GET /tariffs`                                                                | Tariff group dropdown + live tariff search                                    |
 | 06  | [payment-options.md](./06-payment-options.md)                 | `GET /payment-options`                                                        | Payment mode / card type / POS terminal dropdowns                             |
@@ -70,7 +70,7 @@ the first 10 rows. A page response always has the shape
 `{ items: [...], total, page, size }`, and `total` is the count across the
 **entire filtered result**, not just the returned page.
 
-**Opaque values.** `pat_id`, `req_id`, `req_version`, `shift_id`,
+**Opaque values.** `pat_id`, `req_no`, `req_version`, `shift_id`,
 `shift_version`, `hospital_service_id`, `billing_service_id`, and
 `pat_context_version` are values the browser only ever echoes back — never
 parse it, never derive meaning from its format, never generate one on the

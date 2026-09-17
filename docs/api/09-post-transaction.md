@@ -20,7 +20,7 @@ anything is written.
 | Field                           | Type             | Notes                                                                                                                                                                                    |
 | ------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `collection_source`             | string           | `"request"` \| `"direct"`.                                                                                                                                                               |
-| `req_id`                        | string, nullable | Present only when `collection_source: "request"`.                                                                                                                                        |
+| `req_no`                        | string, nullable | Present only when `collection_source: "request"`.                                                                                                                                        |
 | `req_version`                   | string, nullable |                                                                                                                                                                                          |
 | `request_type`                  | string           | `"Receipt"` \| `"Refund"` \| `"Estimation"`.                                                                                                                                             |
 | `processing_billing_service_id` | string           | The chosen option's `processing_billing_service_id`. The server **re-resolves and verifies** this — never dispatches on the client's copy.                                               |
@@ -50,7 +50,7 @@ anything is written.
 ```json
 {
   "collection_source": "request",
-  "req_id": "BIL-2024-1200",
+  "req_no": "BIL-2024-1200",
   "req_version": "1",
   "request_type": "Receipt",
   "processing_billing_service_id": "10",
@@ -94,7 +94,7 @@ anything is written.
 | --------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `transaction_document_no`   | string           | The authoritative receipt/refund/estimate number (e.g. `"REC-2026-088241"`, `"REF-…"`, `"EST-…"`). The frontend refuses to proceed without one. |
 | `transaction_status`        | string           | `"Completed"` for Receipt, or your equivalent for Refund/Estimation.                                                                            |
-| `resolved_req_id`           | string, nullable | Echo the source request's ID so the frontend can remove it from the in-memory queue immediately.                                                |
+| `resolved_req_no`           | string, nullable | Echo the source request's ID so the frontend can remove it from the in-memory queue immediately.                                                |
 | `printable_data`            | object           | **Required, complete.** The frontend builds the printed receipt from this and nothing else.                                                     |
 | `dashboard_transaction_row` | object, nullable | The row to prepend to the in-memory transactions list (omit/`null` for Estimation, which never posts a ledger row). Shape below.                |
 
@@ -135,7 +135,7 @@ BILLING_SERVICE_BUCKET  = { "Service": "Service", "Package": "Service", "Advance
   "data": {
     "transaction_document_no": "REC-2026-088241",
     "transaction_status": "Completed",
-    "resolved_req_id": "BIL-2024-1200",
+    "resolved_req_no": "BIL-2024-1200",
     "dashboard_transaction_row": {
       "transaction_no": "REC-2026-088241",
       "pat_name": "Ajay Deshmukh",
