@@ -175,7 +175,6 @@ export const CASH_COLLECTION_SERVICE_METHODS = Object.freeze([
   "getPendingRequestMetrics",
   "getDashboard",
   "getRequest",
-  "getRequestTariffDetails",
   "getTariffs",
   "getPaymentOptions",
   "checkEligibility",

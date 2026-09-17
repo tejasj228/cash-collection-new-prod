@@ -338,16 +338,6 @@ export function createPrototypeServices({ now = () => Date.now() } = {}) {
     async getTariffs() {
       return withLatency(PROTOTYPE_DATA.tariffCatalog);
     },
-    async getRequestTariffDetails({ requestId, requestVersion }) {
-      const request = pendingRequests.find((row) => row.id === requestId);
-      if (!request) throw new Error("Request not found.");
-      return withLatency({
-        requestId,
-        requestVersion,
-        lines: request.lines || [],
-        workflowContext: request.workflowContext || {},
-      });
-    },
     async getPaymentOptions() {
       return withLatency(PROTOTYPE_DATA.paymentOptions);
     },

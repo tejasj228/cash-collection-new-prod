@@ -43,26 +43,26 @@ function PatientBanner({ patient, patientMode, hospitalService }) {
           <div className="patient-chips">
             {known && (
               <>
-                <span className="chip identifier" title="CR No.">
-                  CR No. : {compactIdentifier(patient.cr)}
+                <span className="chip muted" title="CR No.">
+                  {compactIdentifier(patient.cr)}
                 </span>
                 <span className="chip muted" title="Admission No.">
-                  Admission No. : {compactIdentifier(admissionNumber)}
+                  {compactIdentifier(admissionNumber)}
                 </span>
                 <span className="chip" title="Age / Sex">
-                  Age / Sex : {patient.age} / {patient.sex}
+                  {patient.age} / {patient.sex}
                 </span>
                 <span className="chip strong" title="Category">
-                  Category : {patient.category}
+                  {patient.category}
                 </span>
-                <span className="chip muted" title="Mobile No.">
-                  Mobile No. : {compactIdentifier(patient.mobile)}
+                <span className="chip muted" title="Mobile Number">
+                  {compactIdentifier(patient.mobile)}
                 </span>
-                <span className="chip muted" title="ABHA No.">
-                  ABHA No. : {patient.abhaNumber}
+                <span className="chip muted" title="ABHA Number">
+                  {patient.abhaNumber}
                 </span>
                 <span className="chip muted" title="ABHA Address">
-                  ABHA Address : {patient.abhaAddress}
+                  {patient.abhaAddress}
                 </span>
               </>
             )}

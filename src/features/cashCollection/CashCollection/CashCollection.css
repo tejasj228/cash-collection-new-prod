@@ -2520,11 +2520,6 @@
   color: #8c9aab;
   background: #f5f7fa;
 }
-.chip.identifier {
-  color: #ffffff;
-  background: var(--navy);
-  font-weight: 800;
-}
 .patient-facts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));

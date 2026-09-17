@@ -5,8 +5,6 @@ import {
   toTariffQuery,
   toTerminalPaymentCommand,
   toTransactionCommand,
-  mapEligibilityWire,
-  mapRequestTariffDetailsWire,
 } from "./apiWireMappers";
 
 const bootstrapWire = (overrides = {}) => ({
@@ -43,69 +41,6 @@ const bootstrapWire = (overrides = {}) => ({
 });
 
 describe("cash collection API adapter", () => {
-  test("maps shared flat tariffs and IPD settlement context independently of eligibility", () => {
-    const line = {
-      tariff_code: "BED",
-      tariff_name: "Bed",
-      tariff_group_name: "Accommodation",
-      tariff_rate: 1200,
-      tariff_qty: 6,
-      tariff_discount_percent: 0,
-    };
-    const opd = mapRequestTariffDetailsWire({ tariff_lines: [line] });
-    expect(opd.lines[0]).toMatchObject({
-      code: "BED",
-      group: "Accommodation",
-      rate: 1200,
-      qty: 6,
-    });
-    expect(opd.workflowContext.wards).toEqual([]);
-    const ipd = mapRequestTariffDetailsWire({
-      tariff_lines: [line],
-      settlement_context: {
-        ward_names: ["Ward 4"],
-        room_type_names: ["General"],
-      },
-    });
-    expect(ipd.workflowContext).toMatchObject({
-      wards: ["Ward 4"],
-      roomTypes: ["General"],
-    });
-    expect(
-      mapEligibilityWire({
-        is_eligible: true,
-        workflow_context: {
-          tariff_charge_breakdown: [line],
-          ward_names: ["Wrong source"],
-        },
-      }).workflowContext,
-    ).not.toHaveProperty("chargeBreakdown");
-    expect(() => mapRequestTariffDetailsWire({})).toThrow("tariff_lines");
-  });
-
-  test("loads the separate tariff endpoint with request version", async () => {
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        success: true,
-        data: { req_no: "REQ-1", req_version: "3", tariff_lines: [] },
-      }),
-    });
-    const api = createCashCollectionApi({
-      apiBaseUrl: "/api/cash-collection",
-      requestTimeoutMs: 1000,
-    });
-    const result = await api.getRequestTariffDetails({
-      requestId: "REQ-1",
-      requestVersion: "3",
-    });
-    const [url] = global.fetch.mock.calls[0];
-    expect(url.pathname).toBe(
-      "/api/cash-collection/requests/REQ-1/tariff-details",
-    );
-    expect(url.searchParams.get("req_version")).toBe("3");
-    expect(result.lines).toEqual([]);
-  });
   beforeEach(() => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,

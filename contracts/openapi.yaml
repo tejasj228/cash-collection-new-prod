@@ -203,8 +203,8 @@ paths:
           schema: { type: string }
         - name: req_version
           in: query
-          required: false
-          description: Opaque request version used for stale-state detection. Omitted only for an initial legacy read whose pending row has no version; the response must return the current version.
+          required: true
+          description: Opaque request version used for stale-state detection.
           schema: { type: string }
       responses:
         "200":
@@ -1076,46 +1076,47 @@ components:
       description: Request metadata only; patient tile and tariff details are separate endpoints.
     RequestTariffDetails:
       type: object
-      required: [req_no, req_version, hospital_service_name, tariff_lines]
+      required:
+        [
+          req_no,
+          req_version,
+          hospital_service_name,
+          tariff_lines,
+          gross_amount,
+          discount_amount,
+          net_amount,
+        ]
       properties:
         req_no: { type: string }
         req_version: { type: string }
         hospital_service_name:
           { $ref: "#/components/schemas/HospitalServiceName" }
+        pat_context_version: { type: string }
         settlement_context:
           description: Present only for IPD Final Adjustment; absent for OPD.
           allOf:
             - { $ref: "#/components/schemas/IpdSettlementContext" }
         tariff_lines:
-          description: >-
-            Same flat shape for OPD and IPD. The frontend computes
-            gross/discount/net per line and every total from this array
-            itself — do not also return gross_amount/discount_amount/net_amount.
-          type: array
-          items: { $ref: "#/components/schemas/TariffLine" }
+          { type: array, items: { $ref: "#/components/schemas/TariffLine" } }
+        gross_amount: { type: string, pattern: '^\d+\.\d{2}$' }
+        discount_amount: { type: string, pattern: '^\d+\.\d{2}$' }
+        net_amount: { type: string, pattern: '^\d+\.\d{2}$' }
     IpdSettlementContext:
-      description: >-
-        Every value is an array because the frontend's firstContextValue()
-        only reads array[0] — a bare string is silently ignored in favor of
-        the patient's own fallback instead of erroring. HBIMS only ever
-        populates one real value per array today. Field names intentionally
-        don't match their displayed labels: room_type_names is shown as
-        "Ward Type" and ward_names as "Ward Name" (apiWireMappers.js).
       type: object
       required:
         [
-          raising_department_names,
-          episode_names,
-          patient_category_names,
-          room_type_names,
-          ward_names,
+          department_name,
+          episode_name,
+          patient_category_name,
+          ward_type_name,
+          ward_name,
         ]
       properties:
-        raising_department_names: { type: array, items: { type: string } }
-        episode_names: { type: array, items: { type: string } }
-        patient_category_names: { type: array, items: { type: string } }
-        room_type_names: { type: array, items: { type: string } }
-        ward_names: { type: array, items: { type: string } }
+        department_name: { type: string }
+        episode_name: { type: string }
+        patient_category_name: { type: string }
+        ward_type_name: { type: string }
+        ward_name: { type: string }
     RequestPageEnvelope:
       allOf:
         - { $ref: "#/components/schemas/SuccessEnvelope" }

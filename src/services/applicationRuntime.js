@@ -3,7 +3,6 @@ import {
   normalizeCashCollectionData,
 } from "../contracts/cashCollection.contract";
 import { runtimeConfig } from "../config/runtimeConfig";
-import { BASE_ORIGIN } from "../utilities/sessionService";
 import { createCashCollectionApi } from "../features/cashCollection/services/cashCollectionApi";
 
 function withLiveQueueSummary(queueSummary, liveRequests, todayIso) {
@@ -23,11 +22,6 @@ export async function resolveApplicationRuntime() {
       [import("../mocks/prototypeData"), import("../mocks/prototypeServices")],
     );
     const services = createPrototypeServices();
-    const liveApi = createCashCollectionApi({
-      ...runtimeConfig,
-      apiBaseUrl: `${BASE_ORIGIN}${runtimeConfig.apiBaseUrl}`,
-    });
-    services.getRequestTariffDetails = liveApi.getRequestTariffDetails;
     let bootstrapData = PROTOTYPE_DATA;
 
     const [
@@ -64,7 +58,8 @@ export async function resolveApplicationRuntime() {
         if (liveRequests.some((row) => row.id === String(command.requestId)))
           // No real eligibility endpoint yet — let a live request
           // straight through so its Patient Info tile can be reviewed;
-          // request opening then fetches the separate tariff-details API.
+          // the Tariff Details tile stays empty until that endpoint
+          // exists.
           return {
             eligible: true,
             code: "ELIGIBLE",
