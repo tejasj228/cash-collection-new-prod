@@ -11,6 +11,8 @@ import {
   mapPatientSearchWire,
   mapPostedTransactionWire,
   mapRequestDetailWire,
+  mapPatientTileWire,
+  mapRequestTariffDetailsWire,
   mapShiftClosePreparationWire,
   mapTariffSearchWire,
   mapTerminalPaymentWire,
@@ -61,9 +63,23 @@ export function createCashCollectionApi(config) {
       mapDashboardWire(
         await http.request("/dashboard", { query: toDashboardQuery(filters) }),
       ),
-    getRequest: async (requestId) =>
-      mapRequestDetailWire(
+    getRequest: async (requestId) => {
+      const request = mapRequestDetailWire(
         await http.request(`/requests/${encodeURIComponent(requestId)}`),
+      );
+      const linkedPatient = mapPatientTileWire(
+        await http.request(`/patients/${encodeURIComponent(request.cr)}/tile`),
+      );
+      return { ...request, linkedPatient };
+    },
+    getRequestTariffDetails: async ({ requestId, requestVersion }) =>
+      mapRequestTariffDetailsWire(
+        await http.request(
+          `/requests/${encodeURIComponent(requestId)}/tariff-details`,
+          {
+            query: { req_version: requestVersion },
+          },
+        ),
       ),
     getTariffs: async (filters = {}) =>
       mapTariffSearchWire(

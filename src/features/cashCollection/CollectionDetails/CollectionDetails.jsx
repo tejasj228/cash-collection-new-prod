@@ -145,7 +145,7 @@ function CollectionWorkspace({
     WorkflowFamily.BILL_SETTLEMENT_REFUND,
   ].includes(workflow.uiFamily);
   const [lines, setLines] = useState(() => {
-    if (request?.lines?.length) return withKeys(request.lines);
+    if (Array.isArray(request?.lines)) return withKeys(request.lines);
     if (!usesAccountForm) return [];
     if (workflowContext?.chargeBreakdown?.length)
       return withKeys(workflowContext.chargeBreakdown);

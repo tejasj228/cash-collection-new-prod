@@ -214,8 +214,26 @@ export function mapTariffSearchWire(rows = []) {
 export function mapRequestDetailWire(row = {}) {
   return {
     ...mapPendingRequest(row),
-    linkedPatient: mapPatient(row.linked_patient),
-    lines: (row.tariff_lines || []).map(mapTariff),
+  };
+}
+
+export const mapPatientTileWire = mapPatient;
+
+export function mapRequestTariffDetailsWire(row = {}) {
+  if (!Array.isArray(row.tariff_lines))
+    throw new Error("Tariff details response must include tariff_lines.");
+  const context = row.settlement_context || {};
+  return {
+    requestId: displayText(row.req_no),
+    requestVersion: displayText(row.req_version),
+    lines: row.tariff_lines.map(mapTariff),
+    workflowContext: {
+      raisingDepartments: context.raising_department_names || [],
+      episodes: context.episode_names || [],
+      patientCategories: context.patient_category_names || [],
+      wards: context.ward_names || [],
+      roomTypes: context.room_type_names || [],
+    },
   };
 }
 
@@ -229,16 +247,7 @@ export function mapEligibilityWire(row = {}) {
     patientContextVersion: displayText(row.pat_context_version),
     workflowContext: row.workflow_context
       ? {
-          ...workflow,
-          raisingDepartments: workflow.raising_department_names || [],
-          episodes: workflow.episode_names || [],
-          patientCategories: workflow.patient_category_names || [],
-          wards: workflow.ward_names || [],
-          roomTypes: workflow.room_type_names || [],
           payableAmount: workflow.payment_payable_amount,
-          chargeBreakdown: (workflow.tariff_charge_breakdown || []).map(
-            mapTariff,
-          ),
         }
       : null,
   };

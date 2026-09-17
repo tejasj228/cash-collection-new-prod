@@ -399,7 +399,7 @@ export default function CashCollectionApplication({
       showToast("This request is no longer available.", "error");
       return;
     }
-    const resolvedRequest = { ...request, ...requestDetail };
+    let resolvedRequest = { ...request, ...requestDetail };
     const patient =
       requestDetail.linkedPatient ||
       patients.find((item) => item.cr === resolvedRequest.cr);
@@ -462,7 +462,43 @@ export default function CashCollectionApplication({
         );
         return;
       }
-      setWorkflowContext(eligibility.workflowContext || null);
+      let nextContext = eligibility.workflowContext || null;
+      if (
+        !["Advance Deposit", "Advance Refund"].includes(
+          resolvedRequest.requestType,
+        )
+      ) {
+        if (typeof integration.services.getRequestTariffDetails !== "function")
+          throw new Error("Request tariff details service is unavailable.");
+        const tariffDetails =
+          await integration.services.getRequestTariffDetails({
+            requestId: resolvedRequest.id,
+            requestVersion: resolvedRequest.version,
+          });
+        if (!Array.isArray(tariffDetails?.lines))
+          throw new Error("The server did not return valid tariff details.");
+        if (
+          tariffDetails.requestId &&
+          tariffDetails.requestId !== resolvedRequest.id
+        )
+          throw new Error("Tariff details belong to a different request.");
+        if (
+          resolvedRequest.version &&
+          tariffDetails.requestVersion &&
+          String(tariffDetails.requestVersion) !==
+            String(resolvedRequest.version)
+        )
+          throw new Error(
+            "This request changed. Refresh the pending list and try again.",
+          );
+        resolvedRequest = {
+          ...resolvedRequest,
+          version: tariffDetails.requestVersion || resolvedRequest.version,
+          lines: tariffDetails.lines,
+        };
+        nextContext = { ...nextContext, ...tariffDetails.workflowContext };
+      }
+      setWorkflowContext(nextContext);
       setPatientContextVersion(eligibility.patientContextVersion || null);
     } catch (error) {
       showToast(

@@ -99,6 +99,7 @@ async function fetchLegacyJson(endpointUrl, extraParams = {}) {
 // the backend origin and every session concern in this single file.
 module.exports = {
   API_BASE_URL,
+  BASE_ORIGIN,
   API_CREDENTIALS,
   REQUEST_TIMEOUT_MS,
   LEGACY_BACKEND_ORIGIN,
