@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "./PaymentDetails.css";
-import { TERMINAL_PAYMENT_MODES } from "./paymentDetails";
+import { TERMINAL_PAYMENT_MODES, isCardPaymentMode } from "./paymentDetails";
 import { useAppData } from "../../../../app/providers/AppDataProvider";
 import { money, compactIdentifier } from "../../../../shared/utils/formatters";
 import { Icon } from "../../../../shared/components/Icon";
@@ -112,6 +112,9 @@ function PaymentCard({
     restrictionsByCategory,
   );
   const usesTerminal = TERMINAL_PAYMENT_MODES.includes(paymentMode);
+  const isCard = isCardPaymentMode(paymentMode);
+  const selectedCardType =
+    paymentMode === "Card" ? cardType : isCard ? paymentMode : null;
   const needsDescription = paymentMode === "Cheque";
   const canPost =
     total > 0 &&
@@ -246,7 +249,7 @@ function PaymentCard({
         throw new Error("Terminal payment service is unavailable.");
       const result = await services.initiateTerminalPayment({
         paymentMode,
-        cardType,
+        cardType: selectedCardType,
         terminalId: terminal,
         amount: total,
         crNumber: patient?.cr || null,
@@ -280,13 +283,12 @@ function PaymentCard({
       }
       payment = {
         ...payment,
-        cardType: paymentMode === "Card" ? cardType : null,
+        cardType: selectedCardType,
         terminalId: terminal,
         terminalApproval: posSession,
-        summary:
-          paymentMode === "Card"
-            ? `${cardType}${approval?.last4 ? ` ending ${approval.last4}` : ""} · ${terminal} · Approval ${approval?.code || "received"}`
-            : `UPI · ${terminal} · Approval ${approval?.code || "received"}`,
+        summary: isCard
+          ? `${selectedCardType}${approval?.last4 ? ` ending ${approval.last4}` : ""} · ${terminal} · Approval ${approval?.code || "received"}`
+          : `UPI · ${terminal} · Approval ${approval?.code || "received"}`,
       };
     } else if (description.trim())
       payment.summary = `${paymentMode} · ${description.trim()}`;
@@ -308,7 +310,7 @@ function PaymentCard({
   const confirmManualPayment = () =>
     submitPayment({
       mode: paymentMode,
-      cardType: paymentMode === "Card" ? cardType : null,
+      cardType: selectedCardType,
       terminalId: terminal,
       description: description.trim(),
       manualDetails,
@@ -350,12 +352,15 @@ function PaymentCard({
             {paymentMode === "Card" && (
               <SelectField
                 label="Card Type"
-                value={cardType}
+                value={selectedCardType}
                 onChange={(value) => {
                   setCardType(value);
                   resetPos();
                 }}
-                options={cardTypes}
+                options={
+                  paymentMode === "Card" ? cardTypes : [selectedCardType]
+                }
+                disabled={paymentMode !== "Card"}
               />
             )}
             {usesTerminal && (
@@ -559,7 +564,7 @@ function PaymentCard({
       {manualDetailsOpen && (
         <ManualPaymentDialog
           paymentMode={paymentMode}
-          cardType={cardType}
+          cardType={selectedCardType}
           onSave={saveManualDetails}
           onCancel={() => setManualDetailsOpen(false)}
         />

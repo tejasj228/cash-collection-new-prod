@@ -10,6 +10,7 @@ import {
 import { Icon } from "../../../shared/components/Icon";
 import { Button, StatusPill } from "../../../shared/components/ui";
 import { TextField } from "../../../shared/components/FormFields";
+import { isCardPaymentMode } from "../CollectionDetails/PaymentDetails/paymentDetails";
 
 function Confirmation({ data, onNew, onPrint }) {
   return (
@@ -124,7 +125,7 @@ function ManualPaymentDialog({ paymentMode, cardType, onSave, onCancel }) {
   const [reference, setReference] = useState("");
   const [cardLastFour, setCardLastFour] = useState("");
   const [transactionDate, setTransactionDate] = useState(displayDate(todayIso));
-  const isCard = paymentMode === "Card";
+  const isCard = isCardPaymentMode(paymentMode);
   const validDate = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(transactionDate);
   const validCalendarDate = Boolean(
     validDate &&
