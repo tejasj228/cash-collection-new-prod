@@ -25,7 +25,9 @@ you implement against.
 | 14  | [shift-reopen.md](./14-shift-reopen.md)                             | `POST /shifts/{shift_id}/reopen`                                              | "Start Shift" / "Start today's shift"                                         |
 | 15  | [cancel-transaction-GAP.md](./15-cancel-transaction-GAP.md)         | _proposed_ `POST /transactions/{transaction_no}/cancel`                       | Recent Transactions "Cancel bill" (currently client-only)                     |
 | 16  | [reprint-GAP.md](./16-reprint-GAP.md)                               | _proposed_ `GET /transactions/{transaction_no}/printable`                     | Recent Transactions "Reprint" (currently unwired)                             |
-| 17  | [legacy-hbims-bridge-STAGED.md](./17-legacy-hbims-bridge-STAGED.md) | _temporary_ raw HBIMS `pendinglist` / `patinfo`                               | Pending Requests table + Patient Info tile, ahead of the real backend         |
+| 17  | [legacy-hbims-bridge-STAGED.md](./17-legacy-hbims-bridge-STAGED.md) | _temporary_ raw HBIMS `pendinglist`                                           | Pending Requests table                                                        |
+| 18  | [patient-tile-STAGED.md](./18-patient-tile-STAGED.md)               | active raw HBIMS `patinfo`; target `GET /patients/{cr_num}/tile`              | Compact patient header only                                                   |
+| 19  | [request-tariff-details.md](./19-request-tariff-details.md)         | target `GET /requests/{req_no}/tariff-details`                                | OPD/IPD tariff lines + IPD-only settlement context                            |
 
 ## Conventions used in every file below
 

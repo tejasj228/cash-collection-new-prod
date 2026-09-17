@@ -54,6 +54,27 @@ paths:
                         type: array
                         items: { $ref: "#/components/schemas/Patient" }
         default: { $ref: "#/components/responses/Error" }
+  /patients/{cr_num}/tile:
+    get:
+      summary: Load the compact patient header by CR number
+      operationId: getPatientTile
+      parameters:
+        - name: cr_num
+          in: path
+          required: true
+          description: Sole patient identifier for this lookup.
+          schema: { type: string }
+      responses:
+        "200":
+          description: Patient tile data only
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/SuccessEnvelope" }
+                  - properties:
+                      data: { $ref: "#/components/schemas/PatientTile" }
+        default: { $ref: "#/components/responses/Error" }
   /requests:
     get:
       summary: List pending requests with server-side filtering and pagination
@@ -153,7 +174,7 @@ paths:
         default: { $ref: "#/components/responses/Error" }
   /requests/{req_no}:
     get:
-      summary: Reload authoritative request and linked patient before collection
+      summary: Reload authoritative request metadata before collection
       operationId: getRequest
       parameters:
         - name: req_no
@@ -170,6 +191,32 @@ paths:
                   - { $ref: "#/components/schemas/SuccessEnvelope" }
                   - properties:
                       data: { $ref: "#/components/schemas/RequestDetail" }
+        default: { $ref: "#/components/responses/Error" }
+  /requests/{req_no}/tariff-details:
+    get:
+      summary: Load OPD/IPD request tariff lines and optional IPD settlement context
+      operationId: getRequestTariffDetails
+      parameters:
+        - name: req_no
+          in: path
+          required: true
+          schema: { type: string }
+        - name: req_version
+          in: query
+          required: true
+          description: Opaque request version used for stale-state detection.
+          schema: { type: string }
+      responses:
+        "200":
+          description: Tariff details; settlement_context is present only for IPD Final Adjustment
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/SuccessEnvelope" }
+                  - properties:
+                      data:
+                        { $ref: "#/components/schemas/RequestTariffDetails" }
         default: { $ref: "#/components/responses/Error" }
   /tariffs:
     get:
@@ -619,6 +666,26 @@ components:
         refundable_document_count: { type: integer }
         workflow_context: { type: object, additionalProperties: true }
       additionalProperties: true
+    PatientTile:
+      type: object
+      required:
+        [cr_num, ipd_admission_num, pat_name, pat_age, pat_sex, category_name]
+      properties:
+        cr_num: { type: string }
+        ipd_admission_num:
+          {
+            type: string,
+            description: Admission number for IPD or '-' for OPD.,
+          }
+        pat_name: { type: string }
+        pat_age: { type: integer }
+        pat_sex: { type: string }
+        category_name: { type: string }
+        patient_category_code: { type: string }
+        mobile_num: { type: string }
+        abha_num: { type: string }
+        abha_address: { type: string }
+        guardian_name: { type: string }
     HospitalService:
       type: object
       required:
@@ -1006,15 +1073,50 @@ components:
     RequestDetail:
       allOf:
         - { $ref: "#/components/schemas/BillingRequest" }
-        - type: object
-          required: [linked_patient]
-          properties:
-            linked_patient: { $ref: "#/components/schemas/Patient" }
-            tariff_lines:
-              {
-                type: array,
-                items: { $ref: "#/components/schemas/TariffLine" },
-              }
+      description: Request metadata only; patient tile and tariff details are separate endpoints.
+    RequestTariffDetails:
+      type: object
+      required:
+        [
+          req_no,
+          req_version,
+          hospital_service_name,
+          tariff_lines,
+          gross_amount,
+          discount_amount,
+          net_amount,
+        ]
+      properties:
+        req_no: { type: string }
+        req_version: { type: string }
+        hospital_service_name:
+          { $ref: "#/components/schemas/HospitalServiceName" }
+        pat_context_version: { type: string }
+        settlement_context:
+          description: Present only for IPD Final Adjustment; absent for OPD.
+          allOf:
+            - { $ref: "#/components/schemas/IpdSettlementContext" }
+        tariff_lines:
+          { type: array, items: { $ref: "#/components/schemas/TariffLine" } }
+        gross_amount: { type: string, pattern: '^\d+\.\d{2}$' }
+        discount_amount: { type: string, pattern: '^\d+\.\d{2}$' }
+        net_amount: { type: string, pattern: '^\d+\.\d{2}$' }
+    IpdSettlementContext:
+      type: object
+      required:
+        [
+          department_name,
+          episode_name,
+          patient_category_name,
+          ward_type_name,
+          ward_name,
+        ]
+      properties:
+        department_name: { type: string }
+        episode_name: { type: string }
+        patient_category_name: { type: string }
+        ward_type_name: { type: string }
+        ward_name: { type: string }
     RequestPageEnvelope:
       allOf:
         - { $ref: "#/components/schemas/SuccessEnvelope" }

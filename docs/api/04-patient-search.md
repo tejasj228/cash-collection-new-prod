@@ -8,6 +8,10 @@ Powers three things: the Direct Collection **"Find Patient"** CR lookup, the
 IPD-only **"Existing Patients"** browsable list, and (optionally) a future
 patient-search-by-name feature. Same endpoint, different `pat_search` shape.
 
+This search/list API is not the compact Patient Tile API used after a pending
+request opens. That separate CR-only read is documented in
+[`18-patient-tile-STAGED.md`](./18-patient-tile-STAGED.md).
+
 ## Query parameters
 
 | Param                 | Type    | Notes                                                                                                                                                                                                                                                                                |

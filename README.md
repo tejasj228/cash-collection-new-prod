@@ -34,6 +34,10 @@ npm run format:check
   legacy HBIMS system.
 - **[`docs/api/`](docs/api/README.md)** — one file per API endpoint with the
   exact field names and example request/response JSON every screen needs.
+- **[`docs/api/18-patient-tile-STAGED.md`](docs/api/18-patient-tile-STAGED.md)**
+  — active legacy patient-tile call and its target CR-number-only contract.
+- **[`docs/api/19-request-tariff-details.md`](docs/api/19-request-tariff-details.md)**
+  — tariff lines for both OPD and IPD, plus the five IPD-only context fields.
 - **[`contracts/openapi.yaml`](contracts/openapi.yaml)** — the same contract
   as a machine-readable OpenAPI 3.0.3 spec.
 
