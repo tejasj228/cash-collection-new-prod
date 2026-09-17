@@ -1,97 +1,110 @@
-# Patient search
+# Direct Collection patient search
+
+## Current local source: loaded pending requests
+
+Local legacy mode does **not** call the target REST patient-search endpoint
+below. It builds candidates from the live `pendinglist`, deduplicates by CR,
+and sorts by latest pending-request date with CR as tie-breaker. CRs with any
+IPD request form the IPD list; remaining CRs form the shared OPD Normal/OPD
+Special/Emergency list. This is not the full census or current-admission proof.
+
+Each visible page enriches only ten candidates through `patinfo`, providing
+phone and header data. Name search uses pending names. Phone/mixed numeric
+searches hydrate candidates in batches of at most ten and cache successful
+reads, so phone matches outside the visible page are found. Only the loaded
+pending population is searched (currently up to 101 requests). Phone search
+may require more than ten total detail reads; at most ten are in flight.
+Exact CR revalidation refreshes its detail instead of trusting cached status.
+
+Missing admission status is permitted only for classified pending candidates,
+using request service as temporary fallback. When `patinfo` explicitly
+supplies `is_admitted` or recognized `admission_status`, current admission
+validation takes precedence. Historical `adm_no` is not admission proof.
+Local Continue validates candidate CR/service/workflow for tariff
+configuration, not backend financial eligibility. Posting still requires
+authoritative rules.
+
+## Future full-DB search contract
 
 ```http
-GET /api/cash-collection/patients?pat_search=Rajesh%2C88420&hospital_service_id=ipd&admitted_only=true&page=0&size=10&admission_sort=admitted_on%2Cdesc
+GET /api/cash-collection/patients?pat_search=Patient%2C987654&hospital_service_id=opd-normal&admitted_only=false&page=0&size=10
 ```
 
-Powers three things: the Direct Collection **"Find Patient"** CR lookup, the
-IPD-only **"Existing Patients"** browsable list, and (optionally) a future
-patient-search-by-name feature. Same endpoint, different `pat_search` shape.
+Used by Existing Patients and exact CR lookup for OPD Normal, OPD Special,
+Emergency, and IPD. This is a database read, not a filter over bootstrap
+patients or `pendinglist`. The compact pending-request patient tile is a
+different API documented in API 18.
 
-This search/list API is not the compact Patient Tile API used after a pending
-request opens. That separate CR-only read is documented in
-[`18-patient-tile-STAGED.md`](./18-patient-tile-STAGED.md).
+## Inputs
 
-## Query parameters
+| Parameter             | Rule                                                                                                                                                              |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pat_search`          | Empty lists recent patients; otherwise search name, phone, or CR. Comma-separated details must match the same patient.                                            |
+| `hospital_service_id` | `opd-normal`, `opd-special`, `emergency`, or `ipd`.                                                                                                               |
+| `admitted_only`       | `true` for IPD: currently admitted only. `false` for all other services: non-admitted only, not all patients.                                                     |
+| `exact_cr`            | `true` for Find Patient and Continue revalidation: exact `pat_search` CR match, not substring.                                                                    |
+| `page`                | Zero-based; increments on paging and resets on search changes.                                                                                                    |
+| `size`                | 10. Never return/download the full patient census.                                                                                                                |
+| `admission_sort`      | UI sends `admitted_on,desc`; backend resolves admitted rows by latest admission and non-admitted rows by latest visit/registration. Add CR as stable tie-breaker. |
 
-| Param                 | Type    | Notes                                                                                                                                                                                                                                                                                |
-| --------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `pat_search`          | string  | CR number, mobile, or name fragment. Multiple details may be comma-separated and must all match the same patient, for example `Rajesh, 88420`, `939112600000001, 41207`, or `Rajesh, 939112600000001, 41207`. Empty/omitted returns the browsable list.                              |
-| `hospital_service_id` | string  | One of `opd-normal` \| `opd-special` \| `ipd` \| `emergency`. **Filters by episode type**: `ipd` → only patients with an `IPD` episode; anything else → only `OPD` episodes. This is what makes "Existing Patients" show only admitted IPD patients, never the full hospital census. |
-| `admitted_only`       | boolean | When `true`, return only patients with a currently open admission. The IPD existing-patient picker always sends `true`.                                                                                                                                                              |
-| `page` / `size`       | integer | The picker sends `page=0&size=10`. Search remains server-side across the full admitted-patient set; the response contains at most 10 matches.                                                                                                                                        |
-| `admission_sort`      | string  | Whitelisted sort. The picker sends `admitted_on,desc` so an empty search returns the 10 most recently admitted patients.                                                                                                                                                             |
+Apply admission and search filters **before** SQL pagination. The total is
+the full matching count, not the number of records on this page. Scope all
+reads to the authenticated hospital/user. Search the full matching DB set.
 
-Require a trimmed minimum query length for name/mobile searches (avoid a
-table scan on 2 characters); permit exact CR/admission/account matches
-regardless of length. Scope results to the hospital in session and to
-episodes/accounts the logged-in user is allowed to bill.
-
-## Patient object
-
-| Field                       | Type             | Notes                                                                                                                                              |
-| --------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pat_name`                  | string           |                                                                                                                                                    |
-| `pat_age`                   | number           |                                                                                                                                                    |
-| `pat_sex`                   | string           | `"Male"` \| `"Female"` \| …                                                                                                                        |
-| `cr_num`                    | string           | CR number, opaque, digits only in storage — the UI masks/compacts for display only.                                                                |
-| `ipd_admission_num`         | string           | Admission number, or `"—"` if none.                                                                                                                |
-| `account_num`               | string           | Account number.                                                                                                                                    |
-| `episode_name`              | string           | e.g. `"IPD / General Medicine"` or `"OPD / Cardiology"` — format is `<OPD                                                                          | IPD | Emergency> / <department>`. |
-| `admission_status`          | string           | e.g. `"Admitted"`, `"Visited today"` — display only.                                                                                               |
-| `department_name`           | string           |                                                                                                                                                    |
-| `unit_name`                 | string           |                                                                                                                                                    |
-| `ward_name`                 | string           | `"—"` if not applicable.                                                                                                                           |
-| `bed_name`                  | string           | `"—"` if not applicable.                                                                                                                           |
-| `room_type_name`            | string           |                                                                                                                                                    |
-| `consultant_name`           | string           |                                                                                                                                                    |
-| `admitted_on`               | string           | `"DD/MM/YYYY · HH:mm"`, or `"—"`.                                                                                                                  |
-| `category_name`             | string           | Patient/billing category, e.g. `"General"`, `"General — CGHS"`. Drives payment-mode restrictions — see [payment-options](./06-payment-options.md). |
-| `mobile_num`                | string           | Mask per your existing HBIMS display rules; do not leak a full number to a role that isn't authorized to see it.                                   |
-| `abha_num`                  | string           | Optional — ABDM/ABHA number shown as a chip on the patient banner.                                                                                 |
-| `abha_address`              | string           | Optional — ABHA address (e.g. `name@abdm`).                                                                                                        |
-| `eligible_charge_type_ids`  | array of strings | Legacy charge-type IDs (`"1"`–`"4"`) this patient currently has an eligible episode for. Used by eligibility checks, not rendered directly.        |
-| `ipd_account_open`          | boolean          | Whether an IPD account is currently open — gates Advance/Part-Payment/Settlement eligibility.                                                      |
-| `refundable_document_count` | number           | How many prior receipts have refundable balance — `0` blocks refund eligibility.                                                                   |
-
-The patient banner displays CR number, Admission No., Age / Sex, Category,
-Mobile, ABHA Number, and ABHA Address in its first chip row. Admission No. is
-`ipd_admission_num` for IPD and `-` for OPD. The former second banner row
-(Department/Unit, Ward/Bed, Room Type, Consultant, Admitted On) has been
-removed; those fields remain in the patient contract for workflow/context
-consumers and the five settlement-context boxes.
-
-## Example response
+## Response
 
 ```json
 {
   "success": true,
-  "trace_id": "trace-301",
-  "data": [
-    {
-      "pat_name": "Vikram Singh",
-      "pat_age": 61,
-      "pat_sex": "Male",
-      "cr_num": "939112600000003",
-      "ipd_admission_num": "2024 0260 0071",
-      "account_num": "2024 1726 0113",
-      "episode_name": "IPD / Orthopaedics",
-      "admission_status": "Admitted",
-      "department_name": "Orthopaedics",
-      "unit_name": "Ortho Unit 1",
-      "ward_name": "Ward 2A",
-      "bed_name": "Bed 08",
-      "room_type_name": "General ward",
-      "consultant_name": "Dr P. Raghavan",
-      "admitted_on": "02/09/2024 · 09:20",
-      "category_name": "General",
-      "mobile_num": "97xxx 88420",
-      "abha_num": "14-1234-5678-9003",
-      "abha_address": "vikram.singh@abdm",
-      "eligible_charge_type_ids": ["2"],
-      "ipd_account_open": true,
-      "refundable_document_count": 1
-    }
-  ]
+  "trace_id": "trace-patients-1",
+  "data": {
+    "items": [
+      {
+        "cr_num": "379132000151071",
+        "pat_name": "Example Patient",
+        "pat_age": 40,
+        "pat_sex": "Male",
+        "mobile_num": "9876543210",
+        "is_admitted": false,
+        "admission_status": "Outpatient",
+        "episode_name": "OPD / Medicine",
+        "category_name": "General",
+        "ipd_admission_num": "-",
+        "eligible_charge_type_ids": ["1", "4", "3"],
+        "ipd_account_open": false,
+        "refundable_document_count": 0
+      }
+    ],
+    "total": 21,
+    "page": 0,
+    "size": 10
+  }
 }
 ```
+
+Use the OpenAPI `Patient` fields for the remaining patient/header/account
+data. `is_admitted` must be a real JSON boolean representing current DB
+state; do not infer it from a historical admission number. Compatibility
+status labels accepted by the frontend are `Admitted` (true), and
+`Not admitted`, `Discharged`, `Outpatient`, `Visited today`, `Registered`
+(false), case-insensitive. Unknown status without the boolean blocks use.
+
+## Validation flow
+
+The picker checks admission partition on every returned row. Continue
+re-queries the exact CR even for a selected patient, validates admission
+state, and then calls API 07 eligibility with the current service/workflow.
+A valid-looking 15-digit CR is not sufficient: it must resolve to an eligible
+DB patient. Admitted patients cannot use either OPD option or Emergency;
+non-admitted patients cannot use IPD. Eligibility still validates other
+workflow/account/refund rules. Recheck current admission on eligibility and
+posting in the backend to prevent races.
+
+## Integration status
+
+The UI uses `searchPatientPage`. Local legacy mode implements it over the
+loaded pending list and `patinfo` as described above; it no longer calls the
+unavailable target REST patient endpoint. Production REST mode uses the
+future full-DB contract. There is no fixture patient fallback. Backend
+financial eligibility and full-census REST availability remain unverified.
+API 20 summarizes the current Direct picker workflow.

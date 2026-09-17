@@ -1,1 +1,21 @@
 /* BillingDetails owns styles for this feature folder. Shared foundations remain in CashCollection.css. */
+
+.hbims-cash-collection .tariff-details-dialog .tariff-picker-search {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  margin: 16px 0 18px;
+  padding: 0 14px;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.hbims-cash-collection .tariff-picker-search > svg {
+  flex-shrink: 0;
+}
+
+.hbims-cash-collection .tariff-picker-search input {
+  height: 42px;
+  font-size: 13px;
+  line-height: 20px;
+}

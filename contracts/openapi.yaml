@@ -33,8 +33,12 @@ paths:
           schema: { type: string }
         - name: admitted_only
           in: query
-          description: Limit the result to patients with a currently open admission.
+          description: Required admission partition. True returns currently admitted patients only; false returns non-admitted patients only.
+          required: true
           schema: { type: boolean }
+        - name: exact_cr
+          in: query
+          schema: { type: boolean, default: false }
         - { $ref: "#/components/parameters/Page" }
         - { $ref: "#/components/parameters/Size" }
         - name: admission_sort
@@ -51,8 +55,18 @@ paths:
                   - { $ref: "#/components/schemas/SuccessEnvelope" }
                   - properties:
                       data:
-                        type: array
-                        items: { $ref: "#/components/schemas/Patient" }
+                        type: object
+                        required: [items, total, page, size]
+                        properties:
+                          items:
+                            {
+                              type: array,
+                              maxItems: 10,
+                              items: { $ref: "#/components/schemas/Patient" },
+                            }
+                          total: { type: integer, minimum: 0 }
+                          page: { type: integer, minimum: 0 }
+                          size: { type: integer, maximum: 10 }
         default: { $ref: "#/components/responses/Error" }
   /patients/{cr_num}/tile:
     get:
@@ -197,6 +211,16 @@ paths:
       summary: Search server-authorized tariffs
       operationId: getTariffs
       parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/Size" }
+        - name: hospital_service_id
+          in: query
+          required: true
+          schema: { type: string }
+        - name: billing_service_id
+          in: query
+          required: true
+          schema: { type: string }
         - { $ref: "#/components/parameters/TariffSearch" }
         - name: tariff_group_id
           in: query
@@ -219,8 +243,18 @@ paths:
                   - { $ref: "#/components/schemas/SuccessEnvelope" }
                   - properties:
                       data:
-                        type: array
-                        items: { $ref: "#/components/schemas/Tariff" }
+                        type: object
+                        required: [items, total, page, size]
+                        properties:
+                          items:
+                            {
+                              type: array,
+                              maxItems: 10,
+                              items: { $ref: "#/components/schemas/Tariff" },
+                            }
+                          total: { type: integer, minimum: 0 }
+                          page: { type: integer, minimum: 0 }
+                          size: { type: integer, maximum: 10 }
         default: { $ref: "#/components/responses/Error" }
   /payment-options:
     get:
@@ -624,6 +658,11 @@ components:
         account_num: { type: string }
         episode_name: { type: string }
         admission_status: { type: string }
+        is_admitted:
+          {
+            type: boolean,
+            description: Authoritative current admission state; required for Direct patient search.,
+          }
         department_name: { type: string }
         unit_name: { type: string }
         ward_name: { type: string }

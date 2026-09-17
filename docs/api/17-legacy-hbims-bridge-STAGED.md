@@ -56,5 +56,7 @@ row. A returned refund is no longer classified as a collection by the
 frontend.
 
 Opening a live request independently loads the Patient Tile API by CR number.
-Live tariff loading is not implemented in this staged path. A failed legacy call shows
-the retry/error screen and never falls back to dummy request rows.
+Request tariffs now load from the legacy `tariffdetails` endpoint by request
+number (except advances). A failed bootstrap call shows the retry/error
+screen; failed request-detail calls show an error and prevent opening the
+workspace. Neither falls back to dummy request rows or tariffs.

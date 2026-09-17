@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./BillingDetails.css";
 import { WorkflowFamily } from "../../../../contracts/cashCollection.contract";
+import { TariffPicker } from "./TariffPicker.jsx";
 import { useAppData } from "../../../../app/providers/AppDataProvider";
 import { useSort, applySort } from "../../../../shared/hooks/useSort";
 import { useEscapeToClose } from "../../../../shared/hooks/useEscapeToClose";
@@ -31,18 +32,24 @@ function ChargeBuilder({
   workflow,
   onDetails,
   onPay,
+  services,
+  tariffContext,
+  onPickerVisibilityChange,
 }) {
   const { tariffCatalog, tariffGroups } = useAppData();
   const [chargeSort, toggleChargeSort] = useSort();
   const [group, setGroup] = useState("All groups");
   const [query, setQuery] = useState("");
   const [highlight, setHighlight] = useState(0);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [remoteTariffs, setRemoteTariffs] = useState([]);
+  const [catalogueError, setCatalogueError] = useState("");
   const isRefund = requestType === "Refund";
   const isEstimate = requestType === "Estimation";
   const isRequest = mode === "request";
   const term = query.trim().toLowerCase();
   const matches = term
-    ? tariffCatalog
+    ? (services ? remoteTariffs : tariffCatalog)
         .filter(
           (tariff) =>
             (group === "All groups" || tariff.group === group) &&
@@ -51,6 +58,36 @@ function ChargeBuilder({
         .slice(0, 6)
     : [];
   useEffect(() => setHighlight(0), [term]);
+  useEffect(() => {
+    onPickerVisibilityChange?.(pickerOpen);
+    return () => onPickerVisibilityChange?.(false);
+  }, [pickerOpen, onPickerVisibilityChange]);
+  useEffect(() => {
+    if (!services || !term || isRefund || isEstimate) return undefined;
+    let active = true;
+    setRemoteTariffs([]);
+    setCatalogueError("");
+    const timer = window.setTimeout(async () => {
+      try {
+        if (typeof services.getTariffPage !== "function")
+          throw new Error("Database tariff search is unavailable.");
+        const data = await services.getTariffPage({
+          ...tariffContext,
+          search: term,
+          groupId: group === "All groups" ? undefined : group,
+          page: 0,
+          size: 10,
+        });
+        if (active) setRemoteTariffs(data.items);
+      } catch (error) {
+        if (active) setCatalogueError(error.message);
+      }
+    }, 250);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [services, tariffContext, term, group, isRefund, isEstimate]);
 
   const update = (key, patch) =>
     setLines(
@@ -77,6 +114,11 @@ function ChargeBuilder({
     setQuery("");
   };
   const onSearchKeyDown = (event) => {
+    if (event.key === "Enter" && !term) {
+      event.preventDefault();
+      setPickerOpen(true);
+      return;
+    }
     if (!matches.length) return;
     if (event.key === "ArrowDown") {
       event.preventDefault();
@@ -132,7 +174,8 @@ function ChargeBuilder({
             ariaLabel="Tariff group"
             value={group}
             onChange={setGroup}
-            options={tariffGroups}
+            options={tariffGroups?.length ? tariffGroups : ["All groups"]}
+            disabled={!tariffGroups?.length}
           />
           <div className="tariff-search">
             <Icon name="search" size={16} />
@@ -184,7 +227,8 @@ function ChargeBuilder({
                 ))}
                 {!matches.length && (
                   <div className="no-results">
-                    No tariff matches that code or name in {group}.
+                    {catalogueError ||
+                      `No tariff matches that code or name in ${group}.`}
                   </div>
                 )}
               </div>
@@ -372,6 +416,39 @@ function ChargeBuilder({
           </span>
         </div>
       </div>
+      {pickerOpen && (
+        <TariffPicker
+          services={services}
+          context={tariffContext}
+          onClose={() => setPickerOpen(false)}
+          onAdd={(tariffs) =>
+            setLines((current) => {
+              const next = [...current];
+              for (const tariff of tariffs) {
+                const index = next.findIndex(
+                  (line) =>
+                    line.code === tariff.code && line.source === "manual",
+                );
+                if (index >= 0)
+                  next[index] = {
+                    ...next[index],
+                    qty: Number(next[index].qty) + 1,
+                  };
+                else
+                  next.push({
+                    ...tariff,
+                    qty: 1,
+                    discount: 0,
+                    key: `${tariff.code}-${Date.now()}-${next.length}`,
+                    source: "manual",
+                    selected: true,
+                  });
+              }
+              return next;
+            })
+          }
+        />
+      )}
     </section>
   );
 }

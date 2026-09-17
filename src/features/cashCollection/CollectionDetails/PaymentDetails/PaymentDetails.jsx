@@ -33,14 +33,64 @@ function PaymentCard({
   services,
   onModalVisibilityChange,
   onCancel,
+  paymentContext,
 }) {
   const { paymentOptions } = useAppData();
+  const [liveOptions, setLiveOptions] = useState(null);
+  const [modesLoading, setModesLoading] = useState(
+    Boolean(services?.getPaymentOptions),
+  );
+  const [modesError, setModesError] = useState("");
   const {
     modes: allPaymentModes,
     cardTypes,
     posTerminals,
     restrictionsByCategory,
-  } = paymentOptions;
+  } = {
+    ...paymentOptions,
+    ...(liveOptions || {}),
+    modes: services?.getPaymentOptions
+      ? liveOptions?.modes || []
+      : paymentOptions.modes,
+  };
+  useEffect(() => {
+    if (!services?.getPaymentOptions || requestType === "Estimation") return;
+    let active = true;
+    setModesLoading(true);
+    setLiveOptions(null);
+    setModesError("");
+    setPaymentMode("");
+    services
+      .getPaymentOptions({
+        ...paymentContext,
+        requestType,
+        patientCategoryCode: patient?.patientCategoryCode,
+      })
+      .then((options) => {
+        if (!Array.isArray(options?.modes))
+          throw new Error("Payment modes returned an invalid response.");
+        if (active) {
+          setLiveOptions(options);
+          setPaymentMode(options.modes[0] || "");
+        }
+      })
+      .catch((error) => {
+        if (active)
+          setModesError(error.message || "Payment modes could not be loaded.");
+      })
+      .finally(() => {
+        if (active) setModesLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [
+    services,
+    requestType,
+    patient?.patientCategoryCode,
+    paymentContext,
+    setPaymentMode,
+  ]);
   const [confirming, setConfirming] = useState(false);
   const [manualDetailsOpen, setManualDetailsOpen] = useState(false);
   const [description, setDescription] = useState("");
@@ -64,7 +114,11 @@ function PaymentCard({
   const usesTerminal = TERMINAL_PAYMENT_MODES.includes(paymentMode);
   const needsDescription = paymentMode === "Cheque";
   const canPost =
-    total > 0 && (!needsDescription || Boolean(description.trim()));
+    total > 0 &&
+    allPaymentModes.includes(paymentMode) &&
+    !modesLoading &&
+    !modesError &&
+    (!needsDescription || Boolean(description.trim()));
   const canManualPost =
     usesTerminal &&
     posState === "manual" &&
@@ -164,7 +218,15 @@ function PaymentCard({
 
   const submitPayment = async (payment) => {
     try {
-      await onConfirm(payment);
+      if (
+        !isEstimate &&
+        (!allPaymentModes.includes(payment.mode) || modesLoading || modesError)
+      )
+        throw new Error("Select an available payment mode before posting.");
+      await onConfirm({
+        ...payment,
+        ...liveOptions?.modeDetails?.[payment.mode],
+      });
     } catch (error) {
       setOperationError(
         error?.message ||
@@ -283,6 +345,7 @@ function PaymentCard({
                 label: blocked[mode] ? `${mode} — not permitted` : mode,
                 disabled: Boolean(blocked[mode]),
               }))}
+              disabled={modesLoading || !allPaymentModes.length}
             />
             {paymentMode === "Card" && (
               <SelectField
@@ -397,11 +460,11 @@ function PaymentCard({
               </span>
             </div>
           )}
-          {operationError && (
+          {(operationError || modesError) && (
             <div className="payment-check error">
               <span>
                 <Icon name="info" size={14} />
-                {operationError}
+                {operationError || modesError}
               </span>
             </div>
           )}

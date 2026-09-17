@@ -35,7 +35,9 @@ export function mapLegacyPatientInfoRow(row = {}) {
     ipd: dashIfBlank(row.adm_no),
     account: DASH,
     episode: DASH,
-    status: DASH,
+    status: dashIfBlank(row.admission_status),
+    isAdmitted:
+      typeof row.is_admitted === "boolean" ? row.is_admitted : undefined,
     department: DASH,
     unit: DASH,
     ward: DASH,

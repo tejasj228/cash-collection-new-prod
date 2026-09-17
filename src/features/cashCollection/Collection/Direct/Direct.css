@@ -1,1 +1,6 @@
 /* Direct owns styles for this feature folder. Shared foundations remain in CashCollection.css. */
+
+.hbims-cash-collection .patient-popover .patient-picker-pagination {
+  margin: 0;
+  padding: 10px 20px;
+}

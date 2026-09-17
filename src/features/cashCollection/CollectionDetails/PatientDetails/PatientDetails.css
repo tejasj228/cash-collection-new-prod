@@ -1,1 +1,25 @@
 /* PatientDetails owns styles for this feature folder. Shared foundations remain in CashCollection.css. */
+
+.hbims-cash-collection .patient-banner .patient-chips {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hbims-cash-collection .patient-banner .patient-detail {
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.hbims-cash-collection .patient-detail-label {
+  color: #5b6d87;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.hbims-cash-collection .patient-detail strong {
+  font-weight: 700 !important;
+}

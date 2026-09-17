@@ -95,6 +95,12 @@ const eligibilityFor = (command, pendingRequests = PROTOTYPE_DATA.requests) => {
           "The patient must have a current admitted IPD episode for this transaction.",
       };
     }
+    if (command.hospitalServiceId !== "ipd" && patient.status === "Admitted")
+      return {
+        eligible: false,
+        code: "PATIENT_ALREADY_ADMITTED",
+        message: "This patient is admitted. Use IPD collection.",
+      };
     if (
       workflow.uiFamily === "account-payment" &&
       String(workflow.id) === "19" &&
@@ -337,6 +343,53 @@ export function createPrototypeServices({ now = () => Date.now() } = {}) {
     },
     async getTariffs() {
       return withLatency(PROTOTYPE_DATA.tariffCatalog);
+    },
+    async searchPatientPage(options = {}) {
+      const terms = String(options.query || "")
+        .toLowerCase()
+        .split(/[\s,]+/)
+        .filter(Boolean);
+      const matches = PROTOTYPE_DATA.patients
+        .filter(
+          (row) =>
+            (row.status === "Admitted") === Boolean(options.admittedOnly) &&
+            (options.exactCr
+              ? row.cr === options.query
+              : terms.every((term) =>
+                  [row.name, row.mobile, row.cr].some((value) =>
+                    String(value).toLowerCase().includes(term),
+                  ),
+                )),
+        )
+        .sort(
+          (left, right) =>
+            admissionTime(right.admittedOn) - admissionTime(left.admittedOn),
+        );
+      const size = options.size || 10;
+      const page = options.page || 0;
+      return withLatency({
+        items: matches.slice(page * size, (page + 1) * size),
+        total: matches.length,
+        page,
+        size,
+      });
+    },
+    async getTariffPage(options = {}) {
+      const matches = PROTOTYPE_DATA.tariffCatalog.filter(
+        (row) =>
+          !options.search ||
+          `${row.code} ${row.name}`
+            .toLowerCase()
+            .includes(options.search.toLowerCase()),
+      );
+      const page = options.page || 0;
+      const size = options.size || 10;
+      return withLatency({
+        items: matches.slice(page * size, (page + 1) * size),
+        total: matches.length,
+        page,
+        size,
+      });
     },
     async getPaymentOptions() {
       return withLatency(PROTOTYPE_DATA.paymentOptions);

@@ -77,6 +77,7 @@ export function mapLegacyPendingRequestRow(row) {
     department: "",
     category: "",
     cr: String(row.cr_num ?? ""),
+    mobile: String(row.mobile_num ?? ""),
     hospitalService:
       HOSPITAL_SERVICE_BY_CHARGE_TYPE_ID[row.sblnum_chargetype_id] || "",
     requestType: parseLegacyRequestType(row),

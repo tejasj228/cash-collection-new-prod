@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./CollectionDetails.css";
 import {
   WorkflowFamily,
@@ -121,8 +121,7 @@ function CollectionWorkspace({
       documentDate: printable.documentDate,
     });
     window.setTimeout(() => {
-      window.print();
-      onConfirm({
+      const completed = {
         ...command,
         ...result,
         receiptNo: authoritativeNumber,
@@ -130,7 +129,11 @@ function CollectionWorkspace({
         cr: printable.patient.cr,
         amount: money(authoritativeTotal),
         paymentMode: printable.payment.summary || printable.payment.mode,
+      };
+      window.addEventListener("afterprint", () => onConfirm(completed), {
+        once: true,
       });
+      window.print();
     }, 80);
   };
   const usesAccountForm = [
@@ -175,13 +178,30 @@ function CollectionWorkspace({
   const total = Math.max(0, gross - discount);
   const [detailsGroup, setDetailsGroup] = useState(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [tariffModalOpen, setTariffModalOpen] = useState(false);
+  const tariffContext = useMemo(
+    () => ({
+      crNumber: selectedPatient?.cr,
+      hospitalServiceId: service.id,
+      billingServiceId: workflow.id,
+      workflowId: workflow.uiFamily,
+    }),
+    [selectedPatient?.cr, service.id, workflow.id, workflow.uiFamily],
+  );
   // The payment form (mode, terminal, manual details, …) is its own step —
   // reached from a "Pay" prompt — instead of always sitting inline under the
   // charges, so a bare-bones charge list isn't left looking half-finished.
   const [payOpen, setPayOpen] = useState(false);
   useEffect(() => {
-    onModalVisibilityChange?.(Boolean(detailsGroup) || paymentModalOpen);
-  }, [detailsGroup, paymentModalOpen, onModalVisibilityChange]);
+    onModalVisibilityChange?.(
+      Boolean(detailsGroup) || paymentModalOpen || tariffModalOpen,
+    );
+  }, [
+    detailsGroup,
+    paymentModalOpen,
+    tariffModalOpen,
+    onModalVisibilityChange,
+  ]);
   useEffect(
     () => () => onModalVisibilityChange?.(false),
     [onModalVisibilityChange],
@@ -260,6 +280,9 @@ function CollectionWorkspace({
             />
           ) : (
             <ChargeBuilder
+              services={services}
+              tariffContext={tariffContext}
+              onPickerVisibilityChange={setTariffModalOpen}
               lines={lines}
               setLines={setLines}
               requestType={requestType}

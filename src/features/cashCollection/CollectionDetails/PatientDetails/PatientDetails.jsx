@@ -43,27 +43,23 @@ function PatientBanner({ patient, patientMode, hospitalService }) {
           <div className="patient-chips">
             {known && (
               <>
-                <span className="chip muted" title="CR No.">
-                  {compactIdentifier(patient.cr)}
-                </span>
-                <span className="chip muted" title="Admission No.">
-                  {compactIdentifier(admissionNumber)}
-                </span>
-                <span className="chip" title="Age / Sex">
-                  {patient.age} / {patient.sex}
-                </span>
-                <span className="chip strong" title="Category">
-                  {patient.category}
-                </span>
-                <span className="chip muted" title="Mobile Number">
-                  {compactIdentifier(patient.mobile)}
-                </span>
-                <span className="chip muted" title="ABHA Number">
-                  {patient.abhaNumber}
-                </span>
-                <span className="chip muted" title="ABHA Address">
-                  {patient.abhaAddress}
-                </span>
+                {[
+                  ["CR No.", compactIdentifier(patient.cr)],
+                  ["Admission No.", compactIdentifier(admissionNumber)],
+                  [
+                    "Age / Sex",
+                    `${patient.age || "—"} / ${patient.sex || "—"}`,
+                  ],
+                  ["Category", patient.category],
+                  ["Mobile No.", compactIdentifier(patient.mobile)],
+                  ["ABHA No.", patient.abhaNumber],
+                  ["ABHA Address", patient.abhaAddress],
+                ].map(([label, value]) => (
+                  <span className="chip patient-detail" key={label} title={label}>
+                    <span className="patient-detail-label">{label} :</span>{" "}
+                    <strong>{value || "—"}</strong>
+                  </span>
+                ))}
               </>
             )}
           </div>

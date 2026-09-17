@@ -14,9 +14,11 @@ import {
 } from "../../../../shared/components/ui";
 import { SelectField } from "../../../../shared/components/FormFields";
 
-function ModeTabs({ mode, onChange }) {
+function ModeTabs({ mode, onChange, filteredCount }) {
   const { requests, queueSummary } = useAppData();
-  const pendingCount = Number(queueSummary?.pendingCount ?? requests.length);
+  const pendingCount = Number(
+    filteredCount ?? queueSummary?.pendingCount ?? requests.length,
+  );
   const options = [
     {
       id: "request",
@@ -72,6 +74,7 @@ function RequestWorklist({
   setHospitalServiceFilter,
   requestTypeFilter,
   setRequestTypeFilter,
+  onTotalChange,
 }) {
   const { requests, queueSummary } = useAppData();
   const [pageData, setPageData] = useState({
@@ -129,6 +132,7 @@ function RequestWorklist({
             total: Number(result?.total || 0),
           });
           setLoadError("");
+          onTotalChange?.(Number(result?.total || 0));
         }
       } catch (error) {
         if (active)
@@ -143,7 +147,15 @@ function RequestWorklist({
       active = false;
       window.clearTimeout(timer);
     };
-  }, [services, page, search, hospitalServiceFilter, requestTypeFilter, sort]);
+  }, [
+    services,
+    page,
+    search,
+    hospitalServiceFilter,
+    requestTypeFilter,
+    sort,
+    onTotalChange,
+  ]);
   const applyFilter = (setter) => (value) => {
     setter(value);
     setPage(1);

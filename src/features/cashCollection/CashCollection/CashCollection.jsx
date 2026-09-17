@@ -170,8 +170,10 @@ export default function CashCollectionApplication({
     useState(ALL_HOSPITAL_SERVICES);
   const [requestTypeFilter, setRequestTypeFilter] = useState(ALL_REQUEST_TYPES);
   const [requestPage, setRequestPage] = useState(1);
+  const [filteredRequestCount, setFilteredRequestCount] = useState(null);
   const [requestSort, toggleRequestSort, resetRequestSort] = useSort();
   const resetRequestWorklist = () => {
+    setFilteredRequestCount(null);
     setRequestSearch("");
     setRequestHospitalServiceFilter(ALL_HOSPITAL_SERVICES);
     setRequestTypeFilter(ALL_REQUEST_TYPES);
@@ -545,6 +547,7 @@ export default function CashCollectionApplication({
     resetHome();
     setSelectedPatient(null);
     setCrQuery("");
+    if (integration?.mode === "legacy-hbims") return;
     void integration?.services
       ?.loadBootstrap?.()
       .then((nextData) => setAppData(normalizeCashCollectionData(nextData)))
@@ -625,7 +628,11 @@ export default function CashCollectionApplication({
               />
             ) : (
               <>
-                <ModeTabs mode={mode} onChange={changeMode} />
+                <ModeTabs
+                  mode={mode}
+                  onChange={changeMode}
+                  filteredCount={filteredRequestCount}
+                />
                 {mode === "request" ? (
                   <RequestWorklist
                     onCollect={openRequest}
@@ -640,6 +647,7 @@ export default function CashCollectionApplication({
                     setHospitalServiceFilter={setRequestHospitalServiceFilter}
                     requestTypeFilter={requestTypeFilter}
                     setRequestTypeFilter={setRequestTypeFilter}
+                    onTotalChange={setFilteredRequestCount}
                   />
                 ) : (
                   <DirectSelector

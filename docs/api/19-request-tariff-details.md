@@ -29,8 +29,8 @@ The existing target REST adapter consumes:
 | ------------------------------------------ | -------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | Request lines and linked patient           | `GET /api/cash-collection/requests/{req_no}` | `tariff_lines`, `linked_patient`                                                                    |
 | Eligibility and account/settlement context | `POST /api/cash-collection/eligibility`      | `is_eligible`, `eligibility_code`, `eligibility_message`, `pat_context_version`, `workflow_context` |
-| Ordinary addable tariff catalogue          | Bootstrap                                    | `tariff_catalog`, `tariff_group_names`                                                              |
-| Catalogue API contract                     | `GET /api/cash-collection/tariffs`           | Available in service adapter; the tile itself filters bootstrap catalogue locally                   |
+| Ordinary addable tariff catalogue          | `GET /api/cash-collection/tariffs`           | Patient/workflow-scoped pages; API 05                                                               |
+| Blank Enter catalogue picker               | Same catalogue API                           | Paginated searchable selection; API 20                                                              |
 
 `openRequestFlow` loads request detail, resolves the linked patient and
 workflow, and checks eligibility before opening the workspace. Direct setup
@@ -40,10 +40,41 @@ prevent continuation.
 **Local legacy integration differs:** `applicationRuntime.js` loads
 `pendinglist` and independently calls `patinfo` by CR number. Known live
 requests receive a temporary eligibility pass-through with empty context.
-No live tariffs are fetched by that staged path. This is an integration gap,
-not a reason to use dummy tariffs for live requests. API 18 documents that
+The staged request loader now fetches the actual legacy `tariffdetails`
+endpoint by `reqNo` in parallel with patient info, except for Advance
+Deposit/Advance Refund. Tariff loading errors stop request opening; there
+is no dummy-line fallback. Backend eligibility remains an integration gap.
+API 18 documents that
 separate patient tile. The target REST adapter currently still expects
 `linked_patient`; it does not call the proposed REST patient-tile path.
+
+### Actual legacy tariff endpoint
+
+```http
+GET {origin}/cashcollectionreqbased/tariffdetails?varSSOTicketGrantingTicket=...&User-Agent=...&mode=1&reqNo={req_no}
+```
+
+Endpoint URL, backend origin, ticket capture/storage, real User-Agent, mode,
+and query construction remain centralized in `sessionService.js`. Never
+hardcode a sample ticket or patient/request identifier.
+
+The actual response is `{ "status": "success", "data": [ ... ], "message": "..." }`.
+`legacyHbimsTariffDetails.js` maps `tariff_code`, `tariff_name`,
+`tariff_group_name`, `tariff_rate`, `tariff_qty`, and
+`tariff_discount_percent` to the same internal line model described below.
+`gstr_tariff_id` and `net_cost` are retained as backend references; net cost
+does not replace the existing editable-line display calculation.
+`hrgnum_puk`, when supplied, must match the request's patient CR number.
+Missing required line values, nonfinite/negative rate or quantity, and
+discount outside 0–100 cause a loading error. Unrelated staff-card,
+credit-letter, approval, tax, and client columns are not added to the UI.
+
+The provided OPD example displays Urine Ketones, rate 30, qty 1, discount 0,
+and amount 30 under the existing ordinary-table rules. Group names also feed
+the existing IPD Final Adjustment grouping/popup. This sample includes no
+department/episode/category/ward context or eligibility decision: missing
+IPD context uses existing patient fallback/dash, never fabricated values.
+IPD/refund payload variations and live SSO execution still need verification.
 
 ## Shared flat tariff line
 
@@ -160,8 +191,9 @@ current UI values, not evidence of a previously posted receipt.
 - Final Adjustment summary rows sum these same discount/net values by group.
 - Quantity input accepts at most three digits with minimum 1; discount input
   is sanitized and clamped to 0–100. Only manual lines can be removed.
-- Adding an existing manual tariff increments its quantity. Local catalogue
-  search filters by group and code/name, returning up to six matches.
+- Adding an existing manual tariff increments its quantity. API catalogue
+  search filters by group and code/name, showing up to six suggestions.
+  Blank Enter opens a ten-row paginated catalogue selection popup; see API 05.
 - Search/add controls are hidden for Refund and Estimation; existing ordinary
   rows remain editable/selectable.
 - Ordinary Proceed requires a positive total except Estimation Continue.

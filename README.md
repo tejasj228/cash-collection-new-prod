@@ -2,7 +2,7 @@
 
 Create React App frontend for the HBIMS cash-collection counter. The current
 local integration loads the pending-request queue and patient tile from the
-legacy HBIMS endpoints; the remaining transaction, tariff, dashboard, and
+legacy HBIMS endpoints, including request tariff details; the remaining transaction, dashboard, and
 shift operations still use prototype service implementations until their
 real endpoints are delivered.
 

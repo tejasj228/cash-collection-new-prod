@@ -43,10 +43,55 @@ export function createCashCollectionApi(config) {
       const data = await http.request("/bootstrap");
       return mapBootstrapWire(data);
     },
-    searchPatients: async (query) =>
-      mapPatientSearchWire(
-        await http.request("/patients", { query: toPatientSearchQuery(query) }),
-      ),
+    searchPatients: async (query) => {
+      const data = await http.request("/patients", {
+        query: toPatientSearchQuery(query),
+      });
+      return mapPatientSearchWire(Array.isArray(data) ? data : data.items);
+    },
+    searchPatientPage: async (query) => {
+      const data = await http.request("/patients", {
+        query: toPatientSearchQuery(query),
+      });
+      if (
+        !Array.isArray(data?.items) ||
+        !Number.isInteger(data.total) ||
+        data.total < 0
+      )
+        throw new Error(
+          "Patient search must return a paginated items/total response.",
+        );
+      if (data.items.length > (query.size || 10))
+        throw new Error("Patient search returned too many records.");
+      return { ...data, items: mapPatientSearchWire(data.items) };
+    },
+    getTariffPage: async (filters) => {
+      const data = await http.request("/tariffs", {
+        query: toTariffQuery(filters),
+      });
+      if (
+        !Array.isArray(data?.items) ||
+        !Number.isInteger(data.total) ||
+        data.total < 0
+      )
+        throw new Error(
+          "Tariff search must return a paginated items/total response.",
+        );
+      if (data.items.length > (filters.size || 10))
+        throw new Error("Tariff search returned too many records.");
+      if (
+        data.items.some(
+          (row) =>
+            !row.tariff_code ||
+            !row.tariff_name ||
+            row.tariff_rate == null ||
+            !Number.isFinite(Number(row.tariff_rate)) ||
+            Number(row.tariff_rate) < 0,
+        )
+      )
+        throw new Error("Tariff search returned invalid catalogue data.");
+      return { ...data, items: mapTariffSearchWire(data.items) };
+    },
     listPendingRequests: async (filters = {}) => {
       const data = await http.request("/requests", {
         query: toPendingRequestQuery(filters),

@@ -9,6 +9,9 @@ const REQUEST_TIMEOUT_MS = 30000;
 const LEGACY_BACKEND_ORIGIN = "http://10.226.28.142:8080";
 const PENDING_REQUESTS_PATH = "/cashcollectionreqbased/pendinglist";
 const PATIENT_INFO_PATH = "/cashcollectionreqbased/patinfo";
+const TARIFF_DETAILS_PATH = "/cashcollectionreqbased/tariffdetails";
+const PAYMENT_CATEGORY_MAPPING_PATH =
+  "/cashcollectionreqbased/paymentcategorymapping";
 
 // Local CRA development cannot call the teammate's HBIMS host directly
 // because that host does not allow cross-origin browser requests. setupProxy
@@ -70,8 +73,11 @@ function resolveBaseOrigin() {
 }
 
 const BASE_ORIGIN = resolveBaseOrigin();
+const DIRECT_API_URL = `${BASE_ORIGIN}${API_BASE_URL}`;
 const PENDING_REQUESTS_URL = `${BASE_ORIGIN}${PENDING_REQUESTS_PATH}`;
 const PATIENT_INFO_URL = `${BASE_ORIGIN}${PATIENT_INFO_PATH}`;
+const TARIFF_DETAILS_URL = `${BASE_ORIGIN}${TARIFF_DETAILS_PATH}`;
+const PAYMENT_CATEGORY_MAPPING_URL = `${BASE_ORIGIN}${PAYMENT_CATEGORY_MAPPING_PATH}`;
 
 // Every legacy HBIMS endpoint wants the same three query params — the SSO
 // ticket, a real User-Agent, and mode=1 — plus whatever is specific to that
@@ -99,11 +105,14 @@ async function fetchLegacyJson(endpointUrl, extraParams = {}) {
 // the backend origin and every session concern in this single file.
 module.exports = {
   API_BASE_URL,
+  DIRECT_API_URL,
   API_CREDENTIALS,
   REQUEST_TIMEOUT_MS,
   LEGACY_BACKEND_ORIGIN,
   PENDING_REQUESTS_URL,
   PATIENT_INFO_URL,
+  TARIFF_DETAILS_URL,
+  PAYMENT_CATEGORY_MAPPING_URL,
   getSsoTicket,
   isLiveSession,
   getUserAgent,

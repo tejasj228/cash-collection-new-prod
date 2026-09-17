@@ -22,6 +22,8 @@ function mapPatient(row = {}) {
     account: displayText(row.account_num),
     episode: displayText(row.episode_name),
     status: displayText(row.admission_status),
+    isAdmitted:
+      typeof row.is_admitted === "boolean" ? row.is_admitted : undefined,
     department: displayText(row.department_name),
     unit: displayText(row.unit_name),
     ward: displayText(row.ward_name),
@@ -400,6 +402,7 @@ export function toPatientSearchQuery(input = {}) {
     pat_search: options.query,
     hospital_service_id: options.hospitalServiceId,
     admitted_only: options.admittedOnly,
+    exact_cr: options.exactCr,
     page: options.page,
     size: options.size,
     admission_sort: toWireSort(options.sort, { admittedOn: "admitted_on" }),
@@ -451,6 +454,10 @@ export function toTariffQuery(filters = {}) {
     cr_num: filters.crNumber,
     workflow_id: filters.workflowId,
     tariff_search: filters.search,
+    hospital_service_id: filters.hospitalServiceId,
+    billing_service_id: filters.billingServiceId,
+    page: filters.page,
+    size: filters.size,
   };
 }
 

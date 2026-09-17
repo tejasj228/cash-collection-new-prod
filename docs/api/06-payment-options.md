@@ -1,5 +1,7 @@
 # Payment options
 
+This is the target REST contract. The local legacy integration now loads patient-specific payment modes from [paymentcategorymapping](./21-legacy-payment-category-mapping.md); do not implement this target URL as though it were the supplied legacy endpoint.
+
 ```http
 GET /api/cash-collection/payment-options?cr_num=939112600000004&category_name=General%20—%20CGHS&hospital_service_id=ipd&billing_service_id=35
 ```
