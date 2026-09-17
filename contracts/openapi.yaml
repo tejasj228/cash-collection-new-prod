@@ -174,7 +174,7 @@ paths:
         default: { $ref: "#/components/responses/Error" }
   /requests/{req_no}:
     get:
-      summary: Reload authoritative request metadata before collection
+      summary: Reload request metadata, linked patient, and tariff lines before collection
       operationId: getRequest
       parameters:
         - name: req_no
@@ -191,32 +191,6 @@ paths:
                   - { $ref: "#/components/schemas/SuccessEnvelope" }
                   - properties:
                       data: { $ref: "#/components/schemas/RequestDetail" }
-        default: { $ref: "#/components/responses/Error" }
-  /requests/{req_no}/tariff-details:
-    get:
-      summary: Load OPD/IPD request tariff lines and optional IPD settlement context
-      operationId: getRequestTariffDetails
-      parameters:
-        - name: req_no
-          in: path
-          required: true
-          schema: { type: string }
-        - name: req_version
-          in: query
-          required: true
-          description: Opaque request version used for stale-state detection.
-          schema: { type: string }
-      responses:
-        "200":
-          description: Tariff details; settlement_context is present only for IPD Final Adjustment
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - { $ref: "#/components/schemas/SuccessEnvelope" }
-                  - properties:
-                      data:
-                        { $ref: "#/components/schemas/RequestTariffDetails" }
         default: { $ref: "#/components/responses/Error" }
   /tariffs:
     get:
@@ -1073,50 +1047,13 @@ components:
     RequestDetail:
       allOf:
         - { $ref: "#/components/schemas/BillingRequest" }
-      description: Request metadata only; patient tile and tariff details are separate endpoints.
-    RequestTariffDetails:
-      type: object
-      required:
-        [
-          req_no,
-          req_version,
-          hospital_service_name,
-          tariff_lines,
-          gross_amount,
-          discount_amount,
-          net_amount,
-        ]
-      properties:
-        req_no: { type: string }
-        req_version: { type: string }
-        hospital_service_name:
-          { $ref: "#/components/schemas/HospitalServiceName" }
-        pat_context_version: { type: string }
-        settlement_context:
-          description: Present only for IPD Final Adjustment; absent for OPD.
-          allOf:
-            - { $ref: "#/components/schemas/IpdSettlementContext" }
-        tariff_lines:
-          { type: array, items: { $ref: "#/components/schemas/TariffLine" } }
-        gross_amount: { type: string, pattern: '^\d+\.\d{2}$' }
-        discount_amount: { type: string, pattern: '^\d+\.\d{2}$' }
-        net_amount: { type: string, pattern: '^\d+\.\d{2}$' }
-    IpdSettlementContext:
-      type: object
-      required:
-        [
-          department_name,
-          episode_name,
-          patient_category_name,
-          ward_type_name,
-          ward_name,
-        ]
-      properties:
-        department_name: { type: string }
-        episode_name: { type: string }
-        patient_category_name: { type: string }
-        ward_type_name: { type: string }
-        ward_name: { type: string }
+        - type: object
+          properties:
+            linked_patient: { $ref: "#/components/schemas/Patient" }
+            tariff_lines:
+              type: array
+              items: { $ref: "#/components/schemas/TariffLine" }
+      description: Current REST mapper reads request metadata, linked patient, and flat tariff lines.
     RequestPageEnvelope:
       allOf:
         - { $ref: "#/components/schemas/SuccessEnvelope" }
@@ -1189,7 +1126,19 @@ components:
         eligibility_code: { type: string }
         eligibility_message: { type: string }
         pat_context_version: { type: string }
-        workflow_context: { type: object, additionalProperties: true }
+        workflow_context:
+          type: object
+          additionalProperties: true
+          properties:
+            raising_department_names: { type: array, items: { type: string } }
+            episode_names: { type: array, items: { type: string } }
+            patient_category_names: { type: array, items: { type: string } }
+            room_type_names: { type: array, items: { type: string } }
+            ward_names: { type: array, items: { type: string } }
+            payment_payable_amount: { type: number, nullable: true }
+            tariff_charge_breakdown:
+              type: array
+              items: { $ref: "#/components/schemas/TariffLine" }
     TerminalPaymentCommand:
       type: object
       required: [payment_mode, pos_terminal_id, payment_amount, cr_num]

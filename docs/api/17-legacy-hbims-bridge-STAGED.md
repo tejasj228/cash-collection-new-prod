@@ -3,7 +3,7 @@
 This file documents only the active legacy `pendinglist` endpoint. Patient
 tile data is a separate call documented in
 [`18-patient-tile-STAGED.md`](./18-patient-tile-STAGED.md). Request tariff
-lines for OPD and IPD are documented in
+tile rendering and existing OPD/IPD contracts are documented in
 [`19-request-tariff-details.md`](./19-request-tariff-details.md).
 
 ## Source files
@@ -56,5 +56,5 @@ row. A returned refund is no longer classified as a collection by the
 frontend.
 
 Opening a live request independently loads the Patient Tile API by CR number.
-The tariff-details endpoint is not yet wired live. A failed legacy call shows
+Live tariff loading is not implemented in this staged path. A failed legacy call shows
 the retry/error screen and never falls back to dummy request rows.

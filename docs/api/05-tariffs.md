@@ -17,13 +17,11 @@ charge") and the group dropdown above it.
 | `workflow_id`     | string | Required selected workflow context.                                                                                |
 | `tariff_search`   | string | Matches tariff code or name, case-insensitive substring.                                                           |
 
-> **Current frontend behavior:** `CollectionDetails/BillingDetails/BillingDetails.jsx` calls this once with no
-> filters, caches the full `tariffCatalog` from bootstrap, and does the
-> group/text filtering **client-side** (top 6 matches shown as you type). A
-> real backend should still support server-side `tariff_group_id`/`tariff_search` filtering
-> for a large catalogue — just know that until the frontend is changed to
-> call this endpoint per keystroke, only the **unfiltered** bootstrap-time
-> call matters in practice. Either behavior satisfies today's UI.
+> **Current frontend behavior:** `BillingDetails.jsx` reads `tariffCatalog`
+> and `tariffGroups` from bootstrap and filters locally (up to six matches).
+> It does not call this endpoint on mount or per keystroke. The adapter exposes
+> `getTariffs` for a future catalogue refresh/server search. Tile rendering
+> and line rules are documented once in [API 19](./19-request-tariff-details.md).
 
 Tariff eligibility in a real deployment depends on hospital service, request
 type, billing service, patient category, ward, and package state — do not

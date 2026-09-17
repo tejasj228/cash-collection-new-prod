@@ -6,8 +6,10 @@ POST /api/cash-collection/eligibility
 
 Called after the clerk selects a patient/workflow or opens a pending request.
 It answers whether the transaction may proceed and returns a patient-context
-version for later posting. It does not transport Patient Tile fields, tariff
-lines, or IPD settlement context; those are separate APIs 18 and 19.
+version for later posting. The current mapper also reads account/settlement
+fields and fallback charge lines from `workflow_context`. Their exact shape,
+rendering, and initialization precedence are documented once in
+[Tariff tile contract](./19-request-tariff-details.md).
 
 Run the rule order in `PROJECT_GUIDE.md` §9.3. This document defines only the
 wire shape.
@@ -66,12 +68,12 @@ wire shape.
 | `pat_context_version` | string           | Opaque version echoed during posting.                                          |
 | `workflow_context`    | object, nullable | May contain non-tariff workflow values needed by direct account-payment flows. |
 
-For request-based OPD/IPD tariff workflows, load tariff lines from
-[`GET /requests/{req_no}/tariff-details`](./19-request-tariff-details.md)
-after eligibility succeeds. For IPD Final Adjustment, that same API also
-returns the five IPD-only settlement fields. Do not put
-`tariff_charge_breakdown`, Department, Episode, Patient Category, Ward Type,
-or Ward Name in `workflow_context`.
+Do not add a separate tariff-details call to implement this contract. The
+current code reads `raising_department_names`, `episode_names`,
+`patient_category_names`, `room_type_names`, `ward_names`,
+`payment_payable_amount`, and `tariff_charge_breakdown` from
+`workflow_context`. API 19 is the canonical reference for these fields;
+the example above shows only a minimal account context.
 
 ## Not-eligible response
 
