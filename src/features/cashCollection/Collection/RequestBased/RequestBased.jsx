@@ -73,7 +73,7 @@ function RequestWorklist({
   requestTypeFilter,
   setRequestTypeFilter,
 }) {
-  const { requests, queueSummary, requestFilterOptions } = useAppData();
+  const { requests, queueSummary } = useAppData();
   const [pageData, setPageData] = useState({
     items: requests.slice(0, 10),
     total: Number(queueSummary?.pendingCount ?? requests.length),
@@ -86,20 +86,20 @@ function RequestWorklist({
   const hospitalServiceOptions = useMemo(
     () => [
       ALL_HOSPITAL_SERVICES,
-      ...(requestFilterOptions?.hospitalServices ||
-        Array.from(
-          new Set(requests.map((item) => item.hospitalService)),
-        ).sort()),
+      ...Array.from(new Set(requests.map((item) => item.hospitalService)))
+        .filter(Boolean)
+        .sort(),
     ],
-    [requestFilterOptions, requests],
+    [requests],
   );
   const requestTypeOptions = useMemo(
     () => [
       ALL_REQUEST_TYPES,
-      ...(requestFilterOptions?.requestTypes ||
-        Array.from(new Set(requests.map((item) => item.requestType))).sort()),
+      ...Array.from(new Set(requests.map((item) => item.requestType)))
+        .filter(Boolean)
+        .sort(),
     ],
-    [requestFilterOptions, requests],
+    [requests],
   );
   const activeFilters =
     (hospitalServiceFilter !== ALL_HOSPITAL_SERVICES ? 1 : 0) +
