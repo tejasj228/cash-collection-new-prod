@@ -134,6 +134,46 @@ export function StatCard({
   );
 }
 
+export function Pagination({ page, pageCount, onChange }) {
+  const atFirst = page <= 1;
+  const atLast = page >= pageCount;
+  return (
+    <div className="pagination-controls">
+      <button
+        aria-label="First page"
+        disabled={atFirst}
+        onClick={() => onChange(1)}
+      >
+        <Icon name="first" size={13} />
+      </button>
+      <button
+        aria-label="Previous page"
+        disabled={atFirst}
+        onClick={() => onChange(Math.max(1, page - 1))}
+      >
+        <Icon name="back" size={13} />
+      </button>
+      <span className="pagination-current">
+        Page {page} of {pageCount}
+      </span>
+      <button
+        aria-label="Next page"
+        disabled={atLast}
+        onClick={() => onChange(Math.min(pageCount, page + 1))}
+      >
+        <Icon name="arrow" size={13} />
+      </button>
+      <button
+        aria-label="Last page"
+        disabled={atLast}
+        onClick={() => onChange(pageCount)}
+      >
+        <Icon name="last" size={13} />
+      </button>
+    </div>
+  );
+}
+
 export function SortHeader({ label, field, sort, onToggle, align = "num" }) {
   const active = sort && sort.field === field;
   return (

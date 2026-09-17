@@ -85,6 +85,18 @@ function Icon({ name, size = 18, strokeWidth = 1.8 }) {
         <path d="M19 12H5M11 18l-6-6 6-6" />
       </>
     ),
+    first: (
+      <>
+        <path d="m11 6-6 6 6 6" />
+        <path d="m18 6-6 6 6 6" />
+      </>
+    ),
+    last: (
+      <>
+        <path d="m6 6 6 6-6 6" />
+        <path d="m13 6 6 6-6 6" />
+      </>
+    ),
     refund: (
       <>
         <path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z" />

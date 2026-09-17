@@ -18,7 +18,6 @@ import {
   RequestWorklist,
   ALL_HOSPITAL_SERVICES,
   ALL_REQUEST_TYPES,
-  ALL_DEPTS,
 } from "../Collection/RequestBased/RequestBased.jsx";
 import { useSort } from "../../../shared/hooks/useSort";
 import {
@@ -170,14 +169,12 @@ export default function CashCollectionApplication({
   const [requestHospitalServiceFilter, setRequestHospitalServiceFilter] =
     useState(ALL_HOSPITAL_SERVICES);
   const [requestTypeFilter, setRequestTypeFilter] = useState(ALL_REQUEST_TYPES);
-  const [requestDeptFilter, setRequestDeptFilter] = useState(ALL_DEPTS);
   const [requestPage, setRequestPage] = useState(1);
   const [requestSort, toggleRequestSort, resetRequestSort] = useSort();
   const resetRequestWorklist = () => {
     setRequestSearch("");
     setRequestHospitalServiceFilter(ALL_HOSPITAL_SERVICES);
     setRequestTypeFilter(ALL_REQUEST_TYPES);
-    setRequestDeptFilter(ALL_DEPTS);
     setRequestPage(1);
     resetRequestSort();
   };
@@ -644,8 +641,6 @@ export default function CashCollectionApplication({
                     setHospitalServiceFilter={setRequestHospitalServiceFilter}
                     requestTypeFilter={requestTypeFilter}
                     setRequestTypeFilter={setRequestTypeFilter}
-                    deptFilter={requestDeptFilter}
-                    setDeptFilter={setRequestDeptFilter}
                   />
                 ) : (
                   <DirectSelector

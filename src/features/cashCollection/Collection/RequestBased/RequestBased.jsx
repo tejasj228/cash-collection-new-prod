@@ -1,9 +1,5 @@
 import React, { useMemo, useState } from "react";
-import {
-  ALL_HOSPITAL_SERVICES,
-  ALL_REQUEST_TYPES,
-  ALL_DEPTS,
-} from "./requestBased";
+import { ALL_HOSPITAL_SERVICES, ALL_REQUEST_TYPES } from "./requestBased";
 import "./RequestBased.css";
 import { useAppData } from "../../../../app/providers/AppDataProvider";
 import { useEscapeToClose } from "../../../../shared/hooks/useEscapeToClose";
@@ -14,6 +10,7 @@ import {
   Button,
   SortHeader,
   SkeletonRows,
+  Pagination,
 } from "../../../../shared/components/ui";
 import { SelectField } from "../../../../shared/components/FormFields";
 
@@ -75,8 +72,6 @@ function RequestWorklist({
   setHospitalServiceFilter,
   requestTypeFilter,
   setRequestTypeFilter,
-  deptFilter,
-  setDeptFilter,
 }) {
   const { requests, queueSummary, requestFilterOptions } = useAppData();
   const [pageData, setPageData] = useState({
@@ -106,18 +101,9 @@ function RequestWorklist({
     ],
     [requestFilterOptions, requests],
   );
-  const deptOptions = useMemo(
-    () => [
-      ALL_DEPTS,
-      ...(requestFilterOptions?.departments ||
-        Array.from(new Set(requests.map((item) => item.department))).sort()),
-    ],
-    [requestFilterOptions, requests],
-  );
   const activeFilters =
     (hospitalServiceFilter !== ALL_HOSPITAL_SERVICES ? 1 : 0) +
-    (requestTypeFilter !== ALL_REQUEST_TYPES ? 1 : 0) +
-    (deptFilter !== ALL_DEPTS ? 1 : 0);
+    (requestTypeFilter !== ALL_REQUEST_TYPES ? 1 : 0);
   React.useEffect(() => {
     let active = true;
     setLoading(true);
@@ -135,7 +121,6 @@ function RequestWorklist({
             requestTypeFilter === ALL_REQUEST_TYPES
               ? undefined
               : requestTypeFilter,
-          department: deptFilter === ALL_DEPTS ? undefined : deptFilter,
           sort: sort ? `${sort.field},${sort.dir}` : undefined,
         });
         if (active) {
@@ -158,15 +143,7 @@ function RequestWorklist({
       active = false;
       window.clearTimeout(timer);
     };
-  }, [
-    services,
-    page,
-    search,
-    hospitalServiceFilter,
-    requestTypeFilter,
-    deptFilter,
-    sort,
-  ]);
+  }, [services, page, search, hospitalServiceFilter, requestTypeFilter, sort]);
   const applyFilter = (setter) => (value) => {
     setter(value);
     setPage(1);
@@ -174,7 +151,6 @@ function RequestWorklist({
   const clearFilters = () => {
     setHospitalServiceFilter(ALL_HOSPITAL_SERVICES);
     setRequestTypeFilter(ALL_REQUEST_TYPES);
-    setDeptFilter(ALL_DEPTS);
     setPage(1);
   };
   const pageCount = Math.max(1, Math.ceil(pageData.total / pageSize));
@@ -252,12 +228,6 @@ function RequestWorklist({
                     value={requestTypeFilter}
                     onChange={applyFilter(setRequestTypeFilter)}
                     options={requestTypeOptions}
-                  />
-                  <SelectField
-                    label="Department"
-                    value={deptFilter}
-                    onChange={applyFilter(setDeptFilter)}
-                    options={deptOptions}
                   />
                   <div className="filter-panel-foot">
                     <button className="text-button" onClick={clearFilters}>
@@ -372,44 +342,11 @@ function RequestWorklist({
             {Math.min(currentPage * pageSize, pageData.total)} of{" "}
             {pageData.total}
           </span>
-          <div>
-            <button
-              aria-label="Previous page"
-              disabled={currentPage === 1}
-              onClick={() => setPage((value) => Math.max(1, value - 1))}
-            >
-              <Icon name="back" size={13} />
-            </button>
-            {Array.from({ length: pageCount }, (_, index) => index + 1)
-              .slice(Math.max(0, currentPage - 3), currentPage + 2)
-              .map((number) => (
-                <button
-                  key={number}
-                  className={currentPage === number ? "active" : ""}
-                  aria-current={currentPage === number ? "page" : undefined}
-                  onClick={() => setPage(number)}
-                >
-                  {number}
-                </button>
-              ))}
-            <button
-              aria-label="Next page"
-              disabled={currentPage === pageCount}
-              onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
-            >
-              <Icon name="arrow" size={13} />
-            </button>
-          </div>
+          <Pagination page={currentPage} pageCount={pageCount} onChange={setPage} />
         </div>
       )}
     </section>
   );
 }
 
-export {
-  ModeTabs,
-  RequestWorklist,
-  ALL_HOSPITAL_SERVICES,
-  ALL_REQUEST_TYPES,
-  ALL_DEPTS,
-};
+export { ModeTabs, RequestWorklist, ALL_HOSPITAL_SERVICES, ALL_REQUEST_TYPES };

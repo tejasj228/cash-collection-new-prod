@@ -19,20 +19,24 @@ export function ApplicationBootstrap() {
   useEffect(load, []);
   if (state.loading)
     return (
-      <div className="application-state app-loader-screen">
-        <Loader label="Loading cash collection…" size={52} />
+      <div className="hbims-cash-collection">
+        <div className="application-state app-loader-screen">
+          <Loader label="Loading cash collection…" size={52} />
+        </div>
       </div>
     );
   if (state.error)
     return (
-      <div className="application-state">
-        <Alert
-          type="error"
-          showIcon
-          message="Cash Collection could not be loaded"
-          description={state.error.message}
-          action={<Button onClick={load}>Retry</Button>}
-        />
+      <div className="hbims-cash-collection">
+        <div className="application-state">
+          <Alert
+            type="error"
+            showIcon
+            message="Cash Collection could not be loaded"
+            description={state.error.message}
+            action={<Button onClick={load}>Retry</Button>}
+          />
+        </div>
       </div>
     );
   return (

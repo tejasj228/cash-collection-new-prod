@@ -232,7 +232,11 @@ const billingByService = {
   },
 };
 
-const TODAY_ISO = "2024-09-03";
+const localIsoDate = (date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+    date.getDate(),
+  ).padStart(2, "0")}`;
+const TODAY_ISO = localIsoDate(new Date());
 const DAY_MS = 86400000;
 const isoMinus = (days) =>
   new Date(new Date(`${TODAY_ISO}T12:00:00`).getTime() - days * DAY_MS)

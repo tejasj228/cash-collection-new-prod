@@ -8,6 +8,7 @@ import { Icon } from "../../../shared/components/Icon";
 import {
   CountUp,
   Loader,
+  Pagination,
   SortHeader,
   StatCard,
 } from "../../../shared/components/ui";
@@ -608,19 +609,6 @@ export function Dashboard({
     (currentPage - 1) * pageSize,
     currentPage * pageSize,
   );
-  // windowed page list (1 … n-1 n n+1 … last) so many pages stay compact
-  const pageList = useMemo(() => {
-    const keep = new Set([1, pageCount]);
-    for (let p = currentPage - 1; p <= currentPage + 1; p += 1) {
-      if (p >= 1 && p <= pageCount) keep.add(p);
-    }
-    const sorted = [...keep].sort((a, b) => a - b);
-    return sorted.reduce((out, p, index) => {
-      if (index && p - sorted[index - 1] > 1) out.push(`gap-${p}`);
-      out.push(p);
-      return out;
-    }, []);
-  }, [pageCount, currentPage]);
 
   const dateLabel = new Date(`${todayIso}T12:00:00`).toLocaleDateString(
     "en-GB",
@@ -1028,39 +1016,7 @@ export function Dashboard({
               {Math.min(currentPage * pageSize, filteredRows.length)} of{" "}
               {filteredRows.length}
             </span>
-            <div>
-              <button
-                aria-label="Previous page"
-                disabled={currentPage === 1}
-                onClick={() => setPage((value) => Math.max(1, value - 1))}
-              >
-                <Icon name="back" size={13} />
-              </button>
-              {pageList.map((entry) =>
-                typeof entry === "number" ? (
-                  <button
-                    key={entry}
-                    className={currentPage === entry ? "active" : ""}
-                    onClick={() => setPage(entry)}
-                  >
-                    {entry}
-                  </button>
-                ) : (
-                  <span key={entry} className="table-pagination-gap">
-                    …
-                  </span>
-                ),
-              )}
-              <button
-                aria-label="Next page"
-                disabled={currentPage === pageCount}
-                onClick={() =>
-                  setPage((value) => Math.min(pageCount, value + 1))
-                }
-              >
-                <Icon name="arrow" size={13} />
-              </button>
-            </div>
+            <Pagination page={currentPage} pageCount={pageCount} onChange={setPage} />
           </div>
         )}
         {!filteredRows.length && (

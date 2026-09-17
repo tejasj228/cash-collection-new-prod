@@ -1485,12 +1485,6 @@
   margin: 0 -22px;
   overflow-x: auto;
 }
-.hbims-cash-collection .dash-table-panel .table-pagination-gap {
-  align-self: center;
-  padding: 0 2px;
-  color: #9aa7b8;
-  font-weight: 700;
-}
 .hbims-cash-collection .dash-table-panel table {
   width: 100%;
   min-width: 720px;
