@@ -124,6 +124,138 @@ function DirectCollectionIllustration() {
   );
 }
 
+function FindPatientDialog({ services, service, onSelect, onClose }) {
+  const [field, setField] = useState("mobile");
+  const [value, setValue] = useState("");
+  const [matches, setMatches] = useState([]);
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const active = useRef(true);
+  useEffect(
+    () => () => {
+      active.current = false;
+    },
+    [],
+  );
+  useEscapeToClose(onClose);
+  const search = async (event) => {
+    event.preventDefault();
+    if (!value.trim() || busy) return;
+    setBusy(true);
+    setMatches([]);
+    setMessage("");
+    try {
+      const result = await services.searchPatientPage({
+        query: value.trim(),
+        searchField: field,
+        hospitalServiceId: service.id,
+        page: 0,
+        size: 10,
+      });
+      if (!active.current) return;
+      setMatches(result.items || []);
+      setMessage(
+        result.items?.length
+          ? "Select the matching patient below."
+          : "No matching patient found.",
+      );
+    } catch (error) {
+      if (active.current) setMessage(error.message || "Patient search failed.");
+    } finally {
+      if (active.current) setBusy(false);
+    }
+  };
+  return (
+    <div className="popover-backdrop" onMouseDown={onClose}>
+      <form
+        className="confirm-dialog find-patient-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Find Patient"
+        onSubmit={search}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="confirm-head">
+          <strong>Find Patient</strong>
+          <button
+            type="button"
+            className="plain-icon"
+            aria-label="Close patient search"
+            onClick={onClose}
+          >
+            <Icon name="close" size={17} />
+          </button>
+        </div>
+        <p>Choose an identifier and enter its value to find a patient.</p>
+        <SelectField
+          label="Search by"
+          value={field}
+          options={[
+            { id: "mobile", label: "Mobile Number" },
+            { id: "abhaNumber", label: "ABHA Number" },
+            { id: "abhaAddress", label: "ABHA Address" },
+          ]}
+          onChange={(next) => {
+            setField(next);
+            setValue("");
+            setMatches([]);
+            setMessage("");
+          }}
+          disabled={busy}
+        />
+        <label className="field">
+          <span className="field-label">
+            {field === "mobile"
+              ? "Mobile Number"
+              : field === "abhaNumber"
+                ? "ABHA Number"
+                : "ABHA Address"}
+          </span>
+          <input
+            className="find-patient-input"
+            aria-label="Patient identifier"
+            autoFocus
+            value={value}
+            disabled={busy}
+            onChange={(event) => {
+              setValue(event.target.value);
+              setMatches([]);
+              setMessage("");
+            }}
+          />
+        </label>
+        {message && <p role="status">{message}</p>}
+        {matches.map((patient) => (
+          <button
+            className="button button-soft find-patient-match"
+            type="button"
+            key={patient.cr}
+            onClick={() => onSelect(patient)}
+          >
+            {patient.name} — CR No. {patient.cr}
+          </button>
+        ))}
+        <div className="confirm-actions">
+          <button
+            className="button button-ghost"
+            type="button"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button
+            className="button button-primary"
+            type="submit"
+            disabled={busy || !value.trim()}
+          >
+            {busy ? "Searching…" : "Search"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 function PatientSearchPopover({
   query,
   onChange,
@@ -540,31 +672,33 @@ function DirectSetup({
           </p>
         </aside>
       </div>
-      {patientPopup && (
-        <PatientSearchPopover
-          query={crQuery}
-          onChange={changeCr}
-          service={service}
-          listOnly
-          services={services}
-          onSelect={(patient) => {
-            const error =
-              patient.pendingServiceFamily &&
-              patientAdmissionState(patient) === null
-                ? ""
-                : directPatientError(patient, service);
-            if (error) {
-              setEligibilityMessage(error);
-              return;
-            }
-            setSelectedPatient(patient);
-            setCrQuery(compactIdentifier(patient.cr));
-            setPatientPopup(null);
-            clearEligibility();
-          }}
-          onClose={() => setPatientPopup(null)}
-        />
-      )}
+      {patientPopup &&
+        React.createElement(
+          patientPopup === "find" ? FindPatientDialog : PatientSearchPopover,
+          {
+            query: crQuery,
+            onChange: changeCr,
+            service,
+            listOnly: true,
+            services,
+            onSelect: (patient) => {
+              const error =
+                patient.pendingServiceFamily &&
+                patientAdmissionState(patient) === null
+                  ? ""
+                  : directPatientError(patient, service);
+              if (error) {
+                setEligibilityMessage(error);
+                return;
+              }
+              setSelectedPatient(patient);
+              setCrQuery(compactIdentifier(patient.cr));
+              setPatientPopup(null);
+              clearEligibility();
+            },
+            onClose: () => setPatientPopup(null),
+          },
+        )}
     </div>
   );
 }
@@ -712,4 +846,10 @@ function EstimatesHome({ onCreate }) {
   );
 }
 
-export { PatientSearchPopover, DirectSetup, DirectSelector, EstimatesHome };
+export {
+  FindPatientDialog,
+  PatientSearchPopover,
+  DirectSetup,
+  DirectSelector,
+  EstimatesHome,
+};

@@ -78,7 +78,23 @@ export function createPendingListPatientQueries(loadRequests, loadPatientInfo) {
         (patient) =>
           patient.hasIpdRequest === (options.hospitalServiceId === "ipd"),
       );
-      if (options.exactCr) {
+      if (options.searchField) {
+        if (
+          !["mobile", "abhaNumber", "abhaAddress"].includes(options.searchField)
+        )
+          throw new Error("Unsupported patient search identifier.");
+        const hydrated = [];
+        for (let offset = 0; offset < rows.length; offset += 10)
+          hydrated.push(
+            ...(await Promise.all(rows.slice(offset, offset + 10).map(enrich))),
+          );
+        const entered = normalize(options.query);
+        rows = entered
+          ? hydrated.filter(
+              (patient) => normalize(patient[options.searchField]) === entered,
+            )
+          : [];
+      } else if (options.exactCr) {
         rows = rows.filter((patient) => patient.cr === String(options.query));
         rows.forEach((patient) => infoCache.delete(patient.cr));
       } else if (terms.some((term) => /\d/.test(term))) {

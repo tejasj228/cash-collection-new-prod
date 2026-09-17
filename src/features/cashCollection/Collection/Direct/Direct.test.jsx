@@ -1,7 +1,11 @@
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { AppDataProvider } from "../../../../app/providers/AppDataProvider";
-import { DirectSetup, PatientSearchPopover } from "./Direct.jsx";
+import {
+  DirectSetup,
+  PatientSearchPopover,
+  FindPatientDialog,
+} from "./Direct.jsx";
 import { directPatientError } from "./direct";
 
 jest.mock("antd", () => ({
@@ -20,6 +24,36 @@ const patient = {
   mobile: "9876543210",
   isAdmitted: false,
 };
+
+test("Find Patient starts with only identifier controls and searches on submit", async () => {
+  const services = {
+    searchPatientPage: jest
+      .fn()
+      .mockResolvedValue({ items: [patient], total: 1 }),
+  };
+  render(
+    <FindPatientDialog
+      services={services}
+      service={{ id: "opd-normal" }}
+      onClose={() => {}}
+      onSelect={() => {}}
+    />,
+  );
+  expect(services.searchPatientPage).not.toHaveBeenCalled();
+  expect(screen.queryByText(patient.name)).toBeNull();
+  fireEvent.change(screen.getByLabelText("Patient identifier"), {
+    target: { value: patient.mobile },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Search" }));
+  await waitFor(() =>
+    expect(services.searchPatientPage).toHaveBeenCalledWith(
+      expect.objectContaining({ searchField: "mobile", query: patient.mobile }),
+    ),
+  );
+  expect(
+    await screen.findByRole("button", { name: /Database Patient/ }),
+  ).not.toBeNull();
+});
 
 test("missing admission is allowed only for correctly classified legacy pending candidates", () => {
   const pending = { cr, status: "-", pendingServiceFamily: "IPD" };

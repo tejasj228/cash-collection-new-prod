@@ -4,3 +4,35 @@
   margin: 0;
   padding: 10px 20px;
 }
+.hbims-cash-collection .find-patient-dialog {
+  width: min(460px, calc(100vw - 32px));
+  box-sizing: border-box;
+}
+.hbims-cash-collection .find-patient-dialog > p {
+  color: #5b6d87;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.hbims-cash-collection .find-patient-dialog > .field {
+  margin-top: 16px;
+}
+.hbims-cash-collection .find-patient-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 10px 13px;
+  border: 1px solid #dce6ef;
+  border-radius: 8px;
+  color: var(--ink);
+  background: #fbfcfd;
+}
+.hbims-cash-collection .find-patient-input:focus-visible {
+  outline: 2px solid #9bb8ea;
+  outline-offset: 2px;
+}
+.hbims-cash-collection .find-patient-match {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  white-space: normal;
+}
