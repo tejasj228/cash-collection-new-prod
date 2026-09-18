@@ -51,3 +51,39 @@ test.each(["Credit Card", "Debit Card", "UPI"])(
       expect(screen.getByLabelText(/Card No./)).not.toBeNull();
   },
 );
+
+test("Virtual Account requires payment details before collection", () => {
+  render(
+    <AppDataProvider
+      value={{
+        todayIso: "2026-09-17",
+        paymentOptions: {
+          modes: ["Virtual Account"],
+          cardTypes: [],
+          posTerminals: [],
+          restrictionsByCategory: {},
+        },
+      }}
+    >
+      <PaymentCard
+        paymentMode="Virtual Account"
+        setPaymentMode={() => {}}
+        total={500}
+        requestType="Receipt"
+        patient={{ cr: "123", category: "General" }}
+        onConfirm={jest.fn()}
+      />
+    </AppDataProvider>,
+  );
+
+  const details = screen.getByRole("textbox", { name: /Payment Details/ });
+  const collect = screen.getByRole("button", { name: /Collect/ });
+  expect(details.required).toBe(true);
+  expect(collect.disabled).toBe(true);
+  expect(
+    screen.getByText(/Enter the Virtual Account payment details to continue/),
+  ).not.toBeNull();
+
+  fireEvent.change(details, { target: { value: "VA-REF-2026-001" } });
+  expect(collect.disabled).toBe(false);
+});

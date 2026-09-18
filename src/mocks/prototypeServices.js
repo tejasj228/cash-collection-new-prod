@@ -28,9 +28,9 @@ const workflowFor = (command) => {
 };
 
 const eligibilityFor = (command, pendingRequests = PROTOTYPE_DATA.requests) => {
-  const patient = PROTOTYPE_DATA.patients.find(
-    (row) => row.cr === command.crNumber,
-  );
+  const patient =
+    (command._prototypeLiveApiData && command.prototypePrintContext?.patient) ||
+    PROTOTYPE_DATA.patients.find((row) => row.cr === command.crNumber);
   const workflow = workflowFor(command);
   if (!patient)
     return {
@@ -45,6 +45,8 @@ const eligibilityFor = (command, pendingRequests = PROTOTYPE_DATA.requests) => {
       message:
         "The selected hospital service, request type and billing service combination is not available.",
     };
+  if (command._prototypeLiveApiData)
+    return { eligible: true, code: "PROTOTYPE_POST", workflow, patient };
   if (workflow.legacyMode === "SERVER_RESOLVED")
     return {
       eligible: false,
@@ -465,12 +467,14 @@ export function createPrototypeServices({ now = () => Date.now() } = {}) {
         );
         return sum + (gross * percentage) / 100;
       }, 0);
+      const printContext = command.prototypePrintContext || {};
       const patient =
+        (command._prototypeLiveApiData && printContext.patient) ||
         PROTOTYPE_DATA.patients.find((row) => row.cr === command.crNumber) ||
         null;
-      const pendingRequest = pendingRequests.find(
-        (row) => row.id === command.requestId,
-      );
+      const pendingRequest =
+        (command._prototypeLiveApiData && printContext.request) ||
+        pendingRequests.find((row) => row.id === command.requestId);
       const documentNumber = reference(
         command.requestType === "Refund"
           ? "REF"
@@ -522,7 +526,20 @@ export function createPrototypeServices({ now = () => Date.now() } = {}) {
         dashboardTransaction,
         printableData: {
           documentType: command.requestType,
-          documentDate: PROTOTYPE_DATA.todayIso.split("-").reverse().join("/"),
+          documentDate: new Date(now()).toISOString(),
+          requestDate: pendingRequest?.date || null,
+          hospitalService:
+            printContext.hospitalService ||
+            pendingRequest?.hospitalService ||
+            HOSPITAL_SERVICE_FAMILY[command.hospitalServiceId],
+          billingService:
+            printContext.billingService || command.billingServiceName,
+          raisingDepartment:
+            printContext.raisingDepartment ||
+            pendingRequest?.department ||
+            patient?.department,
+          counter: printContext.counter || null,
+          cashier: printContext.cashier || null,
           patient,
           lines: command.lines,
           payment: command.payment,

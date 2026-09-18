@@ -573,6 +573,9 @@ components:
                   properties:
                     facility_name: { type: string }
                     facility_subtitle: { type: string }
+                    facility_address: { type: string }
+                    counter_name: { type: string }
+                    cashier_name: { type: string }
                 hospital_services:
                   {
                     type: array,
@@ -1241,6 +1244,11 @@ components:
           transaction_document_no,
           transaction_document_type,
           transaction_document_date,
+          hospital_service_name,
+          billing_service_name,
+          raising_department_name,
+          counter_details,
+          cashier_details,
           patient_details,
           tariff_lines,
           payment_details,
@@ -1249,7 +1257,23 @@ components:
       properties:
         transaction_document_no: { type: string }
         transaction_document_type: { type: string }
-        transaction_document_date: { type: string }
+        transaction_document_date: { type: string, format: date-time }
+        req_date:
+          { type: string, nullable: true, pattern: '^\d{2}/\d{2}/\d{4}$' }
+        hospital_service_name:
+          { $ref: "#/components/schemas/HospitalServiceName" }
+        billing_service_name: { type: string }
+        raising_department_name: { type: string }
+        counter_details:
+          type: object
+          required: [counter_name]
+          properties:
+            counter_name: { type: string }
+        cashier_details:
+          type: object
+          required: [cashier_name]
+          properties:
+            cashier_name: { type: string }
         patient_details: { $ref: "#/components/schemas/Patient" }
         tariff_lines:
           { type: array, items: { $ref: "#/components/schemas/TariffLine" } }

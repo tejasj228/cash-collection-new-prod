@@ -33,6 +33,9 @@ export async function resolveApplicationRuntime() {
     services.getTariffPage = directApi.getTariffPage;
     services.getTariffs = directApi.getTariffs;
     services.getPaymentOptions = fetchLegacyPaymentOptions;
+    const prototypePostTransaction = services.postTransaction.bind(services);
+    services.postTransaction = (command) =>
+      prototypePostTransaction({ ...command, _prototypeLiveApiData: true });
     let bootstrapData = PROTOTYPE_DATA;
 
     const [

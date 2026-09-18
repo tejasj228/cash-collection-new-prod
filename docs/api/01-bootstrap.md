@@ -24,6 +24,9 @@ only the first page — the UI re-fetches full pages through
 | `business_date`                                     | string           | `YYYY-MM-DD`. The **hospital's business date**, from the server — never the browser clock.                                                                                                 |
 | `facility_details.facility_name`                    | string           | Shown in the printed receipt header.                                                                                                                                                       |
 | `facility_details.facility_subtitle`                | string           | Optional, shown under the name on the receipt.                                                                                                                                             |
+| `facility_details.facility_address`                 | string           | Optional address line shown under the facility name/subtitle.                                                                                                                              |
+| `facility_details.counter_name`                     | string           | Counter name supplied by the authenticated backend context for transaction/print data.                                                                                                     |
+| `facility_details.cashier_name`                     | string           | Cashier display name supplied by the authenticated backend context for the signature and receipt metadata.                                                                                 |
 | `hospital_services`                                 | array            | The 4 hospital-service tiles (OPD Normal, OPD Special, IPD, Emergency) — see shape below.                                                                                                  |
 | `billing_services_by_hospital_service`              | object           | Keyed by `hospital_services[].hospital_service_id`, then by `"Receipt" \| "Refund" \| "Estimation"` — see shape below. **Every** service must have all three keys, each a non-empty array. |
 | `patient_seed_list`                                 | array            | Optional at bootstrap time — [`GET /patients`](./04-patient-search.md) is the real source. Bootstrap may ship a small seed list.                                                           |
@@ -74,8 +77,11 @@ Each entry is an **executable workflow descriptor**, not display text:
   "data": {
     "business_date": "2026-09-13",
     "facility_details": {
-      "facility_name": "HBIMS Hospital",
-      "facility_subtitle": "Hospital Billing & Information Management"
+      "facility_name": "All India Institute of Medical Sciences, Mangalagiri",
+      "facility_subtitle": "Hospital Billing & Information Management",
+      "facility_address": "Hospital campus address",
+      "counter_name": "Cash Counter 03",
+      "cashier_name": "Meera Iyer"
     },
     "hospital_services": [
       {
@@ -256,3 +262,9 @@ Each entry is an **executable workflow descriptor**, not display text:
   }
 }
 ```
+
+The backend does not send a logo field. For printed bills, the frontend maps
+`facility_details.facility_name` to a bundled logo in
+`src/features/cashCollection/Print/hospitalLogoMapper/hospitalLogoMapper.js`.
+Logo files live under `src/assets/hospitalLogos/`; an unmapped hospital name
+must not display another hospital's logo.

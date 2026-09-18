@@ -1278,8 +1278,11 @@ const prototypeCashInDrawer = recentTransactions
 export const PROTOTYPE_DATA = Object.freeze({
   todayIso: TODAY_ISO,
   facility: Object.freeze({
-    name: "HBIMS Hospital",
-    subtitle: "Hospital Billing & Information Management",
+    name: "All India Institute of Medical Sciences, Mangalagiri",
+    subtitle: "अखिल भारतीय आयुर्विज्ञान संस्थान, मंगलगिरि",
+    address: "Mangalagiri, Guntur District, Andhra Pradesh – 522503",
+    counterName: "Cash Counter 03",
+    cashierName: "Meera Iyer",
   }),
   queueSummary: Object.freeze({
     pendingCount: requests.length,

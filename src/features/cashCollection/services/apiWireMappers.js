@@ -177,6 +177,9 @@ export function mapBootstrapWire(row = {}) {
     facility: {
       name: displayText(facility.facility_name),
       subtitle: displayText(facility.facility_subtitle),
+      address: displayText(facility.facility_address),
+      counterName: displayText(facility.counter_name),
+      cashierName: displayText(facility.cashier_name),
     },
     serviceOptions: (row.hospital_services || []).map(mapServiceOption),
     billingByService: mapBillingServicesByHospitalService(
@@ -270,6 +273,16 @@ export function mapPostedTransactionWire(row = {}) {
           documentNumber: displayText(printable.transaction_document_no),
           documentType: displayText(printable.transaction_document_type),
           documentDate: displayText(printable.transaction_document_date),
+          requestDate: displayText(printable.req_date),
+          hospitalService: displayText(printable.hospital_service_name),
+          billingService: displayText(printable.billing_service_name),
+          raisingDepartment: displayText(printable.raising_department_name),
+          counter: displayText(
+            printable.counter_details?.counter_name || printable.counter_name,
+          ),
+          cashier: displayText(
+            printable.cashier_details?.cashier_name || printable.cashier_name,
+          ),
           patient: mapPatient(printable.patient_details),
           lines: (printable.tariff_lines || []).map(mapTariff),
           payment: mapPaymentDetailsWire(printable.payment_details),

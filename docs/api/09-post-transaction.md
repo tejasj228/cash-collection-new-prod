@@ -100,16 +100,33 @@ anything is written.
 
 ### `printable_data`
 
-| Field                                | Type           | Notes                                                        |
-| ------------------------------------ | -------------- | ------------------------------------------------------------ |
-| `transaction_document_type`          | string         | Echo `request_type`.                                         |
-| `transaction_document_date`          | string         | `DD/MM/YYYY`.                                                |
-| `patient_details`                    | object         | The full patient object, for the receipt header.             |
-| `tariff_lines`                       | array          | The final, server-recomputed charge lines.                   |
-| `payment_details`                    | object         | Echo of the request's `payment_details`.                     |
-| `transaction_totals.gross_amount`    | string decimal |                                                              |
-| `transaction_totals.discount_amount` | string decimal |                                                              |
-| `transaction_totals.net_amount`      | string decimal | Must equal `transaction_document_no`'s actual posted amount. |
+| Field                                | Type           | Notes                                                                                                                                                  |
+| ------------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `transaction_document_type`          | string         | Echo `request_type`.                                                                                                                                   |
+| `transaction_document_date`          | string         | ISO-8601 date-time, used for the billed date and time.                                                                                                 |
+| `req_date`                           | string/null    | Original request date; `null` for Direct Collection.                                                                                                   |
+| `hospital_service_name`              | string         | OPD, IPD, or Emergency label printed on the bill.                                                                                                      |
+| `billing_service_name`               | string         | Selected billing-service label.                                                                                                                        |
+| `raising_department_name`            | string         | Final server-validated raising department.                                                                                                             |
+| `counter_details.counter_name`       | string         | Authenticated counter; retained for audit/API context.                                                                                                 |
+| `cashier_details.cashier_name`       | string         | Authenticated cashier shown above the signature line.                                                                                                  |
+| `patient_details`                    | object         | The full patient object, for the receipt header.                                                                                                       |
+| `tariff_lines`                       | array          | The final, server-recomputed charge lines.                                                                                                             |
+| `payment_details`                    | object         | Structured payment details. Manual POS fields are printed from `manual_payment_details`; Cash/other modes use their own `payment_description`/summary. |
+| `transaction_totals.gross_amount`    | string decimal |                                                                                                                                                        |
+| `transaction_totals.discount_amount` | string decimal |                                                                                                                                                        |
+| `transaction_totals.net_amount`      | string decimal | Must equal `transaction_document_no`'s actual posted amount.                                                                                           |
+
+The frontend prints the AIIMS Mangalagiri A4 bill for both Direct and
+Request-Based posting responses. A Virtual Account payment alone adds the
+bilingual do-not-pay-again warning; no other mode shows that note. Bill
+numbers are displayed as `<transaction_document_no> / 0` for receipts and
+`<transaction_document_no> / 1` for refunds.
+
+After a successful post, the frontend opens the browser print dialog and keeps
+the same authoritative `printable_data` visible in an in-app bill preview.
+“Print again” reopens printing without reposting the transaction. Closing the
+preview completes the workflow and returns to the collection home screen.
 
 ### `dashboard_transaction_row` — the row that feeds every dashboard chart
 
@@ -153,7 +170,13 @@ BILLING_SERVICE_BUCKET  = { "Service": "Service", "Package": "Service", "Advance
     },
     "printable_data": {
       "transaction_document_type": "Receipt",
-      "transaction_document_date": "13/09/2026",
+      "transaction_document_date": "2026-09-13T10:38:00+05:30",
+      "req_date": "13/09/2026",
+      "hospital_service_name": "OPD",
+      "billing_service_name": "Service",
+      "raising_department_name": "Cardiology",
+      "counter_details": { "counter_name": "Cash Counter 03" },
+      "cashier_details": { "cashier_name": "Meera Iyer" },
       "patient_details": {
         "pat_name": "Ajay Deshmukh",
         "cr_num": "939112600000004",

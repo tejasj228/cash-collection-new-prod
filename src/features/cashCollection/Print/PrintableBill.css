@@ -1,1 +1,46 @@
-/* PrintableBill owns styles for this feature folder. Shared foundations remain in CashCollection.css. */
+.print-bill.aiims-bill {
+  display: none;
+}
+
+@media print {
+  html,
+  body {
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  /* PrintableBill portals directly into body. Removing the application root
+     keeps the receipt on one page and excludes the on-screen preview modal. */
+  body > :not(.print-bill) {
+    display: none !important;
+  }
+
+  body > .print-bill.aiims-bill {
+    display: flex !important;
+    position: relative !important;
+    inset: auto !important;
+    width: 194mm !important;
+    height: 280mm !important;
+    min-height: 280mm !important;
+    margin: 0 !important;
+    padding: 6mm 6mm 5mm !important;
+    overflow: hidden;
+    break-after: avoid-page;
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-bill.aiims-bill * {
+    visibility: visible !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+}

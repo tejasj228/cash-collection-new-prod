@@ -1,0 +1,361 @@
+.aiims-bill {
+  --bill-ink: #111418;
+  --bill-ink-2: #3a4250;
+  --bill-muted: #6b7280;
+  --bill-line: #d7dbe2;
+  --bill-line-strong: #9aa3b2;
+  --bill-navy: #102447;
+  --bill-soft: #eef2f8;
+  box-sizing: border-box;
+  flex-direction: column;
+  background: #fff;
+  color: var(--bill-ink);
+  font-family: "Segoe UI", Inter, "Helvetica Neue", Arial, sans-serif;
+  font-size: 11.5px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+.bill-preview-sheet.aiims-bill {
+  display: flex;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 14mm 14mm 12mm;
+}
+
+.aiims-bill,
+.aiims-bill * {
+  box-sizing: border-box;
+}
+
+.aiims-bill-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 28px;
+  border-bottom: 2px solid var(--bill-navy);
+}
+
+.aiims-bill-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.aiims-bill-brand img {
+  display: block;
+  width: 78px;
+  height: 78px;
+  flex: 0 0 78px;
+  object-fit: contain;
+  transform: translateY(-5px);
+}
+
+.aiims-bill-brand h1 {
+  margin: 0;
+  color: var(--bill-navy);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+}
+
+.aiims-bill-brand p {
+  margin: 0;
+  color: var(--bill-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.aiims-bill-brand .aiims-bill-hindi {
+  margin: 2px 0 4px;
+  color: var(--bill-ink-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bill-meta {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px 18px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 4px;
+  background: var(--bill-soft);
+}
+
+.bill-field {
+  min-width: 0;
+}
+
+.bill-field > span,
+.bill-words > span {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--bill-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.bill-field > strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--bill-ink);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.bill-field > strong.bill-emphasis {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.bill-section {
+  margin-top: 16px;
+  break-inside: avoid;
+}
+
+.bill-section > h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  color: var(--bill-navy);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.bill-section > h2::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--bill-line);
+}
+
+.bill-patient-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 8px 18px;
+}
+
+.bill-charges {
+  width: 100%;
+  margin-top: 2px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.bill-charges th {
+  padding: 7px 8px;
+  border-top: 1px solid var(--bill-line-strong);
+  border-bottom: 1px solid var(--bill-line-strong);
+  background: #fafbfc;
+  color: var(--bill-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.bill-charges th:nth-child(1) {
+  width: 34px;
+}
+
+.bill-charges th:nth-child(2) {
+  width: 78px;
+}
+
+.bill-charges th:nth-child(4) {
+  width: 110px;
+}
+
+.bill-charges th:nth-child(5) {
+  width: 80px;
+}
+
+.bill-charges th:nth-child(6) {
+  width: 44px;
+}
+
+.bill-charges th:nth-child(7) {
+  width: 84px;
+}
+
+.bill-charges th:nth-child(8) {
+  width: 92px;
+}
+
+.bill-charges td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--bill-line);
+  vertical-align: top;
+}
+
+.bill-charges tbody tr:last-child td {
+  border-bottom-color: var(--bill-line-strong);
+}
+
+.bill-charges td strong {
+  display: block;
+  font-weight: 600;
+}
+
+.bill-charges .center {
+  text-align: center;
+}
+
+.bill-charges .right {
+  text-align: right;
+}
+
+.bill-code {
+  color: var(--bill-muted);
+  font-size: 10.5px;
+}
+
+.bill-after-table {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 16px 32px;
+  align-items: start;
+  margin-top: 10px;
+}
+
+.bill-words {
+  padding: 8px 10px;
+  border: 1px dashed var(--bill-line-strong);
+  border-radius: 4px;
+  color: var(--bill-ink-2);
+}
+
+.bill-words > span {
+  margin-bottom: 3px;
+}
+
+.bill-words strong {
+  color: var(--bill-ink);
+  font-weight: 600;
+}
+
+.bill-totals {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.bill-totals td {
+  padding: 4px 8px;
+}
+
+.bill-totals td:first-child {
+  color: var(--bill-ink-2);
+}
+
+.bill-totals td:last-child {
+  text-align: right;
+  font-weight: 600;
+}
+
+.bill-net td {
+  padding-top: 7px;
+  border-top: 1px solid var(--bill-line-strong);
+  font-weight: 700;
+}
+
+.bill-paid td {
+  padding: 8px;
+  background: var(--bill-navy);
+  color: #fff !important;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.bill-paid td:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.bill-paid td:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.bill-payment-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px 18px;
+}
+
+.bill-payment-grid .bill-field > span {
+  margin-bottom: 5px;
+}
+
+.virtual-payment-note {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 12px;
+  padding: 9px 11px;
+  border: 1px solid var(--bill-line);
+  background: #fafbfc;
+  font-family: "Courier New", "Nirmala UI", monospace;
+  font-size: 10px;
+}
+
+.virtual-payment-note strong {
+  font-weight: 700;
+}
+
+.aiims-bill-foot {
+  margin-top: auto;
+  padding-top: 18px;
+}
+
+.bill-signature {
+  width: 200px;
+  margin-left: auto;
+  text-align: center;
+  transform: translateY(-24mm);
+}
+
+.bill-signature > span {
+  display: block;
+  height: 1px;
+  margin: 34px 0 6px;
+  background: var(--bill-ink);
+}
+
+.bill-signature strong,
+.bill-signature small {
+  display: block;
+  text-transform: uppercase;
+}
+
+.bill-signature strong {
+  margin-bottom: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.bill-signature small {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: normal;
+}
+
+.bill-colophon {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 14px;
+  padding-top: 8px;
+  border-top: 1px solid var(--bill-line);
+  color: var(--bill-muted);
+  font-size: 9.5px;
+}

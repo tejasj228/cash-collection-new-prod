@@ -12,6 +12,9 @@ const bootstrapWire = (overrides = {}) => ({
   facility_details: {
     facility_name: "Example Hospital",
     facility_subtitle: "Billing",
+    facility_address: "Example Road",
+    counter_name: "Counter 2",
+    cashier_name: "Cashier A",
   },
   hospital_services: [],
   billing_services_by_hospital_service: {},
@@ -241,6 +244,13 @@ describe("cash collection API adapter", () => {
       requestTimeoutMs: 1000,
     });
     const result = await api.loadBootstrap();
+    expect(result.facility).toEqual({
+      name: "Example Hospital",
+      subtitle: "Billing",
+      address: "Example Road",
+      counterName: "Counter 2",
+      cashierName: "Cashier A",
+    });
     expect(result.requests[0]).toMatchObject({
       id: row.req_no,
       patient: row.pat_name,
@@ -437,6 +447,12 @@ describe("cash collection API adapter", () => {
             transaction_document_no: "REC-1",
             transaction_document_type: "Receipt",
             transaction_document_date: "10/09/2026",
+            req_date: "10/09/2026",
+            hospital_service_name: "OPD",
+            billing_service_name: "Service",
+            raising_department_name: "General Medicine",
+            counter_details: { counter_name: "Cash Counter 03" },
+            cashier_details: { cashier_name: "Meera Iyer" },
             patient_details: {
               pat_name: "Example Patient",
               cr_num: "939112600000001",
@@ -481,6 +497,12 @@ describe("cash collection API adapter", () => {
       lines: [{ code: "CONS-101", name: "Consultation" }],
       payment: { mode: "Cash", summary: "Cash" },
       totals: { net: "480.00" },
+      requestDate: "10/09/2026",
+      hospitalService: "OPD",
+      billingService: "Service",
+      raisingDepartment: "General Medicine",
+      counter: "Cash Counter 03",
+      cashier: "Meera Iyer",
     });
   });
 

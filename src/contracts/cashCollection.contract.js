@@ -193,7 +193,7 @@ export function assertCashCollectionServices(services) {
   );
   if (missing.length) {
     throw new Error(
-      `HBIMS Cash Collection is missing service adapters: ${missing.join(", ")}.`,
+      `Cash Collection is missing service adapters: ${missing.join(", ")}.`,
     );
   }
   return services;

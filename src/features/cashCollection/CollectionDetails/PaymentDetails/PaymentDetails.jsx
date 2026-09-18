@@ -115,7 +115,8 @@ function PaymentCard({
   const isCard = isCardPaymentMode(paymentMode);
   const selectedCardType =
     paymentMode === "Card" ? cardType : isCard ? paymentMode : null;
-  const needsDescription = paymentMode === "Cheque";
+  const isVirtualAccount = paymentMode === "Virtual Account";
+  const needsDescription = paymentMode === "Cheque" || isVirtualAccount;
   const canPost =
     total > 0 &&
     allPaymentModes.includes(paymentMode) &&
@@ -424,13 +425,17 @@ function PaymentCard({
             )}
             {!usesTerminal && (
               <TextField
-                label="Payment Description"
+                label={
+                  isVirtualAccount ? "Payment Details" : "Payment Description"
+                }
                 value={description}
                 onChange={setDescription}
                 placeholder={
                   paymentMode === "Cheque"
                     ? "Enter cheque no., date and drawee bank"
-                    : "Enter payment note"
+                    : isVirtualAccount
+                      ? "Enter virtual account payment details"
+                      : "Enter payment note"
                 }
                 required={needsDescription}
                 invalid={needsDescription && !description.trim()}
@@ -460,8 +465,10 @@ function PaymentCard({
           {needsDescription && !description.trim() && total > 0 && (
             <div className="payment-check idle">
               <span>
-                <Icon name="info" size={14} /> Enter the cheque number, date and
-                drawee bank to continue
+                <Icon name="info" size={14} />
+                {isVirtualAccount
+                  ? "Enter the Virtual Account payment details to continue"
+                  : "Enter the cheque number, date and drawee bank to continue"}
               </span>
             </div>
           )}

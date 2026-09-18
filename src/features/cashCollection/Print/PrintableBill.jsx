@@ -1,7 +1,10 @@
 import React from "react";
+import { createPortal } from "react-dom";
+import "./BillDocument.css";
 import "./PrintableBill.css";
 import { PRINT_MEDIA } from "./printableBill";
 import { useAppData } from "../../../app/providers/AppDataProvider";
+import { getHospitalLogo } from "./hospitalLogoMapper/hospitalLogoMapper";
 import {
   displayDate,
   money,
@@ -13,123 +16,140 @@ import {
   lineNet,
 } from "../model/chargeCalculations";
 
-const SLIP_WIDTH = 94;
-
-const padRight = (value, width) =>
-  String(value ?? "")
-    .slice(0, width)
-    .padEnd(width, " ");
-
-const padLeft = (value, width) =>
-  String(value ?? "")
-    .slice(0, width)
-    .padStart(width, " ");
-
-const centreLine = (value, width = SLIP_WIDTH) => {
-  const text = String(value ?? "").slice(0, width);
-  const left = Math.max(0, Math.floor((width - text.length) / 2));
-  return " ".repeat(left) + text;
+const DASH = "—";
+const DEFAULT_FACILITY_NAME =
+  "All India Institute of Medical Sciences, Mangalagiri";
+const PLACEHOLDER_FACILITY_NAMES = new Set([
+  "hbims hospital",
+  "hbims cash collection",
+]);
+const present = (value) => {
+  const text = String(value ?? "").trim();
+  return text && text !== "-" ? text : DASH;
 };
-
-const slipField = (label, value, valueWidth) =>
-  padRight(label, 10) +
-  ": " +
-  padRight(String(value ?? "").toUpperCase(), valueWidth);
-
-function buildSlip({
-  receiptNo,
-  patient,
-  lines,
-  total,
-  payment,
-  requestType,
-  documentDate,
-}) {
-  const isRefund = requestType === "Refund";
-  const isEstimate = requestType === "Estimation";
-  const rule = "-".repeat(SLIP_WIDTH);
-  const gross = lines.reduce((sum, line) => sum + lineGross(line), 0);
-  const discount = lines.reduce(
-    (sum, line) => sum + lineDiscountAmount(line),
-    0,
-  );
-  const out = [];
-
-  out.push("");
-  out.push(
-    centreLine(
-      `[${isEstimate ? "ESTIMATION" : isRefund ? "REFUND" : "SERVICE"} RECEIPT]`,
-    ),
-  );
-  out.push("");
-  out.push(
-    slipField("CR No.", patient ? compactIdentifier(patient.cr) : "-", 20) +
-      slipField("DATE&TIME", documentDate || "-", 18) +
-      slipField("BILL No.", receiptNo, 20),
-  );
-  out.push(slipField("NAME", patient ? patient.name : "-", SLIP_WIDTH - 12));
-  out.push(
-    slipField("CATEGORY", patient ? patient.category : "-", 20) +
-      slipField(
-        "AGE/SEX",
-        patient ? `${patient.age}/${String(patient.sex || "").charAt(0)}` : "-",
-        18,
-      ) +
-      slipField("DEPARTMENT", patient ? patient.department : "-", 20),
-  );
-  if (patient && patient.ward && patient.ward !== "—") {
-    out.push(
-      slipField("WARD/BED", `${patient.ward} / ${patient.bed}`, 20) +
-        slipField("ADMN No.", compactIdentifier(patient.ipd), 18) +
-        slipField("ACCOUNT", compactIdentifier(patient.account), 20),
-    );
-  }
-  out.push("");
-  out.push(rule);
-  out.push(
-    padRight("S.No.", 6) +
-      padRight("PROCEDURE/INVESTIGATION/SERVICE", 40) +
-      padRight("LOCATION", 15) +
-      padLeft("RATE(Rs.)", 10) +
-      padLeft("QTY.", 8) +
-      padLeft("AMOUNT(Rs.)", 15),
-  );
-  out.push(rule);
-  lines.forEach((line, index) => {
-    out.push(
-      padRight(index + 1, 6) +
-        padRight(String(line.name || "").toUpperCase(), 40) +
-        padRight(String(line.group || "").toUpperCase(), 15) +
-        padLeft(money(line.rate), 10) +
-        padLeft(line.qty, 8) +
-        padLeft(money(lineNet(line)), 15),
-    );
+const formatClock = (date) =>
+  date.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
   });
-  out.push(rule);
-  out.push(
-    padLeft("GROSS AMOUNT (Rs.) :", SLIP_WIDTH - 15) +
-      padLeft(money(gross), 15),
+
+function documentMoment(value, fallbackDate) {
+  const raw = String(value || "").trim();
+  const parsed = raw ? new Date(raw) : null;
+  if (parsed && !Number.isNaN(parsed.getTime()) && /T|\d:\d/.test(raw))
+    return {
+      date: displayDate(parsed.toISOString().slice(0, 10)),
+      time: formatClock(parsed),
+    };
+  return { date: present(raw || fallbackDate), time: formatClock(new Date()) };
+}
+
+const ONES = [
+  "",
+  "One",
+  "Two",
+  "Three",
+  "Four",
+  "Five",
+  "Six",
+  "Seven",
+  "Eight",
+  "Nine",
+  "Ten",
+  "Eleven",
+  "Twelve",
+  "Thirteen",
+  "Fourteen",
+  "Fifteen",
+  "Sixteen",
+  "Seventeen",
+  "Eighteen",
+  "Nineteen",
+];
+const TENS = [
+  "",
+  "",
+  "Twenty",
+  "Thirty",
+  "Forty",
+  "Fifty",
+  "Sixty",
+  "Seventy",
+  "Eighty",
+  "Ninety",
+];
+const belowHundred = (value) =>
+  value < 20
+    ? ONES[value]
+    : `${TENS[Math.floor(value / 10)]}${value % 10 ? ` ${ONES[value % 10]}` : ""}`;
+function integerWords(value) {
+  let remaining = Math.max(0, Math.floor(value));
+  if (!remaining) return "Zero";
+  const parts = [];
+  [
+    [10000000, "Crore"],
+    [100000, "Lakh"],
+    [1000, "Thousand"],
+    [100, "Hundred"],
+  ].forEach(([unit, label]) => {
+    const count = Math.floor(remaining / unit);
+    if (count) {
+      parts.push(
+        `${count < 100 ? belowHundred(count) : integerWords(count)} ${label}`,
+      );
+      remaining %= unit;
+    }
+  });
+  if (remaining) parts.push(belowHundred(remaining));
+  return parts.join(" ");
+}
+export function amountInWords(amount) {
+  const numeric = Math.max(0, Number(amount) || 0);
+  const rupees = Math.floor(numeric);
+  const paise = Math.round((numeric - rupees) * 100);
+  return `Rupees ${integerWords(rupees)}${paise ? ` and ${integerWords(paise)} Paise` : ""} Only`;
+}
+
+function Field({ label, value, strong = false }) {
+  return (
+    <div className="bill-field">
+      <span>{label}</span>
+      <strong className={strong ? "bill-emphasis" : undefined}>
+        {present(value)}
+      </strong>
+    </div>
   );
-  if (discount > 0)
-    out.push(
-      padLeft("LESS DISCOUNT (Rs.) :", SLIP_WIDTH - 15) +
-        padLeft(money(discount), 15),
-    );
-  out.push(
-    padLeft(
-      `${isRefund ? "AMOUNT REFUNDED" : isEstimate ? "ESTIMATED TOTAL" : "AMOUNT RECEIVED"} (Rs.) :`,
-      SLIP_WIDTH - 15,
-    ) + padLeft(money(total), 15),
-  );
-  out.push(rule);
-  out.push("");
-  out.push(slipField("PAYMENT", payment, SLIP_WIDTH - 12));
-  out.push("");
-  out.push("");
-  out.push(padLeft("SIGNATURE OF CASHIER", SLIP_WIDTH));
-  out.push("");
-  out.push(centreLine("THIS IS A COMPUTER GENERATED RECEIPT."));
-  return out.join("\n");
+}
+
+export function paymentFacts(payment) {
+  const structured =
+    payment && typeof payment === "object"
+      ? payment
+      : { mode: payment, summary: payment };
+  const manual = structured.manualDetails || {};
+  const terminal = structured.terminalApproval || {};
+  const mode = present(structured.mode);
+  const cardLastFour = manual.cardLastFour || terminal.cardLastFour;
+  return {
+    mode,
+    card: cardLastFour
+      ? `${structured.cardType || manual.cardType || "Card"} ending ${cardLastFour}`
+      : null,
+    terminal: structured.terminalId,
+    reference: manual.reference || terminal.terminalTransactionId,
+    transactionDate: manual.transactionDate,
+    status:
+      terminal.status ||
+      (manual.summary
+        ? "Manual details recorded"
+        : mode === "Cash"
+          ? "Received"
+          : "Completed"),
+    details:
+      manual.summary || structured.description || structured.summary || mode,
+    virtual: mode.toLowerCase().replace(/[^a-z]/g, "") === "virtualaccount",
+  };
 }
 
 function PrintableBill({
@@ -140,51 +160,210 @@ function PrintableBill({
   payment,
   requestType,
   documentDate,
+  requestDate,
+  hospitalService,
+  billingService,
+  raisingDepartment,
+  cashier,
+  preview = false,
 }) {
-  const { todayIso, facility } = useAppData();
+  const { todayIso, facility = {} } = useAppData();
+  const isRefund = requestType === "Refund";
   const isEstimate = requestType === "Estimation";
-  const date = documentDate || displayDate(todayIso);
-  const slip = buildSlip({
-    receiptNo: compactIdentifier(receiptNo),
-    patient,
-    lines,
-    total,
-    payment,
-    requestType,
-    documentDate: date,
-  });
-  return (
-    <div className="print-bill" data-media={PRINT_MEDIA}>
-      <div className="slip-header">
-        <strong>{facility?.name || ""}</strong>
-        {facility?.subtitle && <span>{facility.subtitle}</span>}
-        {facility?.address && <span>{facility.address}</span>}
-      </div>
-      <table className="slip-banner">
-        <tbody>
-          <tr>
-            <td className="SLIPCONTROLBOLD">
-              {isEstimate ? "ESTIMATION RECEIPT" : "BILLING SERVICES RECEIPT"}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <table className="slip-body">
-        <tbody>
-          <tr>
-            <td>
-              <pre>{slip}</pre>
-            </td>
-          </tr>
-          {isEstimate && (
-            <tr>
-              <td className="slip-notpaid">NOT PAID</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+  const gross = lines.reduce((sum, line) => sum + lineGross(line), 0);
+  const discount = lines.reduce(
+    (sum, line) => sum + lineDiscountAmount(line),
+    0,
   );
+  const moment = documentMoment(documentDate, displayDate(todayIso));
+  const pay = paymentFacts(payment);
+  const suppliedFacilityName = String(facility.name || "").trim();
+  const facilityName = PLACEHOLDER_FACILITY_NAMES.has(
+    suppliedFacilityName.toLowerCase(),
+  )
+    ? DEFAULT_FACILITY_NAME
+    : suppliedFacilityName || DEFAULT_FACILITY_NAME;
+  const facilityLogo = getHospitalLogo(facilityName);
+  const bill = (
+    <article
+      className={`${preview ? "bill-preview-sheet" : "print-bill"} aiims-bill`}
+      data-media={PRINT_MEDIA}
+    >
+      <header className="aiims-bill-head">
+        <div className="aiims-bill-brand">
+          {facilityLogo && (
+            <img src={facilityLogo} alt={`${facilityName} logo`} />
+          )}
+          <div>
+            <h1>{facilityName}</h1>
+            {facility.subtitle && (
+              <p className="aiims-bill-hindi">{facility.subtitle}</p>
+            )}
+            {facility.address && <p>{facility.address}</p>}
+          </div>
+        </div>
+      </header>
+      <section className="bill-meta">
+        <Field label="Hospital Service" value={hospitalService} />
+        <Field label="Billing Service" value={billingService} />
+        <Field
+          label="Bill No."
+          value={`${compactIdentifier(receiptNo) || DASH} / ${isRefund ? "1" : "0"}`}
+        />
+        <Field label="Request Date" value={requestDate} />
+        <Field label="Cashier" value={cashier} />
+        <Field
+          label="Raising Department"
+          value={raisingDepartment || patient?.department}
+        />
+        <Field label="Billed Date" value={moment.date} />
+        <Field label="Billed Time" value={moment.time} />
+      </section>
+      <section className="bill-section">
+        <h2>Patient</h2>
+        <div className="bill-patient-grid">
+          <Field label="Patient Name" value={patient?.name} strong />
+          <Field label="CR No." value={compactIdentifier(patient?.cr)} />
+          <Field
+            label="Age / Sex"
+            value={`${present(patient?.age)} / ${present(patient?.sex)}`}
+          />
+          <Field label="Category" value={patient?.category} />
+          <Field
+            label="Mobile No."
+            value={compactIdentifier(patient?.mobile)}
+          />
+          <Field label="ABHA No." value={patient?.abhaNumber} />
+        </div>
+      </section>
+      <section className="bill-section">
+        <h2>Charges</h2>
+        <table className="bill-charges">
+          <thead>
+            <tr>
+              <th className="center">#</th>
+              <th>Code</th>
+              <th>Procedure / Inv / Service</th>
+              <th>Tariff Group</th>
+              <th className="right">Rate (₹)</th>
+              <th className="center">Qty</th>
+              <th className="right">Discount (₹)</th>
+              <th className="right">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lines.map((line, index) => (
+              <tr key={line.key || `${line.code}-${index}`}>
+                <td className="center">{index + 1}</td>
+                <td className="bill-code">{present(line.code)}</td>
+                <td>
+                  <strong>{present(line.name)}</strong>
+                </td>
+                <td>{present(line.group)}</td>
+                <td className="right">{money(line.rate)}</td>
+                <td className="center">{line.qty}</td>
+                <td className="right">{money(lineDiscountAmount(line))}</td>
+                <td className="right">{money(lineNet(line))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="bill-after-table">
+          <div className="bill-words">
+            <span>Amount in words</span>
+            <strong>{amountInWords(total)}</strong>
+          </div>
+          <table className="bill-totals">
+            <tbody>
+              <tr>
+                <td>Billed Amount</td>
+                <td>₹ {money(gross)}</td>
+              </tr>
+              {discount > 0 && (
+                <tr>
+                  <td>Less: Discount</td>
+                  <td>− ₹ {money(discount)}</td>
+                </tr>
+              )}
+              <tr className="bill-net">
+                <td>Net Payable</td>
+                <td>₹ {money(total)}</td>
+              </tr>
+              <tr className="bill-paid">
+                <td>
+                  {isRefund
+                    ? "Amount Refunded"
+                    : isEstimate
+                      ? "Estimated Amount"
+                      : "Amount Received"}
+                </td>
+                <td>₹ {money(total)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {!isEstimate && (
+        <section className="bill-section">
+          <h2>Payment</h2>
+          <div className="bill-payment-grid">
+            <Field label="Mode" value={pay.mode} />
+            {pay.card && <Field label="Card" value={pay.card} />}
+            {pay.terminal && (
+              <Field label="POS Terminal" value={pay.terminal} />
+            )}
+            {pay.reference && (
+              <Field
+                label="Bank Reference / Transaction No."
+                value={pay.reference}
+              />
+            )}
+            {pay.transactionDate && (
+              <Field label="Transaction Date" value={pay.transactionDate} />
+            )}
+            <Field label="Status" value={pay.status} />
+            <Field label="Payment Details" value={pay.details} />
+          </div>
+          {pay.virtual && (
+            <div className="virtual-payment-note">
+              <strong>MODE OF PAYMENT: VIRTUAL ACCOUNT</strong>
+              <span>
+                PAYMENT DETAILS: VIRTUAL ACCOUNT — AMT.: ₹{money(total)}
+              </span>
+              <span lang="hi">
+                नोट: यह भुगतान वर्चुअल अकाउंट से लिंक है। इसका दोबारा भुगतान न
+                करें।
+              </span>
+              <span>
+                NOTE: This payment is linked to the Virtual Account. Do not pay
+                it again.
+              </span>
+            </div>
+          )}
+        </section>
+      )}
+      <footer className="aiims-bill-foot">
+        <div className="bill-signature">
+          <span />
+          <strong>{present(cashier)}</strong>
+          <small>Authorised Signatory</small>
+        </div>
+        <div className="bill-colophon">
+          <span>This is a computer-generated receipt.</span>
+          <span>
+            Printed {moment.date} {moment.time} · Page 1 of 1
+          </span>
+        </div>
+      </footer>
+    </article>
+  );
+  // Keep the printable page outside the application shell. The shell is much
+  // taller than A4 and its print styles otherwise push this receipt onto a
+  // later sheet even though it is absolutely positioned.
+  if (preview) return bill;
+  return typeof document === "undefined"
+    ? bill
+    : createPortal(bill, document.body);
 }
 
-export { buildSlip, PrintableBill };
+export { PrintableBill };

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import "./CollectionDetails.css";
 import {
   WorkflowFamily,
@@ -24,6 +24,7 @@ import {
   TariffDetailsDialog,
 } from "./BillingDetails/BillingDetails.jsx";
 import { PrintableBill } from "../Print/PrintableBill.jsx";
+import { BillPreviewDialog } from "../Print/BillPreviewDialog.jsx";
 import { PaymentCard } from "./PaymentDetails/PaymentDetails.jsx";
 
 function CollectionWorkspace({
@@ -41,11 +42,16 @@ function CollectionWorkspace({
   services,
   onModalVisibilityChange,
 }) {
-  const { paymentOptions } = useAppData();
+  const { paymentOptions, facility } = useAppData();
   const [paymentMode, setPaymentMode] = useState(paymentOptions.modes[0] || "");
-  const [billPayment, setBillPayment] = useState(paymentOptions.modes[0] || "");
+  const [billPayment, setBillPayment] = useState(() => ({
+    mode: paymentOptions.modes[0] || "",
+    summary: paymentOptions.modes[0] || "",
+  }));
   const [receiptNo, setReceiptNo] = useState("Generated after posting");
   const [printDocument, setPrintDocument] = useState(null);
+  const [completedTransaction, setCompletedTransaction] = useState(null);
+  const [billPreviewOpen, setBillPreviewOpen] = useState(false);
   const [idempotencyKey] = useState(createIdempotencyKey);
   const [workflowSelections] = useState(() => ({
     raisingDepartmentId: firstContextValue(
@@ -67,7 +73,7 @@ function CollectionWorkspace({
     ),
   }));
   const postAndPrint = async (payment) => {
-    setBillPayment(payment.summary);
+    setBillPayment(payment);
     const command = {
       source: mode,
       requestId: request?.id || null,
@@ -87,6 +93,16 @@ function CollectionWorkspace({
       displayedTotal: total.toFixed(2),
       payment,
       idempotencyKey,
+      prototypePrintContext: {
+        patient: selectedPatient,
+        request,
+        hospitalService: request?.hospitalService || service?.short,
+        billingService: workflow.label,
+        raisingDepartment:
+          workflowSelections.raisingDepartmentId || selectedPatient?.department,
+        counter: facility?.counterName,
+        cashier: facility?.cashierName,
+      },
     };
     if (typeof services?.postTransaction !== "function")
       throw new Error("Transaction posting service is unavailable.");
@@ -113,29 +129,35 @@ function CollectionWorkspace({
         "Transaction response contained an invalid authoritative total.",
       );
     setReceiptNo(authoritativeNumber);
-    setBillPayment(printable.payment.summary || printable.payment.mode);
-    setPrintDocument({
+    setBillPayment(printable.payment);
+    const nextPrintDocument = {
       receiptNo: authoritativeNumber,
       patient: printable.patient,
       lines: withKeys(printable.lines),
       total: authoritativeTotal,
-      payment: printable.payment.summary || printable.payment.mode,
+      payment: printable.payment,
       requestType,
       documentDate: printable.documentDate,
-    });
+      requestDate: printable.requestDate,
+      hospitalService: printable.hospitalService,
+      billingService: printable.billingService,
+      raisingDepartment: printable.raisingDepartment,
+      counter: printable.counter,
+      cashier: printable.cashier,
+    };
+    const completed = {
+      ...command,
+      ...result,
+      receiptNo: authoritativeNumber,
+      patientName: printable.patient.name,
+      cr: printable.patient.cr,
+      amount: money(authoritativeTotal),
+      paymentMode: printable.payment.summary || printable.payment.mode,
+    };
+    setPrintDocument(nextPrintDocument);
+    setCompletedTransaction(completed);
+    setBillPreviewOpen(true);
     window.setTimeout(() => {
-      const completed = {
-        ...command,
-        ...result,
-        receiptNo: authoritativeNumber,
-        patientName: printable.patient.name,
-        cr: printable.patient.cr,
-        amount: money(authoritativeTotal),
-        paymentMode: printable.payment.summary || printable.payment.mode,
-      };
-      window.addEventListener("afterprint", () => onConfirm(completed), {
-        once: true,
-      });
       window.print();
     }, 80);
   };
@@ -201,13 +223,15 @@ function CollectionWorkspace({
       Boolean(detailsGroup) ||
         paymentModalOpen ||
         tariffModalOpen ||
-        patientInfoOpen,
+        patientInfoOpen ||
+        billPreviewOpen,
     );
   }, [
     detailsGroup,
     paymentModalOpen,
     tariffModalOpen,
     patientInfoOpen,
+    billPreviewOpen,
     onModalVisibilityChange,
   ]);
   useEffect(
@@ -236,6 +260,32 @@ function CollectionWorkspace({
     paymentMode: paymentMode || null,
     channel: paymentMode === "Cash" ? "Offline" : paymentMode ? "Online" : null,
   };
+  const billProps = {
+    receiptNo: printDocument?.receiptNo || receiptNo,
+    patient: printDocument?.patient || selectedPatient,
+    lines: printDocument?.lines || chosenLines,
+    total: printDocument?.total ?? total,
+    payment: printDocument?.payment || billPayment,
+    requestType: printDocument?.requestType || requestType,
+    documentDate: printDocument?.documentDate,
+    requestDate: printDocument?.requestDate || request?.date,
+    hospitalService:
+      printDocument?.hospitalService ||
+      request?.hospitalService ||
+      service?.short,
+    billingService: printDocument?.billingService || workflow?.label,
+    raisingDepartment:
+      printDocument?.raisingDepartment ||
+      request?.department ||
+      selectedPatient?.department,
+    counter: printDocument?.counter || facility?.counterName,
+    cashier: printDocument?.cashier || facility?.cashierName,
+  };
+  const printAgain = useCallback(() => window.print(), []);
+  const closeBillPreview = useCallback(() => {
+    setBillPreviewOpen(false);
+    if (completedTransaction) onConfirm(completedTransaction);
+  }, [completedTransaction, onConfirm]);
   return (
     <div className="flow-screen workspace-screen">
       {!payOpen && (
@@ -316,15 +366,15 @@ function CollectionWorkspace({
         )}
       </div>
 
-      <PrintableBill
-        receiptNo={printDocument?.receiptNo || receiptNo}
-        patient={printDocument?.patient || selectedPatient}
-        lines={printDocument?.lines || chosenLines}
-        total={printDocument?.total ?? total}
-        payment={printDocument?.payment || billPayment}
-        requestType={printDocument?.requestType || requestType}
-        documentDate={printDocument?.documentDate}
-      />
+      <PrintableBill {...billProps} />
+
+      {billPreviewOpen && printDocument && (
+        <BillPreviewDialog
+          billProps={billProps}
+          onPrint={printAgain}
+          onClose={closeBillPreview}
+        />
+      )}
 
       {detailsGroup && (
         <TariffDetailsDialog

@@ -76,6 +76,7 @@ export function TextField({
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
           suffix={suffix}
+          required={required}
           readOnly={readOnly}
           inputMode={inputMode}
           maxLength={maxLength}

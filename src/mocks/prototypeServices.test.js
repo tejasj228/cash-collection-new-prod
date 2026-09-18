@@ -106,6 +106,52 @@ test("posting a direct collection adds it to the dashboard without consuming a r
   jest.useRealTimers();
 });
 
+test("legacy integration prototype posting prints the already-loaded API patient", async () => {
+  jest.useFakeTimers();
+  const services = createPrototypeServices({
+    now: () => new Date("2026-09-18T11:42:00+05:30").getTime(),
+  });
+  const workflow = PROTOTYPE_DATA.billingByService["opd-normal"].Receipt[0];
+  const apiPatient = {
+    cr: "379132600004512",
+    name: "Live API Patient",
+    age: "42",
+    sex: "Male",
+    category: "General",
+  };
+  const result = await resolveAfterPrototypeLatency(
+    services.postTransaction({
+      _prototypeLiveApiData: true,
+      source: "direct",
+      requestType: "Receipt",
+      billingServiceId: workflow.id,
+      billingServiceName: workflow.label,
+      processingBillingServiceId: workflow.processingServiceId,
+      workflowId: workflow.uiFamily,
+      hospitalServiceId: "opd-normal",
+      crNumber: apiPatient.cr,
+      lines: [{ code: "T1", name: "Test", rate: 30, qty: 1, discount: 0 }],
+      displayedTotal: "30.00",
+      payment: { mode: "Cash", summary: "Cash" },
+      idempotencyKey: "live-api-print-test",
+      prototypePrintContext: {
+        patient: apiPatient,
+        hospitalService: "OPD",
+        billingService: "Service",
+        counter: "Counter 3",
+        cashier: "Cashier Name",
+      },
+    }),
+  );
+  expect(result.printableData).toMatchObject({
+    patient: apiPatient,
+    hospitalService: "OPD",
+    counter: "Counter 3",
+    cashier: "Cashier Name",
+  });
+  jest.useRealTimers();
+});
+
 test("dashboard and end shift use the same unfiltered cash-only net", async () => {
   jest.useFakeTimers();
   const services = createPrototypeServices();
