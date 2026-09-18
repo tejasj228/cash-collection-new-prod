@@ -54,7 +54,7 @@ const renderPreview = (callbacks = {}) =>
     </AppDataProvider>,
   );
 
-test("shows the completed bill with print-again and close actions", () => {
+test("shows the completed bill with print and close actions", () => {
   const onPrint = jest.fn();
   const onClose = jest.fn();
   renderPreview({ onPrint, onClose });
@@ -62,7 +62,7 @@ test("shows the completed bill with print-again and close actions", () => {
   expect(screen.getByRole("dialog", { name: "Bill preview" })).not.toBeNull();
   expect(screen.getByText("Preview Patient")).not.toBeNull();
 
-  fireEvent.click(screen.getByRole("button", { name: "Print again" }));
+  fireEvent.click(screen.getByRole("button", { name: "Print" }));
   expect(onPrint).toHaveBeenCalledTimes(1);
 
   fireEvent.click(screen.getByRole("button", { name: "Close" }));

@@ -30,7 +30,7 @@ function BillPreviewDialog({ billProps, onClose, onPrint }) {
               Close
             </Button>
             <Button icon="print" onClick={onPrint}>
-              Print again
+              Print
             </Button>
           </div>
         </header>

@@ -222,8 +222,8 @@ function PrintableBill({
       <section className="bill-section">
         <h2>Patient</h2>
         <div className="bill-patient-grid">
+          <Field label="CR No." value={compactIdentifier(patient?.cr)} strong />
           <Field label="Patient Name" value={patient?.name} strong />
-          <Field label="CR No." value={compactIdentifier(patient?.cr)} />
           <Field
             label="Age / Sex"
             value={`${present(patient?.age)} / ${present(patient?.sex)}`}
@@ -279,12 +279,12 @@ function PrintableBill({
                 <td>Billed Amount</td>
                 <td>₹ {money(gross)}</td>
               </tr>
-              {discount > 0 && (
-                <tr>
-                  <td>Less: Discount</td>
-                  <td>− ₹ {money(discount)}</td>
-                </tr>
-              )}
+              <tr>
+                <td>Less: Discount</td>
+                <td>
+                  {discount > 0 ? "− " : ""}₹ {money(discount)}
+                </td>
+              </tr>
               <tr className="bill-net">
                 <td>Net Payable</td>
                 <td>₹ {money(total)}</td>
@@ -331,12 +331,12 @@ function PrintableBill({
                 PAYMENT DETAILS: VIRTUAL ACCOUNT — AMT.: ₹{money(total)}
               </span>
               <span lang="hi">
-                नोट: यह भुगतान वर्चुअल अकाउंट से लिंक है। इसका दोबारा भुगतान न
-                करें।
+                नोट: यह भुगतान वर्चुअल अकाउंट से जुड़ा है। भुगतान के लिए इसका
+                प्रयोग न करें।
               </span>
               <span>
-                NOTE: This payment is linked to the Virtual Account. Do not pay
-                it again.
+                NOTE: This payment is linked to the Virtual Account. Do not use
+                it for payment.
               </span>
             </div>
           )}

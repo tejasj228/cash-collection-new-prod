@@ -69,7 +69,20 @@ test("renders the approved AIIMS bill with API-backed patient and transaction fi
   expect(screen.getByText("API Patient")).not.toBeNull();
   expect(screen.getByText("Complete Blood Count")).not.toBeNull();
   expect(screen.getAllByText("Meera Iyer")).toHaveLength(2);
-  expect(screen.queryByText(/Virtual Account\. Do not pay/i)).toBeNull();
+  const crField = screen.getByText("CR No.").parentElement;
+  const patientNameField = screen.getByText("Patient Name").parentElement;
+  expect(crField.nextElementSibling).toBe(patientNameField);
+  expect(
+    crField.querySelector("strong").classList.contains("bill-emphasis"),
+  ).toBe(true);
+  expect(
+    patientNameField
+      .querySelector("strong")
+      .classList.contains("bill-emphasis"),
+  ).toBe(true);
+  expect(screen.getByText("Less: Discount")).not.toBeNull();
+  expect(screen.getByText("₹ 0.00")).not.toBeNull();
+  expect(screen.queryByText(/Virtual Account\. Do not use/i)).toBeNull();
 });
 
 test("replaces a placeholder hospital name with the AIIMS Mangalagiri fallback", () => {
@@ -116,10 +129,11 @@ test("shows the bilingual warning only for Virtual Account", () => {
   });
   expect(
     screen.getByText(
-      "NOTE: This payment is linked to the Virtual Account. Do not pay it again.",
+      "NOTE: This payment is linked to the Virtual Account. Do not use it for payment.",
     ),
   ).not.toBeNull();
-  expect(screen.getByText(/दोबारा भुगतान न करें/)).not.toBeNull();
+  expect(screen.getByText(/भुगतान के लिए इसका प्रयोग न करें/)).not.toBeNull();
+  expect(screen.queryByText(/दोबारा/)).toBeNull();
 });
 
 test("uses Indian-number words and refund document code", () => {

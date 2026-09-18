@@ -40,15 +40,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 16px;
   text-align: center;
 }
 
 .aiims-bill-brand img {
   display: block;
-  width: 78px;
-  height: 78px;
-  flex: 0 0 78px;
+  width: 90px;
+  height: 90px;
+  flex: 0 0 90px;
   object-fit: contain;
   transform: translateY(-5px);
 }
@@ -56,7 +56,7 @@
 .aiims-bill-brand h1 {
   margin: 0;
   color: var(--bill-navy);
-  font-size: 21px;
+  font-size: 23px;
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: 0.02em;
@@ -65,14 +65,14 @@
 .aiims-bill-brand p {
   margin: 0;
   color: var(--bill-muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
 .aiims-bill-brand .aiims-bill-hindi {
   margin: 2px 0 4px;
   color: var(--bill-ink-2);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -304,7 +304,7 @@
   border: 1px solid var(--bill-line);
   background: #fafbfc;
   font-family: "Courier New", "Nirmala UI", monospace;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .virtual-payment-note strong {
