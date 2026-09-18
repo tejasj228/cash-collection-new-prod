@@ -205,18 +205,22 @@
 }
 
 .bill-charges th:nth-child(2) {
-  width: 58px;
+  width: auto;
 }
 
-.bill-charges th:nth-child(4) {
+.bill-charges th:nth-child(3) {
   width: 160px;
 }
 
-.bill-charges th:nth-child(4),
-.bill-charges td:nth-child(4) {
+.bill-charges th:nth-child(3),
+.bill-charges td:nth-child(3) {
   padding-left: 2px;
   padding-right: 2px;
   white-space: nowrap;
+}
+
+.bill-charges th:nth-child(4) {
+  width: 58px;
 }
 
 .bill-charges th:nth-child(5) {

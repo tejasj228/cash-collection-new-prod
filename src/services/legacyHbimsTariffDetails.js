@@ -25,6 +25,9 @@ export function mapLegacyTariffDetailsRow(row, crNo) {
     code,
     name,
     group: String(row.tariff_group_name ?? "").trim(),
+    ...(row.location != null || row.tariff_location != null
+      ? { location: String(row.location ?? row.tariff_location).trim() }
+      : {}),
     rate: numericField(row.tariff_rate, "tariff_rate", 0),
     qty: numericField(row.tariff_qty, "tariff_qty", 0),
     discount: numericField(

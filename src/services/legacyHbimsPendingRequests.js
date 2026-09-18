@@ -97,8 +97,14 @@ export async function fetchLegacyPendingRequests() {
 // duplicating the search/filter/sort/pagination contract those expect.
 // The endpoint has no page/size params, so every table interaction reuses the
 // single array fetched before the application renders.
-export function createLegacyPendingRequestQueries(loadRequests) {
+export function createLegacyPendingRequestQueries(loadRequests, readRequests) {
   return {
+    ...(readRequests
+      ? {
+          getPendingRequestPageSync: (filters = {}) =>
+            queryPendingRequests(readRequests(), filters),
+        }
+      : {}),
     async listPendingRequests(filters = {}) {
       return queryPendingRequests(await loadRequests(), filters);
     },

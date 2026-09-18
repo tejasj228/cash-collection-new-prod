@@ -77,12 +77,31 @@ function RequestWorklist({
   onTotalChange,
 }) {
   const { requests, queueSummary } = useAppData();
+  const localPage = useMemo(
+    () =>
+      services?.getPendingRequestPageSync?.({
+        page: page - 1,
+        size: 10,
+        search: search.trim(),
+        hospitalService:
+          hospitalServiceFilter === ALL_HOSPITAL_SERVICES
+            ? undefined
+            : hospitalServiceFilter,
+        requestType:
+          requestTypeFilter === ALL_REQUEST_TYPES
+            ? undefined
+            : requestTypeFilter,
+        sort: sort ? `${sort.field},${sort.dir}` : undefined,
+      }),
+    [services, page, search, hospitalServiceFilter, requestTypeFilter, sort],
+  );
   const [pageData, setPageData] = useState({
     items: requests.slice(0, 10),
     total: Number(queueSummary?.pendingCount ?? requests.length),
   });
+  const displayedData = localPage || pageData;
   const [loadError, setLoadError] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!localPage);
   const [filterOpen, setFilterOpen] = useState(false);
   useEscapeToClose(() => setFilterOpen(false), filterOpen);
   const pageSize = 10;
@@ -108,41 +127,50 @@ function RequestWorklist({
     (hospitalServiceFilter !== ALL_HOSPITAL_SERVICES ? 1 : 0) +
     (requestTypeFilter !== ALL_REQUEST_TYPES ? 1 : 0);
   React.useEffect(() => {
+    if (localPage) {
+      setLoading(false);
+      setLoadError("");
+      onTotalChange?.(localPage.total);
+      return;
+    }
     let active = true;
     setLoading(true);
-    const timer = window.setTimeout(async () => {
-      try {
-        const result = await services.listPendingRequests({
-          page: page - 1,
-          size: pageSize,
-          search: search.trim(),
-          hospitalService:
-            hospitalServiceFilter === ALL_HOSPITAL_SERVICES
-              ? undefined
-              : hospitalServiceFilter,
-          requestType:
-            requestTypeFilter === ALL_REQUEST_TYPES
-              ? undefined
-              : requestTypeFilter,
-          sort: sort ? `${sort.field},${sort.dir}` : undefined,
-        });
-        if (active) {
-          setPageData({
-            items: result?.items || [],
-            total: Number(result?.total || 0),
+    const timer = window.setTimeout(
+      async () => {
+        try {
+          const result = await services.listPendingRequests({
+            page: page - 1,
+            size: pageSize,
+            search: search.trim(),
+            hospitalService:
+              hospitalServiceFilter === ALL_HOSPITAL_SERVICES
+                ? undefined
+                : hospitalServiceFilter,
+            requestType:
+              requestTypeFilter === ALL_REQUEST_TYPES
+                ? undefined
+                : requestTypeFilter,
+            sort: sort ? `${sort.field},${sort.dir}` : undefined,
           });
-          setLoadError("");
-          onTotalChange?.(Number(result?.total || 0));
+          if (active) {
+            setPageData({
+              items: result?.items || [],
+              total: Number(result?.total || 0),
+            });
+            setLoadError("");
+            onTotalChange?.(Number(result?.total || 0));
+          }
+        } catch (error) {
+          if (active)
+            setLoadError(
+              error?.message || "Pending requests could not be loaded.",
+            );
+        } finally {
+          if (active) setLoading(false);
         }
-      } catch (error) {
-        if (active)
-          setLoadError(
-            error?.message || "Pending requests could not be loaded.",
-          );
-      } finally {
-        if (active) setLoading(false);
-      }
-    }, 250);
+      },
+      search.trim() ? 150 : 0,
+    );
     return () => {
       active = false;
       window.clearTimeout(timer);
@@ -155,6 +183,7 @@ function RequestWorklist({
     requestTypeFilter,
     sort,
     onTotalChange,
+    localPage,
   ]);
   const applyFilter = (setter) => (value) => {
     setter(value);
@@ -165,9 +194,9 @@ function RequestWorklist({
     setRequestTypeFilter(ALL_REQUEST_TYPES);
     setPage(1);
   };
-  const pageCount = Math.max(1, Math.ceil(pageData.total / pageSize));
+  const pageCount = Math.max(1, Math.ceil(displayedData.total / pageSize));
   const currentPage = Math.min(page, pageCount);
-  const visible = pageData.items;
+  const visible = displayedData.items;
   // The skeleton should be exactly as tall as the table it's standing in
   // for — on the last page of any list, that's fewer than a full pageSize —
   // using the last-known total (already loaded once) as the best estimate
@@ -176,7 +205,7 @@ function RequestWorklist({
     1,
     Math.min(
       pageSize,
-      pageData.total - (currentPage - 1) * pageSize || pageSize,
+      displayedData.total - (currentPage - 1) * pageSize || pageSize,
     ),
   );
   const changeSearch = (value) => {
@@ -245,7 +274,7 @@ function RequestWorklist({
                     <button className="text-button" onClick={clearFilters}>
                       Clear Filters
                     </button>
-                    <span>{pageData.total} matching</span>
+                    <span>{displayedData.total} matching</span>
                   </div>
                 </div>
               </>
@@ -332,7 +361,7 @@ function RequestWorklist({
             {loadError}
           </div>
         )}
-        {!loading && !pageData.total && !loadError && (
+        {!loading && !displayedData.total && !loadError && (
           <div className="empty-state">
             <Icon name="search" size={22} />
             <strong>No Matching Requests</strong>
@@ -349,12 +378,12 @@ function RequestWorklist({
           </div>
         )}
       </div>
-      {!loading && pageData.total > 0 && (
+      {!loading && displayedData.total > 0 && (
         <div className="table-pagination">
           <span>
             Showing {(currentPage - 1) * pageSize + 1}–
-            {Math.min(currentPage * pageSize, pageData.total)} of{" "}
-            {pageData.total}
+            {Math.min(currentPage * pageSize, displayedData.total)} of{" "}
+            {displayedData.total}
           </span>
           <Pagination
             page={currentPage}

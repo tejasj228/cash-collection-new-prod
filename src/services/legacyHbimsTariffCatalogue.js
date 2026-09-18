@@ -25,6 +25,9 @@ export function mapLegacyCatalogueRow(row) {
     name,
     rate,
     group: String(row.group_name ?? "").trim(),
+    ...(row.location != null || row.tariff_location != null
+      ? { location: String(row.location ?? row.tariff_location).trim() }
+      : {}),
     groupId: String(row.group_id ?? ""),
     legacyTariffId: String(row.tariff_id ?? ""),
     unitId: String(row.unit_id ?? ""),
@@ -134,6 +137,7 @@ export function createLegacyTariffCatalogue(fetchJson = fetchLegacyJson) {
             "The server did not return a valid tariff catalogue.",
           );
         const index = buildTariffIndex(payload.data);
+        entry.index = index;
         entry.pending = false;
         entry.expires = Date.now() + CACHE_TTL;
         return index;
@@ -147,6 +151,18 @@ export function createLegacyTariffCatalogue(fetchJson = fetchLegacyJson) {
     return entry.promise;
   }
   return {
+    peekTariffPage(filters = {}) {
+      const key = JSON.stringify({
+        ipdChargeType: String(filters.ipdChargeType ?? 0),
+        chargeType: String(filters.chargeTypeId ?? ""),
+        patientCatCode: String(filters.patientCategoryCode ?? ""),
+        tariffCode: "0",
+      });
+      const entry = cache.get(key);
+      return entry?.index && entry.expires > Date.now()
+        ? searchTariffIndex(entry.index, filters)
+        : null;
+    },
     preloadTariffs: load,
     async getTariffPage(filters = {}) {
       return searchTariffIndex(await load(filters), filters);

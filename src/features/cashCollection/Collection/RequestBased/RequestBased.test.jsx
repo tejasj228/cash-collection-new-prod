@@ -58,3 +58,30 @@ test("filtered list reports all matching rows, not just the current page", async
     }),
   );
 });
+
+test("the local pending queue renders immediately without invoking asynchronous loading", () => {
+  const total = jest.fn();
+  const services = {
+    getPendingRequestPageSync: jest
+      .fn()
+      .mockReturnValue({ items: [], total: 0 }),
+    listPendingRequests: jest.fn(),
+  };
+  render(
+    <AppDataProvider value={{ requests: [], queueSummary: {} }}>
+      <RequestWorklist
+        services={services}
+        search=""
+        page={1}
+        hospitalServiceFilter="All services"
+        requestTypeFilter="All types"
+        onTotalChange={total}
+      />
+    </AppDataProvider>,
+  );
+  expect(total).toHaveBeenCalledWith(0);
+  expect(services.listPendingRequests).not.toHaveBeenCalled();
+  expect(services.getPendingRequestPageSync).toHaveBeenCalledWith(
+    expect.objectContaining({ page: 0, size: 10 }),
+  );
+});

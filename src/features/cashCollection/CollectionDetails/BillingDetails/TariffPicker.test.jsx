@@ -2,6 +2,8 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { AppDataProvider } from "../../../../app/providers/AppDataProvider";
 import { ChargeBuilder } from "./BillingDetails.jsx";
+import { TariffPicker } from "./TariffPicker.jsx";
+import { createLegacyTariffCatalogue } from "../../../../services/legacyHbimsTariffCatalogue";
 
 jest.mock("antd", () => ({
   Button: ({ children, icon, htmlType, ...props }) => (
@@ -80,4 +82,40 @@ test("blank Enter opens an API-backed picker and adds chosen database tariffs", 
       source: "manual",
     }),
   ]);
+});
+
+test("rapid cached paging immediately shows the latest page without loading or losing pagination", async () => {
+  const fetchJson = jest
+    .fn()
+    .mockResolvedValue({
+      status: "success",
+      data: Array.from({ length: 45 }, (_, i) => ({
+        tariff_code: `T${String(i).padStart(3, "0")}`,
+        tariff_name: `Item ${i}`,
+        default_rate: 10,
+      })),
+    });
+  const services = createLegacyTariffCatalogue(fetchJson);
+  const context = { patientCategoryCode: 11, chargeTypeId: 1 };
+  await services.preloadTariffs(context);
+  render(
+    <TariffPicker
+      services={services}
+      context={context}
+      onClose={() => {}}
+      onAdd={() => {}}
+    />,
+  );
+  expect(
+    screen.getByRole("columnheader", { name: "Tariff Code" }),
+  ).not.toBeNull();
+  expect(
+    screen.getByRole("columnheader", { name: "Group Name" }),
+  ).not.toBeNull();
+  for (let i = 0; i < 3; i++)
+    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+  expect(screen.getByText("Item 30")).not.toBeNull();
+  expect(screen.queryByText("Loading tariffs…")).toBeNull();
+  expect(screen.getByText("45 eligible tariffs")).not.toBeNull();
+  expect(fetchJson).toHaveBeenCalledTimes(1);
 });

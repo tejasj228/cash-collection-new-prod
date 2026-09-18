@@ -68,7 +68,7 @@ export async function resolveApplicationRuntime() {
 
     Object.assign(
       services,
-      createLegacyPendingRequestQueries(loadLiveRequests),
+      createLegacyPendingRequestQueries(loadLiveRequests, () => liveRequests),
     );
 
     services.getRequest = async (requestId) => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./BillingDetails.css";
 import { Icon } from "../../../../shared/components/Icon";
 import { Pagination } from "../../../../shared/components/ui";
@@ -14,27 +14,37 @@ export function TariffPicker({
 }) {
   const [query, setQuery] = useState(initialQuery);
   const [page, setPage] = useState(1);
+  const filters = useMemo(
+    () => ({ ...context, search: query.trim(), page: page - 1, size: 10 }),
+    [context, query, page],
+  );
+  const cachedData = useMemo(
+    () => services?.peekTariffPage?.(filters),
+    [services, filters],
+  );
   const [data, setData] = useState({ items: [], total: 0 });
   const [selected, setSelected] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const displayedData = cachedData || data;
+  const busy = loading && !cachedData;
   useEscapeToClose(onClose);
   useEffect(() => {
     let active = true;
+    if (cachedData) {
+      setData(cachedData);
+      setLoading(false);
+      setError("");
+      return;
+    }
     setLoading(true);
     setError("");
-    setData({ items: [], total: 0 });
     const timer = window.setTimeout(
       async () => {
         try {
           if (typeof services?.getTariffPage !== "function")
             throw new Error("The database tariff catalogue is unavailable.");
-          const result = await services.getTariffPage({
-            ...context,
-            search: query.trim(),
-            page: page - 1,
-            size: 10,
-          });
+          const result = await services.getTariffPage(filters);
           if (active) setData(result);
         } catch (err) {
           if (active) setError(err.message || "Tariffs could not be loaded.");
@@ -42,13 +52,13 @@ export function TariffPicker({
           if (active) setLoading(false);
         }
       },
-      query ? 250 : 0,
+      filters.search ? 150 : 0,
     );
     return () => {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [services, context, query, page]);
+  }, [services, filters, cachedData]);
   return (
     <div className="popover-backdrop" onMouseDown={onClose}>
       <div
@@ -87,21 +97,20 @@ export function TariffPicker({
             }}
           />
         </div>
-        <div className="table-wrap">
+        <div className="table-wrap" aria-busy={busy}>
           <table>
             <thead>
               <tr>
                 <th>Select</th>
-                <th>Code</th>
+                <th>Tariff Code</th>
                 <th>Tariff name</th>
-                <th>Group</th>
+                <th>Group Name</th>
                 <th>Rate / Unit</th>
               </tr>
             </thead>
             <tbody>
-              {!loading &&
-                !error &&
-                data.items.map((tariff) => (
+              {!error &&
+                displayedData.items.map((tariff) => (
                   <tr key={tariff.code}>
                     <td>
                       <label className="tariff-checkbox-target">
@@ -109,6 +118,7 @@ export function TariffPicker({
                           type="checkbox"
                           aria-label={`Select ${tariff.name}`}
                           checked={Boolean(selected[tariff.code])}
+                          disabled={busy}
                           onChange={(event) =>
                             setSelected((current) => {
                               const next = { ...current };
@@ -130,21 +140,23 @@ export function TariffPicker({
             </tbody>
           </table>
         </div>
-        {loading && <div className="no-results">Loading tariffs…</div>}
+        {busy && !displayedData.items.length && (
+          <div className="no-results">Loading tariffs…</div>
+        )}
         {error && (
           <div className="no-results" role="alert">
             {error}
           </div>
         )}
-        {!loading && !error && !data.items.length && (
+        {!busy && !error && !displayedData.items.length && (
           <div className="no-results">No eligible tariffs found.</div>
         )}
-        {!loading && !error && data.total > 0 && (
+        {!error && displayedData.total > 0 && (
           <div className="table-pagination">
-            <span>{data.total} eligible tariffs</span>
+            <span>{displayedData.total} eligible tariffs</span>
             <Pagination
               page={page}
-              pageCount={Math.max(1, Math.ceil(data.total / 10))}
+              pageCount={Math.max(1, Math.ceil(displayedData.total / 10))}
               onChange={setPage}
             />
           </div>
@@ -155,9 +167,7 @@ export function TariffPicker({
           </button>
           <button
             className="button button-primary"
-            disabled={
-              !Object.keys(selected).length || loading || Boolean(error)
-            }
+            disabled={!Object.keys(selected).length || busy || Boolean(error)}
             onClick={() => {
               onAdd(Object.values(selected));
               onClose();

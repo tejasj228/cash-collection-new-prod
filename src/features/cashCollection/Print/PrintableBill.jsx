@@ -288,9 +288,9 @@ function PrintableBill({
           <thead>
             <tr>
               <th className="center">S. No.</th>
-              <th>Code</th>
               <th>Procedure / Inv. / Service</th>
               <th>Tariff Group</th>
+              <th>Location</th>
               <th className="right">Rate (₹)</th>
               <th className="center">Qty</th>
               <th className="right">Discount (₹)</th>
@@ -301,11 +301,15 @@ function PrintableBill({
             {lines.map((line, index) => (
               <tr key={line.key || `${line.code}-${index}`}>
                 <td className="center">{index + 1}</td>
-                <td className="bill-code">{present(line.code)}</td>
                 <td>
                   <strong>{present(line.name)}</strong>
                 </td>
                 <td>{present(line.group)}</td>
+                <td>
+                  {present(line.location) === DASH
+                    ? "Room"
+                    : present(line.location)}
+                </td>
                 <td className="right">{money(line.rate)}</td>
                 <td className="center">{line.qty}</td>
                 <td className="right">{money(lineDiscountAmount(line))}</td>

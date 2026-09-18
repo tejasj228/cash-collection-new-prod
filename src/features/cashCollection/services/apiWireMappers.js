@@ -48,6 +48,9 @@ function mapTariff(row = {}) {
     code: displayText(row.tariff_code),
     name: displayText(row.tariff_name),
     group: displayText(row.tariff_group_name),
+    ...(row.location != null || row.tariff_location != null
+      ? { location: displayText(row.location ?? row.tariff_location) }
+      : {}),
     rate: row.tariff_rate,
     qty: row.tariff_qty,
     discount: row.tariff_discount_percent,
