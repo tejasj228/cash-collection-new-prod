@@ -22,8 +22,10 @@ export function patientAdmissionState(patient) {
 
 export function directPatientError(patient, service) {
   const admitted = patientAdmissionState(patient);
-  if (admitted === null && patient?.pendingServiceFamily)
-    return (patient.pendingServiceFamily === "IPD") === (service?.id === "ipd")
+  const listFamily =
+    patient?.listServiceFamily || patient?.pendingServiceFamily;
+  if (admitted === null && listFamily)
+    return (listFamily === "IPD") === (service?.id === "ipd")
       ? ""
       : "This pending-list patient belongs to a different hospital service.";
   if (admitted === null)

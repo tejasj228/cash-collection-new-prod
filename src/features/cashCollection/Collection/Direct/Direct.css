@@ -1,5 +1,18 @@
 /* Direct owns styles for this feature folder. Shared foundations remain in CashCollection.css. */
 
+.hbims-cash-collection .patient-popover {
+  height: min(600px, 84vh);
+  box-sizing: border-box;
+}
+.hbims-cash-collection .patient-popover .popover-heading,
+.hbims-cash-collection .patient-popover .popover-search,
+.hbims-cash-collection .patient-popover .patient-picker-pagination {
+  flex-shrink: 0;
+}
+.hbims-cash-collection .patient-popover .patient-results {
+  scrollbar-gutter: stable;
+}
+
 .hbims-cash-collection .patient-popover .patient-picker-pagination {
   margin: 0;
   padding: 10px 20px;

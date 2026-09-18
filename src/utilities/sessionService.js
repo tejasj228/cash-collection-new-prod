@@ -12,6 +12,7 @@ const PATIENT_INFO_PATH = "/cashcollectionreqbased/patinfo";
 const TARIFF_DETAILS_PATH = "/cashcollectionreqbased/tariffdetails";
 const TARIFF_LIST_PATH = "/cashcollectionreqbased/TariffListdetails";
 const HOSPITAL_DETAILS_PATH = "/cashcollectionreqbased/hospitaldetails";
+const DAILY_PATIENT_LIST_PATH = "/cashcollectionreqbased/dailypatientlist";
 const PAYMENT_CATEGORY_MAPPING_PATH =
   "/cashcollectionreqbased/paymentcategorymapping";
 
@@ -81,6 +82,7 @@ const PATIENT_INFO_URL = `${BASE_ORIGIN}${PATIENT_INFO_PATH}`;
 const TARIFF_DETAILS_URL = `${BASE_ORIGIN}${TARIFF_DETAILS_PATH}`;
 const TARIFF_LIST_URL = `${BASE_ORIGIN}${TARIFF_LIST_PATH}`;
 const HOSPITAL_DETAILS_URL = `${BASE_ORIGIN}${HOSPITAL_DETAILS_PATH}`;
+const DAILY_PATIENT_LIST_URL = `${BASE_ORIGIN}${DAILY_PATIENT_LIST_PATH}`;
 const PAYMENT_CATEGORY_MAPPING_URL = `${BASE_ORIGIN}${PAYMENT_CATEGORY_MAPPING_PATH}`;
 
 // Every legacy HBIMS endpoint wants the same three query params — the SSO
@@ -118,6 +120,7 @@ module.exports = {
   TARIFF_DETAILS_URL,
   TARIFF_LIST_URL,
   HOSPITAL_DETAILS_URL,
+  DAILY_PATIENT_LIST_URL,
   PAYMENT_CATEGORY_MAPPING_URL,
   getSsoTicket,
   isLiveSession,

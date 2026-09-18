@@ -10,6 +10,7 @@ import { directPatientError } from "../features/cashCollection/Collection/Direct
 import { fetchLegacyPaymentOptions } from "./legacyHbimsPaymentOptions";
 import { createLegacyTariffCatalogue } from "./legacyHbimsTariffCatalogue";
 import { fetchLegacyHospitalDetails } from "./legacyHbimsHospitalDetails";
+import { createDailyPatientQueries } from "./legacyHbimsDailyPatients";
 
 function withLiveQueueSummary(queueSummary, liveRequests, todayIso) {
   return {
@@ -62,7 +63,15 @@ export async function resolveApplicationRuntime() {
       services,
       createPendingListPatientQueries(loadLiveRequests, fetchLegacyPatientInfo),
     );
-    services.patientSource = "pending-list";
+    const pendingPatientPage = services.searchPatientPage;
+    const dailyPatients = createDailyPatientQueries(fetchLegacyPatientInfo);
+    services.searchPatientPage = (options = {}) =>
+      ["opd-normal", "opd-special", "emergency"].includes(
+        options.hospitalServiceId,
+      )
+        ? dailyPatients.searchPatientPage(options)
+        : pendingPatientPage(options);
+    services.patientSource = "daily-and-pending-list";
     services.searchPatients = async (options) =>
       (await services.searchPatientPage(options)).items;
 
@@ -113,8 +122,7 @@ export async function resolveApplicationRuntime() {
           return {
             eligible: false,
             code: "PATIENT_NOT_FOUND",
-            message:
-              "No matching pending-list patient was found for this service.",
+            message: "No matching patient was found for this service.",
           };
         const admissionError = directPatientError(patient, {
           id: command.hospitalServiceId,

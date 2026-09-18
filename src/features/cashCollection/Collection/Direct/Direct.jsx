@@ -125,7 +125,8 @@ function DirectCollectionIllustration() {
 }
 
 function FindPatientDialog({ services, service, onSelect, onClose }) {
-  const [field, setField] = useState("mobile");
+  const dailyListing = service.id !== "ipd";
+  const [field, setField] = useState(dailyListing ? "cr" : "mobile");
   const [value, setValue] = useState("");
   const [matches, setMatches] = useState([]);
   const [message, setMessage] = useState("");
@@ -148,6 +149,7 @@ function FindPatientDialog({ services, service, onSelect, onClose }) {
       const result = await services.searchPatientPage({
         query: value.trim(),
         searchField: field,
+        exactCr: field === "cr",
         hospitalServiceId: service.id,
         page: 0,
         size: 10,
@@ -190,11 +192,18 @@ function FindPatientDialog({ services, service, onSelect, onClose }) {
         <SelectField
           label="Search by"
           value={field}
-          options={[
-            { id: "mobile", label: "Mobile Number" },
-            { id: "abhaNumber", label: "ABHA Number" },
-            { id: "abhaAddress", label: "ABHA Address" },
-          ]}
+          options={
+            dailyListing
+              ? [
+                  { id: "cr", label: "CR Number" },
+                  { id: "name", label: "Patient Name" },
+                ]
+              : [
+                  { id: "mobile", label: "Mobile Number" },
+                  { id: "abhaNumber", label: "ABHA Number" },
+                  { id: "abhaAddress", label: "ABHA Address" },
+                ]
+          }
           onChange={(next) => {
             setField(next);
             setValue("");
@@ -205,11 +214,15 @@ function FindPatientDialog({ services, service, onSelect, onClose }) {
         />
         <label className="field">
           <span className="field-label">
-            {field === "mobile"
-              ? "Mobile Number"
-              : field === "abhaNumber"
-                ? "ABHA Number"
-                : "ABHA Address"}
+            {field === "cr"
+              ? "CR Number"
+              : field === "name"
+                ? "Patient Name"
+                : field === "mobile"
+                  ? "Mobile Number"
+                  : field === "abhaNumber"
+                    ? "ABHA Number"
+                    : "ABHA Address"}
           </span>
           <input
             className="find-patient-input"
@@ -229,7 +242,7 @@ function FindPatientDialog({ services, service, onSelect, onClose }) {
           <button
             className="button button-soft find-patient-match"
             type="button"
-            key={patient.cr}
+            key={patient.id || patient.cr}
             onClick={() => onSelect(patient)}
           >
             {patient.name} — CR No. {patient.cr}
@@ -256,6 +269,28 @@ function FindPatientDialog({ services, service, onSelect, onClose }) {
   );
 }
 
+const PatientResultRows = React.memo(function PatientResultRows({
+  items,
+  onSelect,
+  loading,
+}) {
+  return items.map((patient) => (
+    <button
+      key={patient.id || patient.cr}
+      className="patient-result"
+      disabled={loading}
+      onClick={() => onSelect(patient)}
+    >
+      <div className="avatar patient-avatar">{patient.name?.slice(0, 1)}</div>
+      <div>
+        <strong>{patient.name}</strong>
+        <span>CR {compactIdentifier(patient.cr)}</span>
+      </div>
+      <Icon name="chevron" size={15} />
+    </button>
+  ));
+});
+
 function PatientSearchPopover({
   query,
   onChange,
@@ -276,11 +311,10 @@ function PatientSearchPopover({
   const episodeType = patientEpisodeType(service);
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setData({ items: [], total: 0 });
-    setError("");
     const timer = window.setTimeout(
       async () => {
+        setLoading(true);
+        setError("");
         try {
           if (typeof services?.searchPatientPage !== "function")
             throw new Error("Database patient search is unavailable.");
@@ -303,7 +337,7 @@ function PatientSearchPopover({
             items.some(
               (patient) =>
                 !(
-                  patient.pendingServiceFamily &&
+                  (patient.pendingServiceFamily || patient.listServiceFamily) &&
                   patientAdmissionState(patient) === null
                 ) && directPatientError(patient, service),
             )
@@ -362,53 +396,39 @@ function PatientSearchPopover({
             value={activeQuery}
             onChange={(event) => changeQuery(event.target.value)}
             placeholder={
-              listOnly
-                ? "Search By CR No., Mobile No. Or Patient Name"
-                : "Enter CR No."
+              listOnly ? "Search By CR No. Or Patient Name" : "Enter CR No."
             }
           />
         </div>
         <div className="patient-results" aria-busy={loading}>
-          {loading ? (
+          {loading && !data.items.length ? (
             <div className="no-results">Loading patients…</div>
           ) : error ? (
             <div className="no-results" role="alert">
               {error}
             </div>
           ) : (
-            data.items.map((patient) => (
-              <button
-                key={patient.cr}
-                className="patient-result"
-                onClick={() => onSelect(patient)}
-              >
-                <div className="avatar patient-avatar">
-                  {patient.name?.slice(0, 1)}
-                </div>
-                <div>
-                  <strong>{patient.name}</strong>
-                  <span>
-                    CR {compactIdentifier(patient.cr)} · {patient.mobile}
-                  </span>
-                </div>
-                <Icon name="chevron" size={15} />
-              </button>
-            ))
+            <PatientResultRows
+              items={data.items}
+              onSelect={onSelect}
+              loading={loading}
+            />
           )}
           {!loading && !error && !data.items.length && (
             <div className="no-results">No matching patients found.</div>
           )}
         </div>
-        {!loading && !error && data.total > 0 && (
-          <div className="table-pagination patient-picker-pagination">
-            <span>{data.total} matching patients</span>
-            <Pagination
-              page={page}
-              pageCount={Math.max(1, Math.ceil(data.total / 10))}
-              onChange={setPage}
-            />
-          </div>
-        )}
+        <div
+          className="table-pagination patient-picker-pagination"
+          aria-busy={loading}
+        >
+          <span>{data.total} matching patients</span>
+          <Pagination
+            page={page}
+            pageCount={Math.max(1, Math.ceil(data.total / 10))}
+            onChange={setPage}
+          />
+        </div>
       </div>
     </div>
   );

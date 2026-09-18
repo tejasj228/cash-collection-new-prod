@@ -24,7 +24,17 @@ jest.mock("./legacyHbimsHospitalDetails", () => ({
   }),
 }));
 
-test("legacy Direct Continue uses real pending patients without the unavailable REST eligibility API", async () => {
+test("legacy Direct Continue uses daily patients without the unavailable REST eligibility API", async () => {
+  const originalFetch = global.fetch;
+  global.fetch = jest
+    .fn()
+    .mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "success",
+        data: [{ crno: "379132500000673", pat_name: "Patient" }],
+      }),
+    });
   const originalEnvironment = process.env.NODE_ENV;
   process.env.NODE_ENV = "development";
   fetchLegacyHospitalDetails.mockResolvedValue({
@@ -79,6 +89,7 @@ test("legacy Direct Continue uses real pending patients without the unavailable 
     expect(fetchLegacyPatientInfo).toHaveBeenCalledWith(cr);
     expect(unavailableEligibility).not.toHaveBeenCalled();
   } finally {
+    global.fetch = originalFetch;
     process.env.NODE_ENV = originalEnvironment;
   }
 });

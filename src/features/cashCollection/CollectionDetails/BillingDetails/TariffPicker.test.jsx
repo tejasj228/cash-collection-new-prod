@@ -48,7 +48,7 @@ test("blank Enter opens an API-backed picker and adds chosen database tariffs", 
     </AppDataProvider>,
   );
   expect(screen.getByRole("combobox", { name: "Tariff group" }).disabled).toBe(
-    true,
+    false,
   );
   expect(screen.getByText("All groups")).not.toBeNull();
   fireEvent.keyDown(screen.getByRole("combobox", { name: "Add a Tariff" }), {
@@ -84,17 +84,81 @@ test("blank Enter opens an API-backed picker and adds chosen database tariffs", 
   ]);
 });
 
-test("rapid cached paging immediately shows the latest page without loading or losing pagination", async () => {
-  const fetchJson = jest
-    .fn()
-    .mockResolvedValue({
-      status: "success",
-      data: Array.from({ length: 45 }, (_, i) => ({
-        tariff_code: `T${String(i).padStart(3, "0")}`,
-        tariff_name: `Item ${i}`,
+test("API groups filter suggestions and the Enter picker using the same catalogue request", async () => {
+  const fetchJson = jest.fn().mockResolvedValue({
+    status: "success",
+    data: [
+      {
+        tariff_code: "T01",
+        tariff_name: "Lab Test",
         default_rate: 10,
-      })),
-    });
+        group_id: 1,
+        group_name: "Lab",
+      },
+      {
+        tariff_code: "T02",
+        tariff_name: "Surgery Test",
+        default_rate: 20,
+        group_id: 2,
+        group_name: "Surgery",
+      },
+    ],
+  });
+  const services = createLegacyTariffCatalogue(fetchJson);
+  render(
+    <AppDataProvider value={{ tariffCatalog: [], tariffGroups: [] }}>
+      <ChargeBuilder
+        lines={[
+          {
+            key: "added",
+            code: "X",
+            name: "Added tariff",
+            group: "Existing group",
+            rate: 10,
+            qty: 1,
+            discount: 0,
+            selected: true,
+          },
+        ]}
+        setLines={jest.fn()}
+        requestType="Receipt"
+        mode="direct"
+        services={services}
+        tariffContext={{ patientCategoryCode: 11, chargeTypeId: 1 }}
+        workflow={{ uiFamily: "tariff-entry" }}
+      />
+    </AppDataProvider>,
+  );
+  expect(
+    screen.getByRole("columnheader", { name: "Group Name" }),
+  ).not.toBeNull();
+  expect(screen.getByText("Existing group")).not.toBeNull();
+  await screen.findByRole("option", { name: "Lab" });
+  fireEvent.change(screen.getByRole("combobox", { name: "Tariff group" }), {
+    target: { value: "Lab" },
+  });
+  const input = screen.getByPlaceholderText(
+    "Enter tariff code or name to add tariff",
+  );
+  fireEvent.change(input, { target: { value: "T" } });
+  await screen.findByRole("option", { name: /Lab Test/ });
+  expect(screen.queryByText("Surgery Test")).toBeNull();
+  fireEvent.change(input, { target: { value: "" } });
+  fireEvent.keyDown(input, { key: "Enter" });
+  await screen.findByRole("checkbox", { name: "Select Lab Test" });
+  expect(screen.queryByText("Surgery Test")).toBeNull();
+  expect(fetchJson).toHaveBeenCalledTimes(1);
+});
+
+test("rapid cached paging immediately shows the latest page without loading or losing pagination", async () => {
+  const fetchJson = jest.fn().mockResolvedValue({
+    status: "success",
+    data: Array.from({ length: 45 }, (_, i) => ({
+      tariff_code: `T${String(i).padStart(3, "0")}`,
+      tariff_name: `Item ${i}`,
+      default_rate: 10,
+    })),
+  });
   const services = createLegacyTariffCatalogue(fetchJson);
   const context = { patientCategoryCode: 11, chargeTypeId: 1 };
   await services.preloadTariffs(context);

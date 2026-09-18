@@ -63,6 +63,9 @@ export function buildTariffIndex(rows) {
     .sort((a, b) => compare(a.key, b.key));
   return {
     items,
+    groups: Array.from(
+      new Set(items.map((item) => item.group).filter(Boolean)),
+    ).sort(compare),
     codes,
     names,
     ranks: items.map((_, rank) => rank),
@@ -164,6 +167,9 @@ export function createLegacyTariffCatalogue(fetchJson = fetchLegacyJson) {
         : null;
     },
     preloadTariffs: load,
+    async getTariffGroups(context = {}) {
+      return (await load(context)).groups;
+    },
     async getTariffPage(filters = {}) {
       return searchTariffIndex(await load(filters), filters);
     },

@@ -34,7 +34,7 @@ test("Find Patient starts with only identifier controls and searches on submit",
   render(
     <FindPatientDialog
       services={services}
-      service={{ id: "opd-normal" }}
+      service={{ id: "ipd" }}
       onClose={() => {}}
       onSelect={() => {}}
     />,
@@ -53,6 +53,32 @@ test("Find Patient starts with only identifier controls and searches on submit",
   expect(
     await screen.findByRole("button", { name: /Database Patient/ }),
   ).not.toBeNull();
+});
+
+test("daily Find Patient uses CR search rather than mobile", async () => {
+  const services = {
+    searchPatientPage: jest
+      .fn()
+      .mockResolvedValue({ items: [patient], total: 1 }),
+  };
+  render(
+    <FindPatientDialog
+      services={services}
+      service={{ id: "emergency" }}
+      onClose={() => {}}
+      onSelect={() => {}}
+    />,
+  );
+  expect(screen.queryByText("Mobile Number")).toBeNull();
+  fireEvent.change(screen.getByLabelText("Patient identifier"), {
+    target: { value: cr },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Search" }));
+  await waitFor(() =>
+    expect(services.searchPatientPage).toHaveBeenCalledWith(
+      expect.objectContaining({ searchField: "cr", exactCr: true, query: cr }),
+    ),
+  );
 });
 
 test("missing admission is allowed only for correctly classified legacy pending candidates", () => {
@@ -105,6 +131,7 @@ test("patient picker requests ten records per page and searches the full databas
     />,
   );
   await screen.findByText("Database Patient");
+  expect(screen.queryByText(new RegExp(patient.mobile))).toBeNull();
   expect(services.searchPatientPage).toHaveBeenLastCalledWith(
     expect.objectContaining({ page: 0, size: 10, admittedOnly: false }),
   );
@@ -115,13 +142,53 @@ test("patient picker requests ten records per page and searches the full databas
     ),
   );
   fireEvent.change(screen.getByPlaceholderText(/Search By CR/), {
-    target: { value: "Patient, 987654" },
+    target: { value: "Patient" },
   });
   await waitFor(() =>
     expect(services.searchPatientPage).toHaveBeenLastCalledWith(
-      expect.objectContaining({ query: "Patient, 987654", page: 0 }),
+      expect.objectContaining({ query: "Patient", page: 0 }),
     ),
   );
+});
+
+test("typing retains result rows and pagination until debounced search finishes", async () => {
+  let finishSearch;
+  const services = {
+    searchPatientPage: jest
+      .fn()
+      .mockResolvedValueOnce({ items: [patient], total: 11 })
+      .mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            finishSearch = resolve;
+          }),
+      ),
+  };
+  render(
+    <PatientSearchPopover
+      listOnly
+      service={{ id: "opd-normal" }}
+      services={services}
+      onClose={() => {}}
+      onSelect={() => {}}
+    />,
+  );
+  const row = await screen.findByRole("button", { name: /Database Patient/ });
+  const footer = screen.getByText("11 matching patients");
+  fireEvent.change(screen.getByPlaceholderText(/Search By CR/), {
+    target: { value: "Nobody" },
+  });
+  expect(screen.getByRole("button", { name: /Database Patient/ })).toBe(row);
+  expect(screen.getByText("11 matching patients")).toBe(footer);
+  expect(screen.queryByText("Loading patients…")).toBeNull();
+  await waitFor(() =>
+    expect(services.searchPatientPage).toHaveBeenCalledTimes(2),
+  );
+  expect(screen.getByRole("button", { name: /Database Patient/ })).toBe(row);
+  finishSearch({ items: [], total: 0 });
+  await screen.findByText("No matching patients found.");
+  expect(screen.getByText("0 matching patients")).not.toBeNull();
+  expect(screen.getByRole("button", { name: "Next page" })).not.toBeNull();
 });
 
 test("an API error never shows fixture patients", async () => {

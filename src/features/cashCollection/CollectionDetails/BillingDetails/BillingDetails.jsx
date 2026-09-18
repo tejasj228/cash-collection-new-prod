@@ -39,6 +39,27 @@ function ChargeBuilder({
   const { tariffCatalog, tariffGroups } = useAppData();
   const [chargeSort, toggleChargeSort] = useSort();
   const [group, setGroup] = useState("All groups");
+  const [remoteGroups, setRemoteGroups] = useState([]);
+  const groupOptions = useMemo(
+    () => [
+      "All groups",
+      ...Array.from(
+        new Set(
+          (services ? remoteGroups : tariffGroups || []).filter(
+            (name) => name && name !== "All groups",
+          ),
+        ),
+      ),
+    ],
+    [services, remoteGroups, tariffGroups],
+  );
+  const pickerContext = useMemo(
+    () => ({
+      ...tariffContext,
+      groupId: group === "All groups" ? undefined : group,
+    }),
+    [tariffContext, group],
+  );
   const [query, setQuery] = useState("");
   const [highlight, setHighlight] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -50,6 +71,24 @@ function ChargeBuilder({
   const isEstimate = requestType === "Estimation";
   const isRequest = mode === "request";
   const term = query.trim().toLowerCase();
+  useEffect(() => {
+    let active = true;
+    setRemoteGroups([]);
+    setGroup("All groups");
+    if (!isRequest && services?.getTariffGroups) {
+      services
+        .getTariffGroups(tariffContext)
+        .then((groups) => {
+          if (active) setRemoteGroups(groups);
+        })
+        .catch((error) => {
+          if (active) setCatalogueError(error.message);
+        });
+    }
+    return () => {
+      active = false;
+    };
+  }, [services, tariffContext, isRequest]);
   useEffect(() => {
     if (isRequest || isRefund || !services?.preloadTariffs) return;
     // Begin the shared request before the operator opens the picker or types.
@@ -190,8 +229,7 @@ function ChargeBuilder({
             ariaLabel="Tariff group"
             value={group}
             onChange={setGroup}
-            options={tariffGroups?.length ? tariffGroups : ["All groups"]}
-            disabled={!tariffGroups?.length}
+            options={groupOptions}
           />
           <div
             className="tariff-search"
@@ -205,7 +243,7 @@ function ChargeBuilder({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={onSearchKeyDown}
-              placeholder="Enter tariff code or name to add a charge"
+              placeholder="Enter tariff code or name to add tariff"
               aria-label="Add a Tariff"
               role="combobox"
               aria-expanded={Boolean(term)}
@@ -285,6 +323,7 @@ function ChargeBuilder({
               </th>
               <th className="col-c">S. No.</th>
               <th>Tariff Name</th>
+              <th>Group Name</th>
               <th className="num">Rate / Unit</th>
               <th className="num">Qty</th>
               <th className="num">Disc. (%)</th>
@@ -320,6 +359,7 @@ function ChargeBuilder({
                 <td>
                   <strong>{line.name}</strong>
                 </td>
+                <td>{line.group || "—"}</td>
                 <td className="num mono">{money(line.rate)}</td>
                 <td className="num">
                   <input
@@ -454,7 +494,7 @@ function ChargeBuilder({
         <TariffPicker
           initialQuery={query}
           services={services}
-          context={tariffContext}
+          context={pickerContext}
           onClose={() => setPickerOpen(false)}
           onAdd={(tariffs) =>
             setLines((current) => {
