@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import "./CashCollection.css";
 import { COLLECTION_SECTION } from "./cashCollection";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -171,6 +171,22 @@ export default function CashCollectionApplication({
   const [requestTypeFilter, setRequestTypeFilter] = useState(ALL_REQUEST_TYPES);
   const [requestPage, setRequestPage] = useState(1);
   const [filteredRequestCount, setFilteredRequestCount] = useState(null);
+  const updateRequestTotal = useCallback(
+    (total) => {
+      setFilteredRequestCount(total);
+      if (
+        !requestSearch.trim() &&
+        requestHospitalServiceFilter === ALL_HOSPITAL_SERVICES &&
+        requestTypeFilter === ALL_REQUEST_TYPES
+      ) {
+        setAppData((current) => ({
+          ...current,
+          queueSummary: { ...current.queueSummary, pendingCount: total },
+        }));
+      }
+    },
+    [requestSearch, requestHospitalServiceFilter, requestTypeFilter],
+  );
   const [requestSort, toggleRequestSort, resetRequestSort] = useSort();
   const resetRequestWorklist = () => {
     setFilteredRequestCount(null);
@@ -647,7 +663,7 @@ export default function CashCollectionApplication({
                     setHospitalServiceFilter={setRequestHospitalServiceFilter}
                     requestTypeFilter={requestTypeFilter}
                     setRequestTypeFilter={setRequestTypeFilter}
-                    onTotalChange={setFilteredRequestCount}
+                    onTotalChange={updateRequestTotal}
                   />
                 ) : (
                   <DirectSelector
