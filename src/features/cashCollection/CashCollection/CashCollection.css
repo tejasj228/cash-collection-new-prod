@@ -5010,7 +5010,12 @@
 }
 .hbims-cash-collection .input-wrap:has(input[aria-invalid="true"]) {
   border-color: #cf6259;
-  box-shadow: 0 0 0 3px rgba(207, 98, 89, 0.08);
+  box-shadow: none;
+}
+.hbims-cash-collection
+  .input-wrap:has(input[aria-invalid="true"]):focus-within {
+  border-color: #b94e46;
+  box-shadow: 0 0 0 3.6px rgba(207, 98, 89, 0.16);
 }
 .hbims-cash-collection .discount-input {
   appearance: textfield;

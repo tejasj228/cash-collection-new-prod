@@ -80,7 +80,6 @@ export function TextField({
           readOnly={readOnly}
           inputMode={inputMode}
           maxLength={maxLength}
-          status={invalid ? "error" : undefined}
           aria-invalid={invalid || undefined}
         />
       </span>

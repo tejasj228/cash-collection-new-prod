@@ -79,11 +79,13 @@ test("Virtual Account requires payment details before collection", () => {
   const details = screen.getByRole("textbox", { name: /Payment Details/ });
   const collect = screen.getByRole("button", { name: /Collect/ });
   expect(details.required).toBe(true);
+  expect(details.getAttribute("aria-invalid")).toBe("true");
   expect(collect.disabled).toBe(true);
   expect(
     screen.getByText(/Enter the Virtual Account payment details to continue/),
   ).not.toBeNull();
 
   fireEvent.change(details, { target: { value: "VA-REF-2026-001" } });
+  expect(details.getAttribute("aria-invalid")).toBeNull();
   expect(collect.disabled).toBe(false);
 });
