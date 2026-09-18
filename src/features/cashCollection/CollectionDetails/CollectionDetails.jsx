@@ -288,7 +288,7 @@ function CollectionWorkspace({
   }, [completedTransaction, onConfirm]);
   return (
     <div className="flow-screen workspace-screen">
-      {!payOpen && (
+      {(!payOpen || isRequest) && (
         <div className="flow-top">
           <button className="back-link" onClick={onBack}>
             <Icon name="back" size={15} />
@@ -296,7 +296,9 @@ function CollectionWorkspace({
               ? "Back to Pending Requests"
               : "Back to Transaction Setup"}
           </button>
-          <MorePatientInfo onModalVisibilityChange={setPatientInfoOpen} />
+          {!payOpen && (
+            <MorePatientInfo onModalVisibilityChange={setPatientInfoOpen} />
+          )}
         </div>
       )}
       <PatientBanner
