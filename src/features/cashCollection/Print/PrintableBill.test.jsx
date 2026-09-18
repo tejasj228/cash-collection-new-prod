@@ -129,10 +129,16 @@ test("shows the bilingual warning only for Virtual Account", () => {
   });
   expect(
     screen.getByText(
-      "NOTE: This payment is linked to the Virtual Account. Do not use it for payment.",
+      "NOTE: This payment is linked to the Virtual Account. Do not pay it.",
     ),
   ).not.toBeNull();
-  expect(screen.getByText(/भुगतान के लिए इसका प्रयोग न करें/)).not.toBeNull();
+  expect(
+    screen
+      .getByText("Payment Details")
+      .parentElement.classList.contains("bill-payment-details"),
+  ).toBe(true);
+  expect(screen.queryByText("MODE OF PAYMENT: VIRTUAL ACCOUNT")).toBeNull();
+  expect(screen.getByText(/इसका भुगतान न करें/)).not.toBeNull();
   expect(screen.queryByText(/दोबारा/)).toBeNull();
 });
 

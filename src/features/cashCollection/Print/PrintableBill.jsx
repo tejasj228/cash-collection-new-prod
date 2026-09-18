@@ -111,9 +111,9 @@ export function amountInWords(amount) {
   return `Rupees ${integerWords(rupees)}${paise ? ` and ${integerWords(paise)} Paise` : ""} Only`;
 }
 
-function Field({ label, value, strong = false }) {
+function Field({ label, value, strong = false, className = "" }) {
   return (
-    <div className="bill-field">
+    <div className={`bill-field ${className}`.trim()}>
       <span>{label}</span>
       <strong className={strong ? "bill-emphasis" : undefined}>
         {present(value)}
@@ -322,21 +322,23 @@ function PrintableBill({
               <Field label="Transaction Date" value={pay.transactionDate} />
             )}
             <Field label="Status" value={pay.status} />
-            <Field label="Payment Details" value={pay.details} />
+            <Field
+              label="Payment Details"
+              value={pay.details}
+              className="bill-payment-details"
+            />
           </div>
           {pay.virtual && (
             <div className="virtual-payment-note">
-              <strong>MODE OF PAYMENT: VIRTUAL ACCOUNT</strong>
               <span>
                 PAYMENT DETAILS: VIRTUAL ACCOUNT — AMT.: ₹{money(total)}
               </span>
               <span lang="hi">
-                नोट: यह भुगतान वर्चुअल अकाउंट से जुड़ा है। भुगतान के लिए इसका
-                प्रयोग न करें।
+                नोट: यह भुगतान वर्चुअल अकाउंट से जुड़ा है। इसका भुगतान न करें।
               </span>
               <span>
-                NOTE: This payment is linked to the Virtual Account. Do not use
-                it for payment.
+                NOTE: This payment is linked to the Virtual Account. Do not pay
+                it.
               </span>
             </div>
           )}

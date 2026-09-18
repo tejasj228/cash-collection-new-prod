@@ -295,6 +295,10 @@
   margin-bottom: 5px;
 }
 
+.bill-payment-grid .bill-payment-details {
+  grid-column: span 2;
+}
+
 .virtual-payment-note {
   display: flex;
   flex-direction: column;
@@ -305,10 +309,6 @@
   background: #fafbfc;
   font-family: "Courier New", "Nirmala UI", monospace;
   font-size: 11px;
-}
-
-.virtual-payment-note strong {
-  font-weight: 700;
 }
 
 .aiims-bill-foot {
