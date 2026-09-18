@@ -55,6 +55,7 @@ const LINKS = [
 function TopNav({
   active,
   onNavigate,
+  onHome,
   onEndShift,
   onReprint,
   shiftEnded = false,
@@ -66,12 +67,17 @@ function TopNav({
   return (
     <header className="top-nav">
       <div className="top-nav-inner">
-        <div className="top-nav-brand">
+        <button
+          type="button"
+          className="top-nav-brand"
+          onClick={() => (onHome ? onHome() : onNavigate?.("collection"))}
+          aria-label="Cash Collection home"
+        >
           <span className="top-nav-mark">
             <Icon name="wallet" size={15} />
           </span>
           Cash Collection
-        </div>
+        </button>
         <nav
           className="top-nav-links"
           aria-label="Section"
@@ -587,6 +593,7 @@ export default function CashCollectionApplication({
         <TopNav
           active={activeNav}
           onNavigate={navigate}
+          onHome={resetHome}
           onEndShift={shiftClearedAt ? requestStartNewShift : openEndShift}
           onReprint={() => window.print()}
           shiftEnded={Boolean(shiftClearedAt)}

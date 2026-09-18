@@ -10,6 +10,18 @@ jest.mock("react-router-dom", () => ({
 }));
 
 describe("cash collection top nav", () => {
+  test("brand returns to collection home through the reset action", () => {
+    const onHome = jest.fn();
+    const onNavigate = jest.fn();
+    render(
+      <TopNav active="dashboard" onHome={onHome} onNavigate={onNavigate} />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Cash Collection home" }),
+    );
+    expect(onHome).toHaveBeenCalledTimes(1);
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
   test("marks the active section link", () => {
     render(<TopNav active="dashboard" />);
     expect(
