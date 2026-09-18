@@ -130,7 +130,15 @@ function PatientBanner({ patient, patientMode, hospitalService }) {
             onClick={() => setPhotoOpen(true)}
             aria-label={`View ${name}'s photo`}
           >
-            <img src={patient.photoUrl} alt="" />
+            <img
+              src={patient.photoUrl}
+              alt=""
+              className={
+                patient.isPrototypePhoto
+                  ? "prototype-patient-thumbnail"
+                  : undefined
+              }
+            />
           </button>
         ) : (
           <span className="patient-photo" aria-hidden={!known}>

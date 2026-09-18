@@ -465,13 +465,14 @@ function DirectSetup({
     (option) => optionValue(option) === String(billingService),
   );
   const currentSelection = useRef("");
+  const setupMounted = useRef(true);
   currentSelection.current = `${service.id}:${requestType}:${billingService}:${selectedPatient?.cr || crQuery}`;
-  useEffect(
-    () => () => {
-      currentSelection.current = "";
-    },
-    [],
-  );
+  useEffect(() => {
+    setupMounted.current = true;
+    return () => {
+      setupMounted.current = false;
+    };
+  }, []);
   const canContinue = Boolean(selectedPatient) || /^\d{15}$/.test(crQuery);
   const clearEligibility = () => setEligibilityMessage("");
   const continueIfEligible = async () => {
@@ -492,7 +493,8 @@ function DirectSetup({
         page: 0,
         size: 10,
       });
-      if (selection !== currentSelection.current) return;
+      if (!setupMounted.current || selection !== currentSelection.current)
+        return;
       const patient = lookup.items?.find(
         (item) =>
           compactIdentifier(item.cr) ===
@@ -514,7 +516,8 @@ function DirectSetup({
         processingBillingServiceId: selectedWorkflow.processingServiceId,
         workflowId: selectedWorkflow.uiFamily,
       });
-      if (selection !== currentSelection.current) return;
+      if (!setupMounted.current || selection !== currentSelection.current)
+        return;
       if (!result?.eligible) {
         setEligibilityMessage(
           result?.message ||
@@ -526,11 +529,13 @@ function DirectSetup({
       setCrQuery(compactIdentifier(patient.cr));
       onContinue(result);
     } catch (error) {
+      if (!setupMounted.current || selection !== currentSelection.current)
+        return;
       setEligibilityMessage(
         error.message || "Patient eligibility could not be verified.",
       );
     } finally {
-      setCheckingEligibility(false);
+      if (setupMounted.current) setCheckingEligibility(false);
     }
   };
   const changeCr = (value) => {

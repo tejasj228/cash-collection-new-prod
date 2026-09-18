@@ -55,7 +55,7 @@ export function mapLegacyPatientInfoRow(row = {}) {
     accountOpen: false,
     refundableDocumentCount: 0,
     workflowContext: null,
-    photoUrl: null,
+    photoUrl: String(row.photo_url ?? "").trim() || null,
   };
 }
 

@@ -39,6 +39,7 @@ function mapPatient(row = {}) {
     accountOpen: Boolean(row.ipd_account_open),
     refundableDocumentCount: Number(row.refundable_document_count || 0),
     workflowContext: row.workflow_context,
+    photoUrl: displayText(row.photo_url).trim() || null,
   };
 }
 

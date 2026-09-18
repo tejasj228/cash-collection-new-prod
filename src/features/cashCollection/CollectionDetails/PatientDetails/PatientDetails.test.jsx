@@ -69,6 +69,23 @@ test("fallback vectors follow the API sex without guessing from names", () => {
   ).not.toBeNull();
 });
 
+test("patient photo appears in the banner and opens the same image in the enlarged view", () => {
+  const { container } = render(
+    <PatientBanner
+      patient={{ name: "Patient", photoUrl: "/api/photo/123" }}
+      patientMode="existing"
+      hospitalService="OPD"
+    />,
+  );
+  expect(
+    container.querySelector(".patient-photo img").getAttribute("src"),
+  ).toBe("/api/photo/123");
+  fireEvent.click(screen.getByRole("button", { name: "View Patient's photo" }));
+  expect(screen.getByRole("img", { name: "Patient" }).getAttribute("src")).toBe(
+    "/api/photo/123",
+  );
+});
+
 test("more patient info opens an empty dialog", () => {
   const original = HTMLDialogElement.prototype.showModal;
   HTMLDialogElement.prototype.showModal = function () {

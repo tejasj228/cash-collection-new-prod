@@ -266,6 +266,71 @@ test("typed CR is resolved and admission checked before backend eligibility", as
   );
 });
 
+test("returning to Direct setup with the same patient proceeds on the first click in StrictMode", async () => {
+  const services = {
+    searchPatientPage: jest
+      .fn()
+      .mockResolvedValue({ items: [patient], total: 1 }),
+    checkEligibility: jest.fn().mockResolvedValue({ eligible: true }),
+  };
+  const continued = jest.fn();
+  function Flow() {
+    const [stage, setStage] = React.useState("setup");
+    return stage === "workspace" ? (
+      <button onClick={() => setStage("setup")}>
+        Back to transaction setup
+      </button>
+    ) : (
+      <DirectSetup
+        service={{ id: "opd-normal", label: "OPD" }}
+        services={services}
+        crQuery={cr}
+        selectedPatient={patient}
+        requestType="Receipt"
+        billingService="10"
+        setSelectedPatient={() => {}}
+        setCrQuery={() => {}}
+        setRequestType={() => {}}
+        setBillingService={() => {}}
+        onContinue={() => {
+          continued();
+          setStage("workspace");
+        }}
+      />
+    );
+  }
+  render(
+    <React.StrictMode>
+      <AppDataProvider
+        value={{
+          billingByService: {
+            "opd-normal": {
+              Receipt: [
+                {
+                  id: "10",
+                  label: "Service",
+                  uiFamily: "tariff-entry",
+                  processingServiceId: "10",
+                },
+              ],
+            },
+          },
+        }}
+      >
+        <Flow />
+      </AppDataProvider>
+    </React.StrictMode>,
+  );
+  fireEvent.click(screen.getByRole("button", { name: /Continue to Tariff/ }));
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Back to transaction setup" }),
+  );
+  expect(screen.getByText(patient.name)).not.toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: /Continue to Tariff/ }));
+  await screen.findByRole("button", { name: "Back to transaction setup" });
+  expect(continued).toHaveBeenCalledTimes(2);
+});
+
 test("IPD listing rejects non-admitted backend rows", async () => {
   render(
     <PatientSearchPopover

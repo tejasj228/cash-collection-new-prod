@@ -681,6 +681,10 @@ components:
         ipd_account_open: { type: boolean }
         refundable_document_count: { type: integer }
         workflow_context: { type: object, additionalProperties: true }
+        photo_url:
+          type: string
+          nullable: true
+          description: Optional patient-specific image URL. Dedicated photo endpoint contract is pending.
       additionalProperties: true
     PatientTile:
       type: object
@@ -702,6 +706,10 @@ components:
         abha_num: { type: string }
         abha_address: { type: string }
         guardian_name: { type: string }
+        photo_url:
+          type: string
+          nullable: true
+          description: Optional patient-specific image URL.
     HospitalService:
       type: object
       required:

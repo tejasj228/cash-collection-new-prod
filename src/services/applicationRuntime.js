@@ -43,13 +43,17 @@ export async function resolveApplicationRuntime() {
 
     const [
       { fetchLegacyPendingRequests, createLegacyPendingRequestQueries },
-      { fetchLegacyPatientInfo },
+      { fetchLegacyPatientInfo: fetchLivePatientInfo },
       { fetchLegacyTariffDetails },
+      { withPrototypePatientPhoto },
     ] = await Promise.all([
       import("./legacyHbimsPendingRequests"),
       import("./legacyHbimsPatientInfo"),
       import("./legacyHbimsTariffDetails"),
+      import("../mocks/prototypePatientPhoto"),
     ]);
+    const fetchLegacyPatientInfo = async (cr) =>
+      withPrototypePatientPhoto(await fetchLivePatientInfo(cr));
 
     // Live HBIMS data is mandatory for the local integration. If the ticket,
     // backend, or endpoint fails, reject bootstrap and show the error screen;
