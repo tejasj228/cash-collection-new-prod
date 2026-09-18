@@ -326,7 +326,7 @@
 .bill-signature > span {
   display: block;
   height: 1px;
-  margin: 34px 0 6px;
+  margin: 46px 0 6px;
   background: var(--bill-ink);
 }
 
