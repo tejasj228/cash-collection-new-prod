@@ -3,6 +3,7 @@ import { createCashCollectionApi } from "../features/cashCollection/services/cas
 import { fetchLegacyPendingRequests } from "./legacyHbimsPendingRequests";
 import { fetchLegacyPatientInfo } from "./legacyHbimsPatientInfo";
 import { PROTOTYPE_DATA } from "../mocks/prototypeData";
+import { fetchLegacyHospitalDetails } from "./legacyHbimsHospitalDetails";
 
 jest.mock("../features/cashCollection/services/cashCollectionApi", () => ({
   createCashCollectionApi: jest.fn(),
@@ -14,10 +15,24 @@ jest.mock("./legacyHbimsPendingRequests", () => ({
 jest.mock("./legacyHbimsPatientInfo", () => ({
   fetchLegacyPatientInfo: jest.fn(),
 }));
+jest.mock("./legacyHbimsHospitalDetails", () => ({
+  fetchLegacyHospitalDetails: jest.fn().mockResolvedValue({
+    hospitalCode: "37913",
+    name: "Hospital from API",
+    subtitle: "API subtitle",
+    address: "API address",
+  }),
+}));
 
 test("legacy Direct Continue uses real pending patients without the unavailable REST eligibility API", async () => {
   const originalEnvironment = process.env.NODE_ENV;
   process.env.NODE_ENV = "development";
+  fetchLegacyHospitalDetails.mockResolvedValue({
+    hospitalCode: "37913",
+    name: "Hospital from API",
+    subtitle: "API subtitle",
+    address: "API address",
+  });
   const unavailableEligibility = jest
     .fn()
     .mockRejectedValue(new Error("Request failed with status 400."));
@@ -40,7 +55,12 @@ test("legacy Direct Continue uses real pending patients without the unavailable 
     status: "-",
   });
   try {
-    const { integration } = await resolveApplicationRuntime();
+    const { integration, data } = await resolveApplicationRuntime();
+    expect(data.facility).toMatchObject({
+      hospitalCode: "37913",
+      name: "Hospital from API",
+      address: "API address",
+    });
     const workflow = PROTOTYPE_DATA.billingByService["opd-normal"].Receipt.find(
       (option) => option.uiFamily === "tariff-entry",
     );

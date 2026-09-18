@@ -43,19 +43,28 @@ function ChargeBuilder({
   const [highlight, setHighlight] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [remoteTariffs, setRemoteTariffs] = useState([]);
+  const [remoteTotal, setRemoteTotal] = useState(0);
   const [catalogueError, setCatalogueError] = useState("");
+  const [catalogueLoading, setCatalogueLoading] = useState(false);
   const isRefund = requestType === "Refund";
   const isEstimate = requestType === "Estimation";
   const isRequest = mode === "request";
   const term = query.trim().toLowerCase();
+  useEffect(() => {
+    if (isRequest || isRefund || !services?.preloadTariffs) return;
+    // Begin the shared request before the operator opens the picker or types.
+    // A failed warmup remains retryable; the picker reports request errors.
+    void services.preloadTariffs(tariffContext).catch(() => {});
+  }, [services, tariffContext, isRequest, isRefund]);
   const matches = term
     ? (services ? remoteTariffs : tariffCatalog)
         .filter(
           (tariff) =>
             (group === "All groups" || tariff.group === group) &&
-            `${tariff.code} ${tariff.name}`.toLowerCase().includes(term),
+            (tariff.code.toLowerCase().startsWith(term) ||
+              tariff.name.toLowerCase().startsWith(term)),
         )
-        .slice(0, 6)
+        .slice(0, 10)
     : [];
   useEffect(() => setHighlight(0), [term]);
   useEffect(() => {
@@ -66,7 +75,9 @@ function ChargeBuilder({
     if (!services || !term || isRefund || isEstimate) return undefined;
     let active = true;
     setRemoteTariffs([]);
+    setRemoteTotal(0);
     setCatalogueError("");
+    setCatalogueLoading(true);
     const timer = window.setTimeout(async () => {
       try {
         if (typeof services.getTariffPage !== "function")
@@ -78,9 +89,14 @@ function ChargeBuilder({
           page: 0,
           size: 10,
         });
-        if (active) setRemoteTariffs(data.items);
+        if (active) {
+          setRemoteTariffs(data.items);
+          setRemoteTotal(data.total);
+        }
       } catch (error) {
         if (active) setCatalogueError(error.message);
+      } finally {
+        if (active) setCatalogueLoading(false);
       }
     }, 250);
     return () => {
@@ -177,7 +193,13 @@ function ChargeBuilder({
             options={tariffGroups?.length ? tariffGroups : ["All groups"]}
             disabled={!tariffGroups?.length}
           />
-          <div className="tariff-search">
+          <div
+            className="tariff-search"
+            onClick={(event) => {
+              if (!event.target.closest("button, input, .tariff-results"))
+                event.currentTarget.querySelector("input")?.focus();
+            }}
+          >
             <Icon name="search" size={16} />
             <input
               value={query}
@@ -227,9 +249,21 @@ function ChargeBuilder({
                 ))}
                 {!matches.length && (
                   <div className="no-results">
-                    {catalogueError ||
-                      `No tariff matches that code or name in ${group}.`}
+                    {catalogueLoading
+                      ? "Loading tariffs…"
+                      : catalogueError ||
+                        `No tariff matches that code or name in ${group}.`}
                   </div>
+                )}
+                {!catalogueLoading && remoteTotal > matches.length && (
+                  <button
+                    className="tariff-view-all"
+                    role="option"
+                    aria-selected={false}
+                    onClick={() => setPickerOpen(true)}
+                  >
+                    View all {remoteTotal} matching tariffs
+                  </button>
                 )}
               </div>
             )}
@@ -418,6 +452,7 @@ function ChargeBuilder({
       </div>
       {pickerOpen && (
         <TariffPicker
+          initialQuery={query}
           services={services}
           context={tariffContext}
           onClose={() => setPickerOpen(false)}

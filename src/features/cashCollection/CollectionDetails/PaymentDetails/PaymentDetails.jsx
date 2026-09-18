@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "./PaymentDetails.css";
 import { TERMINAL_PAYMENT_MODES, isCardPaymentMode } from "./paymentDetails";
+import { resolvePaymentPrintPolicy } from "../../Print/paymentPrintPolicy";
 import { useAppData } from "../../../../app/providers/AppDataProvider";
 import { money, compactIdentifier } from "../../../../shared/utils/formatters";
 import { Icon } from "../../../../shared/components/Icon";
@@ -230,6 +231,10 @@ function PaymentCard({
       await onConfirm({
         ...payment,
         ...liveOptions?.modeDetails?.[payment.mode],
+        ...resolvePaymentPrintPolicy(
+          payment,
+          (liveOptions || paymentOptions)?.modeDetails?.[payment.mode],
+        ),
       });
     } catch (error) {
       setOperationError(

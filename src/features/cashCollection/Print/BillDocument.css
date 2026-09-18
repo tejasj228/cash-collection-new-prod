@@ -46,9 +46,9 @@
 
 .aiims-bill-brand img {
   display: block;
-  width: 90px;
-  height: 90px;
-  flex: 0 0 90px;
+  width: 124px;
+  height: 124px;
+  flex: 0 0 124px;
   object-fit: contain;
   transform: translateY(-5px);
 }
@@ -56,7 +56,7 @@
 .aiims-bill-brand h1 {
   margin: 0;
   color: var(--bill-navy);
-  font-size: 23px;
+  font-size: 21px;
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: 0.02em;
@@ -74,6 +74,13 @@
   color: var(--bill-ink-2);
   font-size: 13px;
   font-weight: 600;
+}
+
+.aiims-bill-brand .bill-hospital-info {
+  margin-top: 2px;
+  font-size: 10.5px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .bill-meta {
@@ -140,8 +147,37 @@
 
 .bill-patient-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: 8px 18px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  text-align: center;
+}
+
+.bill-patient-grid .bill-field > strong {
+  font-size: 11.5px;
+  font-weight: 400;
+}
+
+.bill-patient-grid .bill-field:first-child > strong {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.bill-patient-barcode {
+  margin: 0 0 12px auto;
+  width: max-content;
+  text-align: center;
+  break-inside: avoid;
+}
+
+.bill-patient-barcode svg {
+  display: block;
+  /* Align the ink edge, retaining the white scan quiet zone beyond it. */
+  transform: translateX(15px);
+}
+
+.bill-patient-barcode span {
+  font-size: 10px;
+  letter-spacing: 0.08em;
 }
 
 .bill-charges {
@@ -152,7 +188,7 @@
 }
 
 .bill-charges th {
-  padding: 7px 8px;
+  padding: 5px 4px;
   border-top: 1px solid var(--bill-line-strong);
   border-bottom: 1px solid var(--bill-line-strong);
   background: #fafbfc;
@@ -165,35 +201,42 @@
 }
 
 .bill-charges th:nth-child(1) {
-  width: 34px;
+  width: 40px;
 }
 
 .bill-charges th:nth-child(2) {
-  width: 78px;
+  width: 58px;
 }
 
 .bill-charges th:nth-child(4) {
-  width: 110px;
+  width: 160px;
+}
+
+.bill-charges th:nth-child(4),
+.bill-charges td:nth-child(4) {
+  padding-left: 2px;
+  padding-right: 2px;
+  white-space: nowrap;
 }
 
 .bill-charges th:nth-child(5) {
-  width: 80px;
+  width: 72px;
 }
 
 .bill-charges th:nth-child(6) {
-  width: 44px;
+  width: 32px;
 }
 
 .bill-charges th:nth-child(7) {
-  width: 84px;
+  width: 72px;
 }
 
 .bill-charges th:nth-child(8) {
-  width: 92px;
+  width: 82px;
 }
 
 .bill-charges td {
-  padding: 7px 8px;
+  padding: 5px 4px;
   border-bottom: 1px solid var(--bill-line);
   vertical-align: top;
 }
@@ -213,6 +256,11 @@
 
 .bill-charges .right {
   text-align: right;
+  white-space: nowrap;
+}
+
+.bill-charges th.center {
+  white-space: nowrap;
 }
 
 .bill-code {
@@ -226,6 +274,7 @@
   gap: 16px 32px;
   align-items: start;
   margin-top: 10px;
+  break-inside: avoid;
 }
 
 .bill-words {
@@ -320,7 +369,7 @@
   width: 200px;
   margin-left: auto;
   text-align: center;
-  transform: translateY(-24mm);
+  break-inside: avoid;
 }
 
 .bill-signature > span {

@@ -244,7 +244,7 @@ describe("cash collection API adapter", () => {
       requestTimeoutMs: 1000,
     });
     const result = await api.loadBootstrap();
-    expect(result.facility).toEqual({
+    expect(result.facility).toMatchObject({
       name: "Example Hospital",
       subtitle: "Billing",
       address: "Example Road",

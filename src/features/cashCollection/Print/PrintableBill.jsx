@@ -5,6 +5,11 @@ import "./PrintableBill.css";
 import { PRINT_MEDIA } from "./printableBill";
 import { useAppData } from "../../../app/providers/AppDataProvider";
 import { getHospitalLogo } from "./hospitalLogoMapper/hospitalLogoMapper";
+import { PatientBarcode } from "./PatientBarcode.jsx";
+import {
+  resolvePaymentPrintPolicy,
+  receivedAmount,
+} from "./paymentPrintPolicy";
 import {
   displayDate,
   money,
@@ -147,7 +152,9 @@ export function paymentFacts(payment) {
           ? "Received"
           : "Completed"),
     details:
-      manual.summary || structured.description || structured.summary || mode,
+      String(manual.summary || "").trim() ||
+      String(structured.description || "").trim() ||
+      DASH,
     virtual: mode.toLowerCase().replace(/[^a-z]/g, "") === "virtualaccount",
   };
 }
@@ -167,7 +174,7 @@ function PrintableBill({
   cashier,
   preview = false,
 }) {
-  const { todayIso, facility = {} } = useAppData();
+  const { todayIso, facility = {}, paymentOptions = {} } = useAppData();
   const isRefund = requestType === "Refund";
   const isEstimate = requestType === "Estimation";
   const gross = lines.reduce((sum, line) => sum + lineGross(line), 0);
@@ -177,18 +184,53 @@ function PrintableBill({
   );
   const moment = documentMoment(documentDate, displayDate(todayIso));
   const pay = paymentFacts(payment);
+  const structuredPayment =
+    payment && typeof payment === "object" ? payment : { mode: payment };
+  const policy = resolvePaymentPrintPolicy(
+    structuredPayment,
+    paymentOptions.modeDetails?.[pay.mode],
+  );
+  const paidAmount = isEstimate
+    ? total
+    : receivedAmount(structuredPayment, total, policy);
   const suppliedFacilityName = String(facility.name || "").trim();
   const facilityName = PLACEHOLDER_FACILITY_NAMES.has(
     suppliedFacilityName.toLowerCase(),
   )
     ? DEFAULT_FACILITY_NAME
     : suppliedFacilityName || DEFAULT_FACILITY_NAME;
-  const facilityLogo = getHospitalLogo(facilityName);
+  const facilityLogo = getHospitalLogo(facility.hospitalCode ?? "37913");
+  const clean = (value) => (present(value) === DASH ? "" : present(value));
+  const locationInfo = [
+    clean(facility.city),
+    clean(facility.state),
+    clean(facility.pincode) && `PIN: ${clean(facility.pincode)}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const contactInfo = [
+    clean(facility.phone) && `Phone: ${clean(facility.phone)}`,
+    clean(facility.email),
+    clean(facility.fax) && `Fax: ${clean(facility.fax)}`,
+    clean(facility.contactPerson) &&
+      `Contact: ${clean(facility.contactPerson)}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const codeInfo = [
+    clean(facility.shortName),
+    clean(facility.hospitalCode) &&
+      `Hospital Code: ${clean(facility.hospitalCode)}`,
+    clean(facility.stateCode) && `State Code: ${clean(facility.stateCode)}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const bill = (
     <article
       className={`${preview ? "bill-preview-sheet" : "print-bill"} aiims-bill`}
       data-media={PRINT_MEDIA}
     >
+      <PatientBarcode cr={patient?.cr} />
       <header className="aiims-bill-head">
         <div className="aiims-bill-brand">
           {facilityLogo && (
@@ -200,6 +242,11 @@ function PrintableBill({
               <p className="aiims-bill-hindi">{facility.subtitle}</p>
             )}
             {facility.address && <p>{facility.address}</p>}
+            {locationInfo && (
+              <p className="bill-hospital-info">{locationInfo}</p>
+            )}
+            {contactInfo && <p className="bill-hospital-info">{contactInfo}</p>}
+            {codeInfo && <p className="bill-hospital-info">{codeInfo}</p>}
           </div>
         </div>
       </header>
@@ -220,10 +267,9 @@ function PrintableBill({
         <Field label="Billed Time" value={moment.time} />
       </section>
       <section className="bill-section">
-        <h2>Patient</h2>
         <div className="bill-patient-grid">
-          <Field label="CR No." value={compactIdentifier(patient?.cr)} strong />
-          <Field label="Patient Name" value={patient?.name} strong />
+          <Field label="CR No." value={compactIdentifier(patient?.cr)} />
+          <Field label="Patient Name" value={patient?.name} />
           <Field
             label="Age / Sex"
             value={`${present(patient?.age)} / ${present(patient?.sex)}`}
@@ -236,14 +282,14 @@ function PrintableBill({
           <Field label="ABHA No." value={patient?.abhaNumber} />
         </div>
       </section>
-      <section className="bill-section">
+      <section className="bill-section bill-charges-section">
         <h2>Charges</h2>
         <table className="bill-charges">
           <thead>
             <tr>
-              <th className="center">#</th>
+              <th className="center">S. No.</th>
               <th>Code</th>
-              <th>Procedure / Inv / Service</th>
+              <th>Procedure / Inv. / Service</th>
               <th>Tariff Group</th>
               <th className="right">Rate (₹)</th>
               <th className="center">Qty</th>
@@ -297,7 +343,7 @@ function PrintableBill({
                       ? "Estimated Amount"
                       : "Amount Received"}
                 </td>
-                <td>₹ {money(total)}</td>
+                <td>₹ {money(paidAmount)}</td>
               </tr>
             </tbody>
           </table>
@@ -328,18 +374,14 @@ function PrintableBill({
               className="bill-payment-details"
             />
           </div>
-          {pay.virtual && (
+          {policy.printNote && (
             <div className="virtual-payment-note">
               <span>
-                PAYMENT DETAILS: VIRTUAL ACCOUNT — AMT.: ₹{money(total)}
+                PAYMENT DETAILS: {policy.printNote.title || pay.mode} — AMT.: ₹
+                {money(total)}
               </span>
-              <span lang="hi">
-                नोट: यह भुगतान वर्चुअल अकाउंट से जुड़ा है। इसका भुगतान न करें।
-              </span>
-              <span>
-                NOTE: This payment is linked to the Virtual Account. Do not pay
-                it.
-              </span>
+              <span lang="hi">{policy.printNote.hindi}</span>
+              <span>{policy.printNote.english}</span>
             </div>
           )}
         </section>
@@ -353,7 +395,7 @@ function PrintableBill({
         <div className="bill-colophon">
           <span>This is a computer-generated receipt.</span>
           <span>
-            Printed {moment.date} {moment.time} · Page 1 of 1
+            Printed {moment.date} {moment.time}
           </span>
         </div>
       </footer>

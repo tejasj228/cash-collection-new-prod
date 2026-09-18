@@ -11,36 +11,73 @@
     margin: 0 !important;
     padding: 0 !important;
     background: #fff !important;
+    height: auto !important;
+    overflow: visible !important;
   }
 
   /* PrintableBill portals directly into body. Removing the application root
-     keeps the receipt on one page and excludes the on-screen preview modal. */
+     excludes the application and on-screen preview modal from the receipt. */
   body > :not(.print-bill) {
     display: none !important;
   }
 
   body > .print-bill.aiims-bill {
-    display: flex !important;
+    display: block !important;
     position: relative !important;
     inset: auto !important;
     width: 194mm !important;
-    height: 280mm !important;
-    min-height: 280mm !important;
+    height: auto !important;
+    /* A small rounding allowance avoids overflowing the 269mm page area. */
+    min-height: 268mm !important;
     margin: 0 !important;
-    padding: 6mm 6mm 5mm !important;
-    overflow: hidden;
-    break-after: avoid-page;
+    padding: 6mm 6mm 0 !important;
+    overflow: visible !important;
     visibility: visible !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    break-after: auto;
   }
 
   .print-bill.aiims-bill * {
     visibility: visible !important;
   }
 
+  .print-bill .bill-charges-section {
+    break-inside: auto;
+  }
+
+  .print-bill .bill-charges thead {
+    display: table-header-group;
+  }
+
+  .print-bill .bill-charges tr,
+  .print-bill .bill-after-table,
+  .print-bill .bill-signature,
+  .print-bill .bill-meta,
+  .print-bill .aiims-bill-head {
+    break-inside: avoid;
+  }
+
+  .print-bill .bill-section > h2 {
+    break-after: avoid;
+  }
+
+  .print-bill .aiims-bill-foot {
+    break-inside: avoid;
+    padding-bottom: 28px;
+  }
+
+  .print-bill .bill-colophon {
+    /* Anchor to the growing document, without a fixed box beyond the page. */
+    position: absolute;
+    bottom: 0;
+    left: 6mm;
+    right: 6mm;
+    margin-top: 0;
+  }
+
   @page {
     size: A4 portrait;
-    margin: 8mm;
+    margin: 8mm 8mm 20mm;
   }
 }

@@ -99,6 +99,16 @@ function mapPaymentOptions(row = {}) {
     cardTypes: row.payment_card_types || [],
     posTerminals: row.payment_pos_terminals || [],
     restrictionsByCategory: row.payment_restrictions_by_category || {},
+    modeDetails: Object.fromEntries(
+      Object.entries(row.payment_mode_details || {}).map(([mode, details]) => [
+        mode,
+        {
+          ...details,
+          receivedAmountFlag: details.received_amount_flag,
+          printNote: details.print_note,
+        },
+      ]),
+    ),
   };
 }
 
@@ -110,6 +120,9 @@ function mapPaymentDetailsWire(row = {}) {
     mode: displayText(row.payment_mode),
     description: displayText(row.payment_description),
     summary: displayText(row.payment_summary),
+    receivedAmountFlag: row.received_amount_flag,
+    receivedAmount: row.received_amount,
+    printNote: row.print_note,
     cardType: displayText(row.card_type) || null,
     terminalId: displayText(row.pos_terminal_id) || null,
     terminalApproval: terminal
@@ -140,6 +153,8 @@ function toWirePaymentDetails(payment = {}) {
     payment_mode: payment.mode,
     payment_description: payment.description,
     payment_summary: payment.summary,
+    received_amount_flag: payment.receivedAmountFlag,
+    print_note: payment.printNote,
     card_type: payment.cardType,
     pos_terminal_id: payment.terminalId,
     terminal_payment: terminal
@@ -175,6 +190,16 @@ export function mapBootstrapWire(row = {}) {
     ...row,
     todayIso: displayText(row.business_date),
     facility: {
+      hospitalCode: displayText(facility.hospital_code),
+      shortName: displayText(facility.hospital_short_name),
+      city: displayText(facility.city),
+      state: displayText(facility.state),
+      pincode: displayText(facility.pincode),
+      phone: displayText(facility.phone),
+      email: displayText(facility.email),
+      fax: displayText(facility.fax),
+      contactPerson: displayText(facility.contact_person),
+      stateCode: displayText(facility.state_code),
       name: displayText(facility.facility_name),
       subtitle: displayText(facility.facility_subtitle),
       address: displayText(facility.facility_address),

@@ -8,6 +8,8 @@ import { createCashCollectionApi } from "../features/cashCollection/services/cas
 import { createPendingListPatientQueries } from "./legacyHbimsDirectPatients";
 import { directPatientError } from "../features/cashCollection/Collection/Direct/direct";
 import { fetchLegacyPaymentOptions } from "./legacyHbimsPaymentOptions";
+import { createLegacyTariffCatalogue } from "./legacyHbimsTariffCatalogue";
+import { fetchLegacyHospitalDetails } from "./legacyHbimsHospitalDetails";
 
 function withLiveQueueSummary(queueSummary, liveRequests, todayIso) {
   return {
@@ -30,7 +32,7 @@ export async function resolveApplicationRuntime() {
       ...runtimeConfig,
       apiBaseUrl: DIRECT_API_URL,
     });
-    services.getTariffPage = directApi.getTariffPage;
+    Object.assign(services, createLegacyTariffCatalogue());
     services.getTariffs = directApi.getTariffs;
     services.getPaymentOptions = fetchLegacyPaymentOptions;
     const prototypePostTransaction = services.postTransaction.bind(services);
@@ -51,7 +53,10 @@ export async function resolveApplicationRuntime() {
     // Live HBIMS data is mandatory for the local integration. If the ticket,
     // backend, or endpoint fails, reject bootstrap and show the error screen;
     // never replace hospital data with prototype patients.
-    const liveRequests = await fetchLegacyPendingRequests();
+    const [liveRequests, hospitalDetails] = await Promise.all([
+      fetchLegacyPendingRequests(),
+      fetchLegacyHospitalDetails(),
+    ]);
     const loadLiveRequests = async () => liveRequests;
     Object.assign(
       services,
@@ -146,6 +151,11 @@ export async function resolveApplicationRuntime() {
 
     bootstrapData = {
       ...PROTOTYPE_DATA,
+      facility: {
+        ...hospitalDetails,
+        counterName: PROTOTYPE_DATA.facility.counterName,
+        cashierName: PROTOTYPE_DATA.facility.cashierName,
+      },
       patients: [],
       tariffCatalog: [],
       tariffGroups: [],

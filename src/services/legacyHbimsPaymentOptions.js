@@ -24,7 +24,14 @@ export async function fetchLegacyPaymentOptions(context = {}) {
     const parts = String(row.paydtls || "").split("#");
     if (!/^\d+$/.test(parts[0]) || !parts[1] || !row.paymode)
       throw new Error("Payment mode mapping returned an invalid mode.");
-    modeDetails[parts[1]] = { id: parts[0], paydtls: row.paydtls };
+    modeDetails[parts[1]] = {
+      id: parts[0],
+      paydtls: row.paydtls,
+      ...(row.received_amount_flag != null
+        ? { receivedAmountFlag: row.received_amount_flag }
+        : {}),
+      ...(row.print_note !== undefined ? { printNote: row.print_note } : {}),
+    };
   }
   return { modes: Object.keys(modeDetails), modeDetails };
 }

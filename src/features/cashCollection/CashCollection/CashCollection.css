@@ -4238,10 +4238,6 @@
     color: #000;
     font-size: 11px;
   }
-  @page {
-    size: A4;
-    margin: 12mm;
-  }
 }
 
 /* Workspace usability refinements */
@@ -4777,10 +4773,6 @@
     left: 0;
     top: 0;
     width: 100%;
-  }
-  @page {
-    size: A4;
-    margin: 10mm;
   }
 }
 /* the hero total must outrank the .mono size bump above */

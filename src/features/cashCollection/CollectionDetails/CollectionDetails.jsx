@@ -211,8 +211,19 @@ function CollectionWorkspace({
       hospitalServiceId: service.id,
       billingServiceId: workflow.id,
       workflowId: workflow.uiFamily,
+      patientCategoryCode: selectedPatient?.patientCategoryCode,
+      chargeTypeId: service.legacyChargeTypeId,
+      ipdChargeType: workflowContext?.ipdChargeType ?? 0,
     }),
-    [selectedPatient?.cr, service.id, workflow.id, workflow.uiFamily],
+    [
+      selectedPatient?.cr,
+      selectedPatient?.patientCategoryCode,
+      service.id,
+      service.legacyChargeTypeId,
+      workflow.id,
+      workflow.uiFamily,
+      workflowContext?.ipdChargeType,
+    ],
   );
   // The payment form (mode, terminal, manual details, …) is its own step —
   // reached from a "Pay" prompt — instead of always sitting inline under the

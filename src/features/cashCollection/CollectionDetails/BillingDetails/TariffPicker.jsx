@@ -5,8 +5,14 @@ import { Pagination } from "../../../../shared/components/ui";
 import { useEscapeToClose } from "../../../../shared/hooks/useEscapeToClose";
 import { money } from "../../../../shared/utils/formatters";
 
-export function TariffPicker({ services, context, onAdd, onClose }) {
-  const [query, setQuery] = useState("");
+export function TariffPicker({
+  services,
+  context,
+  onAdd,
+  onClose,
+  initialQuery = "",
+}) {
+  const [query, setQuery] = useState(initialQuery);
   const [page, setPage] = useState(1);
   const [data, setData] = useState({ items: [], total: 0 });
   const [selected, setSelected] = useState({});
@@ -46,7 +52,7 @@ export function TariffPicker({ services, context, onAdd, onClose }) {
   return (
     <div className="popover-backdrop" onMouseDown={onClose}>
       <div
-        className="confirm-dialog tariff-details-dialog"
+        className="confirm-dialog tariff-details-dialog tariff-picker-dialog"
         role="dialog"
         aria-modal="true"
         aria-label="Select tariffs"
@@ -62,7 +68,12 @@ export function TariffPicker({ services, context, onAdd, onClose }) {
             ×
           </button>
         </div>
-        <div className="search-field tariff-picker-search">
+        <div
+          className="search-field tariff-picker-search"
+          onClick={(event) =>
+            event.currentTarget.querySelector("input")?.focus()
+          }
+        >
           <Icon name="search" size={17} />
           <input
             type="search"
@@ -93,24 +104,26 @@ export function TariffPicker({ services, context, onAdd, onClose }) {
                 data.items.map((tariff) => (
                   <tr key={tariff.code}>
                     <td>
-                      <input
-                        type="checkbox"
-                        aria-label={`Select ${tariff.name}`}
-                        checked={Boolean(selected[tariff.code])}
-                        onChange={(event) =>
-                          setSelected((current) => {
-                            const next = { ...current };
-                            if (event.target.checked)
-                              next[tariff.code] = tariff;
-                            else delete next[tariff.code];
-                            return next;
-                          })
-                        }
-                      />
+                      <label className="tariff-checkbox-target">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${tariff.name}`}
+                          checked={Boolean(selected[tariff.code])}
+                          onChange={(event) =>
+                            setSelected((current) => {
+                              const next = { ...current };
+                              if (event.target.checked)
+                                next[tariff.code] = tariff;
+                              else delete next[tariff.code];
+                              return next;
+                            })
+                          }
+                        />
+                      </label>
                     </td>
                     <td>{tariff.code}</td>
-                    <td>{tariff.name}</td>
-                    <td>{tariff.group}</td>
+                    <td title={tariff.name}>{tariff.name}</td>
+                    <td title={tariff.group}>{tariff.group}</td>
                     <td>₹{money(tariff.rate)}</td>
                   </tr>
                 ))}

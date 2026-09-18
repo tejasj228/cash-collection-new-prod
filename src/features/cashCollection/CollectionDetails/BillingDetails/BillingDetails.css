@@ -1,5 +1,30 @@
 /* BillingDetails owns styles for this feature folder. Shared foundations remain in CashCollection.css. */
 
+.hbims-cash-collection .tariff-checkbox-target {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: -8px;
+  cursor: pointer;
+}
+
+.hbims-cash-collection .tariff-checkbox-target input {
+  margin: 0;
+  cursor: pointer;
+}
+
+.hbims-cash-collection .tariff-search,
+.hbims-cash-collection .tariff-picker-search {
+  cursor: text;
+}
+
+.hbims-cash-collection .tariff-results button.tariff-view-all {
+  display: block;
+  white-space: nowrap;
+}
+
 .hbims-cash-collection .tariff-details-dialog .tariff-picker-search {
   box-sizing: border-box;
   width: 100%;
@@ -18,4 +43,78 @@
   height: 42px;
   font-size: 13px;
   line-height: 20px;
+}
+
+.hbims-cash-collection .tariff-picker-dialog {
+  padding: 16px 22px;
+  max-height: calc(100dvh - 32px);
+}
+
+.hbims-cash-collection .tariff-picker-dialog .tariff-picker-search {
+  min-height: 40px;
+  margin: 10px 0;
+  padding: 0 10px;
+}
+
+.hbims-cash-collection .tariff-picker-dialog .tariff-picker-search input {
+  height: 38px;
+}
+
+.hbims-cash-collection .tariff-picker-dialog .table-wrap {
+  flex: 0 0 auto;
+  max-height: none;
+  margin: 0;
+  overflow: visible;
+}
+
+.hbims-cash-collection .tariff-picker-dialog table {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.hbims-cash-collection .tariff-picker-dialog th,
+.hbims-cash-collection .tariff-picker-dialog td {
+  padding: 6px 12px;
+  font-size: 13px;
+  line-height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hbims-cash-collection .tariff-picker-dialog th:nth-child(1) {
+  width: 7%;
+}
+
+.hbims-cash-collection .tariff-picker-dialog th:nth-child(2) {
+  width: 10%;
+}
+
+.hbims-cash-collection .tariff-picker-dialog th:nth-child(3) {
+  width: 50%;
+}
+
+.hbims-cash-collection .tariff-picker-dialog th:nth-child(4) {
+  width: 20%;
+}
+
+.hbims-cash-collection .tariff-picker-dialog th:nth-child(5) {
+  width: 13%;
+}
+
+.hbims-cash-collection .tariff-picker-dialog .table-pagination {
+  flex: 0 0 auto;
+  min-height: 40px;
+  margin: 0;
+  padding: 8px 0;
+}
+
+.hbims-cash-collection .tariff-picker-dialog .confirm-actions {
+  margin-top: 10px;
+  gap: 8px;
+}
+
+.hbims-cash-collection .tariff-picker-dialog .confirm-actions .button {
+  min-height: 38px;
+  padding: 8px 14px;
 }
