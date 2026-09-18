@@ -14,7 +14,7 @@ const row = (code, name = code) => ({
 });
 const context = { patientCategoryCode: 11, chargeTypeId: 1 };
 
-test("prefix matching searches names and codes, deduplicates and sorts by code", () => {
+test("prefix matching searches names and codes, deduplicates and preserves API order", () => {
   const index = buildTariffIndex([
     row("Z01", "Abdominal Surgery"),
     row("AB02", "Other"),
@@ -23,7 +23,10 @@ test("prefix matching searches names and codes, deduplicates and sorts by code",
   ]);
   expect(
     searchTariffIndex(index, { search: " ab " }).items.map((item) => item.code),
-  ).toEqual(["AB01", "AB02", "Z01"]);
+  ).toEqual(["Z01", "AB02", "AB01"]);
+  expect(
+    searchTariffIndex(index, { groupId: 154 }).items.map((item) => item.code),
+  ).toEqual(["Z01", "AB02", "AB01", "Y01"]);
   expect(searchTariffIndex(index, { search: "abcde" }).total).toBe(1);
   expect(searchTariffIndex(index, { search: "missing" })).toEqual({
     items: [],
@@ -31,19 +34,19 @@ test("prefix matching searches names and codes, deduplicates and sorts by code",
   });
 });
 
-test("all tariffs are paged ten at a time in ascending code order", () => {
+test("all tariffs are paged ten at a time in API order", () => {
   const index = buildTariffIndex(
     Array.from({ length: 25 }, (_, i) =>
       row(`T${String(24 - i).padStart(2, "0")}`),
     ),
   );
   expect(searchTariffIndex(index).items.map((item) => item.code)).toEqual(
-    Array.from({ length: 10 }, (_, i) => `T0${i}`),
+    Array.from({ length: 10 }, (_, i) => `T${24 - i}`),
   );
   const result = searchTariffIndex(index, { page: 2 });
   expect(result.total).toBe(25);
   expect(result.items).toHaveLength(5);
-  expect(result.items[0].code).toBe("T20");
+  expect(result.items[0].code).toBe("T04");
 });
 
 test("concurrent searches and later pages share one request; categories are isolated", async () => {

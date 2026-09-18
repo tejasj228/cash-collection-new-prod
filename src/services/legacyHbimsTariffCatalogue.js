@@ -51,13 +51,11 @@ function lowerBound(index, prefix) {
 }
 
 export function buildTariffIndex(rows) {
-  const items = rows
-    .map(mapLegacyCatalogueRow)
-    .sort((a, b) => compare(normalize(a.code), normalize(b.code)));
-  const codes = items.map((item, rank) => ({
-    key: normalize(item.code),
-    rank,
-  }));
+  // Display ranks follow the API response; only lookup indexes are sorted.
+  const items = rows.map(mapLegacyCatalogueRow);
+  const codes = items
+    .map((item, rank) => ({ key: normalize(item.code), rank }))
+    .sort((a, b) => compare(a.key, b.key));
   const names = items
     .map((item, rank) => ({ key: normalize(item.name), rank }))
     .sort((a, b) => compare(a.key, b.key));
