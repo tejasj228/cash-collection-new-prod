@@ -83,5 +83,6 @@ test("the local pending queue renders immediately without invoking asynchronous 
   expect(services.listPendingRequests).not.toHaveBeenCalled();
   expect(services.getPendingRequestPageSync).toHaveBeenCalledWith(
     expect.objectContaining({ page: 0, size: 10 }),
+    [],
   );
 });

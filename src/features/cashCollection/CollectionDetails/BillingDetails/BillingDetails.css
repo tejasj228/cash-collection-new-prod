@@ -46,8 +46,10 @@
 }
 
 .hbims-cash-collection .tariff-picker-dialog {
+  box-sizing: border-box;
+  height: min(600px, calc(100dvh - 32px));
   padding: 16px 22px;
-  max-height: calc(100dvh - 32px);
+  max-height: none;
 }
 
 .hbims-cash-collection .tariff-picker-dialog .tariff-picker-search {
@@ -61,10 +63,11 @@
 }
 
 .hbims-cash-collection .tariff-picker-dialog .table-wrap {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+  min-height: 0;
   max-height: none;
   margin: 0;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .hbims-cash-collection .tariff-picker-dialog table {

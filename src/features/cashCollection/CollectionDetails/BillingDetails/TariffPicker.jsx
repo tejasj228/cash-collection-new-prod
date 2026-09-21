@@ -5,6 +5,17 @@ import { Pagination } from "../../../../shared/components/ui";
 import { useEscapeToClose } from "../../../../shared/hooks/useEscapeToClose";
 import { money } from "../../../../shared/utils/formatters";
 
+const tariffKey = (tariff) =>
+  tariff.catalogueKey ||
+  [
+    tariff.legacyTariffId,
+    tariff.code,
+    tariff.groupId,
+    tariff.rate,
+    tariff.unitId,
+    tariff.name,
+  ].join("|");
+
 export function TariffPicker({
   services,
   context,
@@ -23,7 +34,7 @@ export function TariffPicker({
     [services, filters],
   );
   const [data, setData] = useState({ items: [], total: 0 });
-  const [selected, setSelected] = useState({});
+  const [selected, setSelected] = useState(() => new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const displayedData = cachedData || data;
@@ -110,33 +121,36 @@ export function TariffPicker({
             </thead>
             <tbody>
               {!error &&
-                displayedData.items.map((tariff) => (
-                  <tr key={tariff.code}>
-                    <td>
-                      <label className="tariff-checkbox-target">
-                        <input
-                          type="checkbox"
-                          aria-label={`Select ${tariff.name}`}
-                          checked={Boolean(selected[tariff.code])}
-                          disabled={busy}
-                          onChange={(event) =>
-                            setSelected((current) => {
-                              const next = { ...current };
-                              if (event.target.checked)
-                                next[tariff.code] = tariff;
-                              else delete next[tariff.code];
-                              return next;
-                            })
-                          }
-                        />
-                      </label>
-                    </td>
-                    <td>{tariff.code}</td>
-                    <td title={tariff.name}>{tariff.name}</td>
-                    <td title={tariff.group}>{tariff.group}</td>
-                    <td>₹{money(tariff.rate)}</td>
-                  </tr>
-                ))}
+                displayedData.items.map((tariff) => {
+                  const key = tariffKey(tariff);
+                  return (
+                    <tr key={key}>
+                      <td>
+                        <label className="tariff-checkbox-target">
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${tariff.name}`}
+                            checked={selected.has(key)}
+                            disabled={busy}
+                            onChange={(event) =>
+                              setSelected((current) => {
+                                const next = new Map(current);
+                                if (event.target.checked)
+                                  next.set(key, tariff);
+                                else next.delete(key);
+                                return next;
+                              })
+                            }
+                          />
+                        </label>
+                      </td>
+                      <td>{tariff.code}</td>
+                      <td title={tariff.name}>{tariff.name}</td>
+                      <td title={tariff.group}>{tariff.group}</td>
+                      <td>₹{money(tariff.rate)}</td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
@@ -167,13 +181,13 @@ export function TariffPicker({
           </button>
           <button
             className="button button-primary"
-            disabled={!Object.keys(selected).length || busy || Boolean(error)}
+            disabled={!selected.size || busy || Boolean(error)}
             onClick={() => {
-              onAdd(Object.values(selected));
+              onAdd(Array.from(selected.values()));
               onClose();
             }}
           >
-            Add selected ({Object.keys(selected).length})
+            Add selected ({selected.size})
           </button>
         </div>
       </div>

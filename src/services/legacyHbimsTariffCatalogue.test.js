@@ -49,6 +49,17 @@ test("all tariffs are paged ten at a time in API order", () => {
   expect(result.items[0].code).toBe("T04");
 });
 
+test("duplicate tariff codes receive stable independent catalogue keys", () => {
+  const index = buildTariffIndex([
+    row("DUP", "First rate"),
+    { ...row("DUP", "Second rate"), default_rate: 2500 },
+  ]);
+  expect(index.items.map((item) => item.catalogueKey)).toEqual([
+    "catalogue-row-0",
+    "catalogue-row-1",
+  ]);
+});
+
 test("concurrent searches and later pages share one request; categories are isolated", async () => {
   const fetchJson = jest.fn().mockResolvedValue({
     status: "success",

@@ -52,7 +52,14 @@ function lowerBound(index, prefix) {
 
 export function buildTariffIndex(rows) {
   // Display ranks follow the API response; only lookup indexes are sorted.
-  const items = rows.map(mapLegacyCatalogueRow);
+  // catalogueKey is deliberately based on the API row position rather than
+  // tariff code. Legacy catalogues can contain duplicate codes (including
+  // entries with different rates), and each returned row must remain an
+  // independently selectable record while paging.
+  const items = rows.map((row, rank) => ({
+    ...mapLegacyCatalogueRow(row),
+    catalogueKey: `catalogue-row-${rank}`,
+  }));
   const codes = items
     .map((item, rank) => ({ key: normalize(item.code), rank }))
     .sort((a, b) => compare(a.key, b.key));

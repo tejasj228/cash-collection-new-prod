@@ -92,6 +92,75 @@ export async function fetchLegacyPendingRequests() {
   return Array.isArray(rows) ? rows.map(mapLegacyPendingRequestRow) : [];
 }
 
+const pendingRequestFingerprint = (requests) => JSON.stringify(requests);
+
+export function createPendingRequestStore(
+  initialRequests,
+  fetchRequests,
+  {
+    intervalMs = 30000,
+    isHidden = () =>
+      typeof document !== "undefined" && document.visibilityState === "hidden",
+    setTimeoutFn = (callback, delay) => window.setTimeout(callback, delay),
+    clearTimeoutFn = (timer) => window.clearTimeout(timer),
+  } = {},
+) {
+  let requests = initialRequests;
+  let fingerprint = pendingRequestFingerprint(requests);
+  let timer = null;
+  let inFlight = null;
+  let lastRefreshAt = Date.now();
+  const listeners = new Set();
+
+  const schedule = () => {
+    if (!listeners.size || timer != null) return;
+    timer = setTimeoutFn(async () => {
+      timer = null;
+      if (!isHidden()) await refresh().catch(() => {});
+      schedule();
+    }, intervalMs);
+  };
+
+  const refresh = () => {
+    if (isHidden()) return Promise.resolve({ changed: false, requests });
+    if (inFlight) return inFlight;
+    inFlight = fetchRequests()
+      .then((nextRequests) => {
+        const nextFingerprint = pendingRequestFingerprint(nextRequests);
+        const changed = nextFingerprint !== fingerprint;
+        if (changed) {
+          requests = nextRequests;
+          fingerprint = nextFingerprint;
+          listeners.forEach((listener) => listener());
+        }
+        return { changed, requests };
+      })
+      .finally(() => {
+        lastRefreshAt = Date.now();
+        inFlight = null;
+      });
+    return inFlight;
+  };
+
+  return {
+    getPendingRequestsSnapshot: () => requests,
+    refreshPendingRequests: refresh,
+    subscribePendingRequests(listener) {
+      listeners.add(listener);
+      if (Date.now() - lastRefreshAt >= intervalMs)
+        void refresh().catch(() => {});
+      schedule();
+      return () => {
+        listeners.delete(listener);
+        if (!listeners.size && timer != null) {
+          clearTimeoutFn(timer);
+          timer = null;
+        }
+      };
+    },
+  };
+}
+
 // Wraps the bootstrap-loaded live rows so they can stand in for
 // the prototype's listPendingRequests/getPendingRequestMetrics without
 // duplicating the search/filter/sort/pagination contract those expect.
@@ -101,8 +170,10 @@ export function createLegacyPendingRequestQueries(loadRequests, readRequests) {
   return {
     ...(readRequests
       ? {
-          getPendingRequestPageSync: (filters = {}) =>
-            queryPendingRequests(readRequests(), filters),
+          getPendingRequestPageSync: (
+            filters = {},
+            requests = readRequests(),
+          ) => queryPendingRequests(requests, filters),
         }
       : {}),
     async listPendingRequests(filters = {}) {

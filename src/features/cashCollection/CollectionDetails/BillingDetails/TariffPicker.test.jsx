@@ -183,3 +183,55 @@ test("rapid cached paging immediately shows the latest page without loading or l
   expect(screen.getByText("45 eligible tariffs")).not.toBeNull();
   expect(fetchJson).toHaveBeenCalledTimes(1);
 });
+
+test("duplicate tariff codes remain independent and never stick across pages", async () => {
+  const rows = Array.from({ length: 21 }, (_, i) => ({
+    tariff_code: `T${String(i).padStart(3, "0")}`,
+    tariff_name: `Item ${i}`,
+    default_rate: i + 1,
+    group_name: "Test group",
+  }));
+  rows[0].tariff_code = "DUP";
+  rows[0].tariff_name = "Duplicate first rate";
+  rows[1].tariff_code = "DUP";
+  rows[1].tariff_name = "Duplicate second rate";
+  const services = createLegacyTariffCatalogue(
+    jest.fn().mockResolvedValue({ status: "success", data: rows }),
+  );
+  const context = { patientCategoryCode: 11, chargeTypeId: 1 };
+  await services.preloadTariffs(context);
+  const onAdd = jest.fn();
+  render(
+    <TariffPicker
+      services={services}
+      context={context}
+      onClose={() => {}}
+      onAdd={onAdd}
+    />,
+  );
+
+  fireEvent.click(
+    screen.getByRole("checkbox", { name: "Select Duplicate first rate" }),
+  );
+  fireEvent.click(
+    screen.getByRole("checkbox", { name: "Select Duplicate second rate" }),
+  );
+  expect(screen.getByRole("button", { name: "Add selected (2)" })).not.toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+  expect(screen.queryByText("Duplicate first rate")).toBeNull();
+  expect(screen.queryByText("Duplicate second rate")).toBeNull();
+  fireEvent.click(screen.getByRole("checkbox", { name: "Select Item 10" }));
+
+  fireEvent.click(screen.getByRole("button", { name: "Last page" }));
+  expect(screen.getByText("Page 3 of 3")).not.toBeNull();
+  fireEvent.click(screen.getByRole("checkbox", { name: "Select Item 20" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add selected (4)" }));
+
+  expect(onAdd).toHaveBeenCalledWith([
+    expect.objectContaining({ name: "Duplicate first rate", rate: 1 }),
+    expect.objectContaining({ name: "Duplicate second rate", rate: 2 }),
+    expect.objectContaining({ name: "Item 10", rate: 11 }),
+    expect.objectContaining({ name: "Item 20", rate: 21 }),
+  ]);
+});

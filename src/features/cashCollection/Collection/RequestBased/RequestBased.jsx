@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useSyncExternalStore } from "react";
 import { ALL_HOSPITAL_SERVICES, ALL_REQUEST_TYPES } from "./requestBased";
 import "./RequestBased.css";
 import { useAppData } from "../../../../app/providers/AppDataProvider";
@@ -76,24 +76,40 @@ function RequestWorklist({
   setRequestTypeFilter,
   onTotalChange,
 }) {
-  const { requests, queueSummary } = useAppData();
+  const { requests: bootstrapRequests, queueSummary } = useAppData();
+  const requests = useSyncExternalStore(
+    services?.subscribePendingRequests || (() => () => {}),
+    services?.getPendingRequestsSnapshot || (() => bootstrapRequests),
+    () => bootstrapRequests,
+  );
   const localPage = useMemo(
     () =>
-      services?.getPendingRequestPageSync?.({
-        page: page - 1,
-        size: 10,
-        search: search.trim(),
-        hospitalService:
-          hospitalServiceFilter === ALL_HOSPITAL_SERVICES
-            ? undefined
-            : hospitalServiceFilter,
-        requestType:
-          requestTypeFilter === ALL_REQUEST_TYPES
-            ? undefined
-            : requestTypeFilter,
-        sort: sort ? `${sort.field},${sort.dir}` : undefined,
-      }),
-    [services, page, search, hospitalServiceFilter, requestTypeFilter, sort],
+      services?.getPendingRequestPageSync?.(
+        {
+          page: page - 1,
+          size: 10,
+          search: search.trim(),
+          hospitalService:
+            hospitalServiceFilter === ALL_HOSPITAL_SERVICES
+              ? undefined
+              : hospitalServiceFilter,
+          requestType:
+            requestTypeFilter === ALL_REQUEST_TYPES
+              ? undefined
+              : requestTypeFilter,
+          sort: sort ? `${sort.field},${sort.dir}` : undefined,
+        },
+        requests,
+      ),
+    [
+      services,
+      requests,
+      page,
+      search,
+      hospitalServiceFilter,
+      requestTypeFilter,
+      sort,
+    ],
   );
   const [pageData, setPageData] = useState({
     items: requests.slice(0, 10),
@@ -196,6 +212,9 @@ function RequestWorklist({
   };
   const pageCount = Math.max(1, Math.ceil(displayedData.total / pageSize));
   const currentPage = Math.min(page, pageCount);
+  React.useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount, setPage]);
   const visible = displayedData.items;
   // The skeleton should be exactly as tall as the table it's standing in
   // for — on the last page of any list, that's fewer than a full pageSize —

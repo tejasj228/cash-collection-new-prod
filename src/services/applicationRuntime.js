@@ -42,7 +42,11 @@ export async function resolveApplicationRuntime() {
     let bootstrapData = PROTOTYPE_DATA;
 
     const [
-      { fetchLegacyPendingRequests, createLegacyPendingRequestQueries },
+      {
+        fetchLegacyPendingRequests,
+        createLegacyPendingRequestQueries,
+        createPendingRequestStore,
+      },
       { fetchLegacyPatientInfo: fetchLivePatientInfo },
       { fetchLegacyTariffDetails },
       { withPrototypePatientPhoto },
@@ -58,11 +62,17 @@ export async function resolveApplicationRuntime() {
     // Live HBIMS data is mandatory for the local integration. If the ticket,
     // backend, or endpoint fails, reject bootstrap and show the error screen;
     // never replace hospital data with prototype patients.
-    const [liveRequests, hospitalDetails] = await Promise.all([
+    const [initialLiveRequests, hospitalDetails] = await Promise.all([
       fetchLegacyPendingRequests(),
       fetchLegacyHospitalDetails(),
     ]);
-    const loadLiveRequests = async () => liveRequests;
+    const pendingRequestStore = createPendingRequestStore(
+      initialLiveRequests,
+      fetchLegacyPendingRequests,
+    );
+    Object.assign(services, pendingRequestStore);
+    const readLiveRequests = pendingRequestStore.getPendingRequestsSnapshot;
+    const loadLiveRequests = async () => readLiveRequests();
     Object.assign(
       services,
       createPendingListPatientQueries(loadLiveRequests, fetchLegacyPatientInfo),
@@ -103,11 +113,11 @@ export async function resolveApplicationRuntime() {
 
     Object.assign(
       services,
-      createLegacyPendingRequestQueries(loadLiveRequests, () => liveRequests),
+      createLegacyPendingRequestQueries(loadLiveRequests, readLiveRequests),
     );
 
     services.getRequest = async (requestId) => {
-      const liveRequest = liveRequests.find(
+      const liveRequest = readLiveRequests().find(
         (row) => row.id === String(requestId),
       );
       if (!liveRequest) return null;
@@ -125,7 +135,9 @@ export async function resolveApplicationRuntime() {
 
     services.checkEligibility = async (command) => {
       if (command.source === "request") {
-        if (liveRequests.some((row) => row.id === String(command.requestId)))
+        if (
+          readLiveRequests().some((row) => row.id === String(command.requestId))
+        )
           // No real eligibility endpoint yet — let a live request
           // straight through so its Patient Info tile can be reviewed;
           // getRequest loads tariffs separately; tariff data is not
@@ -191,10 +203,10 @@ export async function resolveApplicationRuntime() {
       patients: [],
       tariffCatalog: [],
       tariffGroups: [],
-      requests: liveRequests,
+      requests: initialLiveRequests,
       queueSummary: withLiveQueueSummary(
         PROTOTYPE_DATA.queueSummary,
-        liveRequests,
+        initialLiveRequests,
         PROTOTYPE_DATA.todayIso,
       ),
     };

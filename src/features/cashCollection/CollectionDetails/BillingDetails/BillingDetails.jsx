@@ -502,7 +502,12 @@ function ChargeBuilder({
               for (const tariff of tariffs) {
                 const index = next.findIndex(
                   (line) =>
-                    line.code === tariff.code && line.source === "manual",
+                    line.source === "manual" &&
+                    (line.catalogueKey && tariff.catalogueKey
+                      ? line.catalogueKey === tariff.catalogueKey
+                      : line.code === tariff.code &&
+                        line.rate === tariff.rate &&
+                        line.group === tariff.group),
                 );
                 if (index >= 0)
                   next[index] = {
