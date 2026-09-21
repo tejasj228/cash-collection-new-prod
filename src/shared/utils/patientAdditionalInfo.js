@@ -47,7 +47,9 @@ function readableLabel(key) {
       .replace(/\b(id|ipd|opd|cr|abha|url)\b/gi, (value) =>
         value.toUpperCase(),
       );
-  return label.replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
+  return label
+    .replace(/\b[a-z]/g, (letter) => letter.toUpperCase())
+    .replace(/\bNumber\b/g, "No.");
 }
 
 function displayValue(value) {

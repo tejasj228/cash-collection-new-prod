@@ -54,13 +54,13 @@ describe("mapLegacyPatientInfoRow", () => {
       { key: "is_admitted", label: "Currently Admitted", value: "No" },
       { key: "blank_field", label: "Blank Field", value: "-" },
       { key: "DATEOFBIRTH", label: "Date Of Birth", value: "17-Jun-1990" },
-      { key: "EMGCONTACT", label: "Emergency Contact Number", value: "-" },
+      { key: "EMGCONTACT", label: "Emergency Contact No.", value: "-" },
       {
         key: "REGDATE",
         label: "Registration Date / Time",
         value: "17-Jun-2020 / 16:06:58",
       },
-      { key: "PATINETADHARNO", label: "Patient Aadhaar Number", value: "-" },
+      { key: "PATINETADHARNO", label: "Patient Aadhaar No.", value: "-" },
       {
         key: "PATADDRESS",
         label: "Patient Address",
