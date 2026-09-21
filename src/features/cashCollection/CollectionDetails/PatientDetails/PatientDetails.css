@@ -50,7 +50,7 @@
   gap: 7px;
 }
 .hbims-cash-collection .more-patient-info-dialog {
-  width: min(520px, calc(100vw - 32px));
+  width: min(640px, calc(100vw - 32px));
   box-sizing: border-box;
   color: var(--ink);
 }
@@ -58,5 +58,45 @@
   background: rgba(32, 52, 79, 0.36);
 }
 .hbims-cash-collection .more-patient-info-body {
-  min-height: 160px;
+  max-height: min(520px, 70vh);
+  padding: 18px 20px 22px;
+  overflow-y: auto;
+}
+.hbims-cash-collection .more-patient-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+.hbims-cash-collection .more-patient-info-item {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid #e3eaf2;
+  border-radius: 9px;
+  background: #f8fafc;
+}
+.hbims-cash-collection .more-patient-info-item dt {
+  margin-bottom: 4px;
+  color: #718098;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.hbims-cash-collection .more-patient-info-item dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.hbims-cash-collection .more-patient-info-empty {
+  margin: 24px 0;
+  color: #718098;
+  font-size: 13px;
+  text-align: center;
+}
+@media (max-width: 540px) {
+  .hbims-cash-collection .more-patient-info-grid {
+    grid-template-columns: 1fr;
+  }
 }

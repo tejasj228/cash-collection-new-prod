@@ -60,7 +60,7 @@ function PatientAvatar({ sex }) {
   );
 }
 
-function MorePatientInfo({ onModalVisibilityChange }) {
+function MorePatientInfo({ patient, onModalVisibilityChange }) {
   const dialog = useRef(null);
   const open = () => {
     dialog.current.showModal();
@@ -101,7 +101,22 @@ function MorePatientInfo({ onModalVisibilityChange }) {
             <Icon name="close" size={17} />
           </button>
         </div>
-        <div className="more-patient-info-body" />
+        <div className="more-patient-info-body">
+          {patient?.additionalInfo?.length ? (
+            <dl className="more-patient-info-grid">
+              {patient.additionalInfo.map(({ key, label, value }) => (
+                <div className="more-patient-info-item" key={key}>
+                  <dt>{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="more-patient-info-empty">
+              No additional patient information is available.
+            </p>
+          )}
+        </div>
       </dialog>
     </>
   );

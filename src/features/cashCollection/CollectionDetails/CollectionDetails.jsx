@@ -308,7 +308,10 @@ function CollectionWorkspace({
               : "Back to Transaction Setup"}
           </button>
           {!payOpen && (
-            <MorePatientInfo onModalVisibilityChange={setPatientInfoOpen} />
+            <MorePatientInfo
+              patient={selectedPatient}
+              onModalVisibilityChange={setPatientInfoOpen}
+            />
           )}
         </div>
       )}

@@ -7,6 +7,7 @@
 // chip instead of the wire format. Session/env concerns (the SSO ticket,
 // User-Agent, endpoint URL) live in utilities/sessionService.js.
 import { fetchLegacyJson, PATIENT_INFO_URL } from "../utilities/sessionService";
+import { mapAdditionalPatientInfo } from "../shared/utils/patientAdditionalInfo";
 
 const DASH = "-";
 
@@ -56,6 +57,7 @@ export function mapLegacyPatientInfoRow(row = {}) {
     refundableDocumentCount: 0,
     workflowContext: null,
     photoUrl: String(row.photo_url ?? "").trim() || null,
+    additionalInfo: mapAdditionalPatientInfo(row),
   };
 }
 

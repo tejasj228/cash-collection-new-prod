@@ -685,6 +685,10 @@ components:
           type: string
           nullable: true
           description: Optional patient-specific image URL. Dedicated photo endpoint contract is pending.
+        additional_info:
+          type: object
+          additionalProperties: true
+          description: Additional patient fields shown in the More patient info dialog.
       additionalProperties: true
     PatientTile:
       type: object
@@ -710,6 +714,10 @@ components:
           type: string
           nullable: true
           description: Optional patient-specific image URL.
+        additional_info:
+          type: object
+          additionalProperties: true
+          description: Additional patient fields shown in the More patient info dialog.
     HospitalService:
       type: object
       required:

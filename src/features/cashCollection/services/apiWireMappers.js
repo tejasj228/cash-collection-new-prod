@@ -1,5 +1,6 @@
 import { mapPendingRequest } from "./pendingRequestMapper";
 import { mapTransactionRow } from "./transactionRowMapper";
+import { mapAdditionalPatientInfo } from "../../../shared/utils/patientAdditionalInfo";
 
 const displayText = (value) => (value == null ? "" : String(value));
 
@@ -40,6 +41,7 @@ function mapPatient(row = {}) {
     refundableDocumentCount: Number(row.refundable_document_count || 0),
     workflowContext: row.workflow_context,
     photoUrl: displayText(row.photo_url).trim() || null,
+    additionalInfo: mapAdditionalPatientInfo(row),
   };
 }
 

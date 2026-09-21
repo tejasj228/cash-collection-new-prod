@@ -86,19 +86,40 @@ test("patient photo appears in the banner and opens the same image in the enlarg
   );
 });
 
-test("more patient info opens an empty dialog", () => {
+test("more patient info shows API fields omitted from the main tile", () => {
   const original = HTMLDialogElement.prototype.showModal;
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute("open", "");
   };
-  const { container } = render(<MorePatientInfo />);
+  render(
+    <MorePatientInfo
+      patient={{
+        additionalInfo: [
+          {
+            key: "guardian",
+            label: "Father / Mother / Spouse Name",
+            value: "Test Guardian",
+          },
+          { key: "pat_dob", label: "Date Of Birth", value: "-" },
+          {
+            key: "pat_reg_date",
+            label: "Registration Date / Time",
+            value: "21/09/2026 / 10:35 AM",
+          },
+        ],
+      }}
+    />,
+  );
   fireEvent.click(screen.getByRole("button", { name: "More patient info" }));
   expect(
     screen.getByRole("dialog", { name: "More patient info" }),
   ).not.toBeNull();
-  expect(
-    container.querySelector(".more-patient-info-body").childElementCount,
-  ).toBe(0);
+  expect(screen.getByText("Father / Mother / Spouse Name")).not.toBeNull();
+  expect(screen.getByText("Test Guardian")).not.toBeNull();
+  expect(screen.getByText("Date Of Birth")).not.toBeNull();
+  expect(screen.getByText("-")).not.toBeNull();
+  expect(screen.getByText("Registration Date / Time")).not.toBeNull();
+  expect(screen.getByText("21/09/2026 / 10:35 AM")).not.toBeNull();
   if (original) HTMLDialogElement.prototype.showModal = original;
   else delete HTMLDialogElement.prototype.showModal;
 });
