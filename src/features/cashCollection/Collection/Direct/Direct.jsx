@@ -483,23 +483,33 @@ function DirectSetup({
     try {
       if (typeof services?.checkEligibility !== "function")
         throw new Error("Patient eligibility service is unavailable.");
-      if (typeof services?.searchPatientPage !== "function")
-        throw new Error("Database patient lookup is unavailable.");
-      const lookup = await services.searchPatientPage({
-        query: selectedPatient?.cr || crQuery,
-        exactCr: true,
-        hospitalServiceId: service.id,
-        admittedOnly: service.id === "ipd",
-        page: 0,
-        size: 10,
-      });
+      const crToResolve = selectedPatient?.cr || crQuery;
+      // resolvePatientByCr, when available, looks a typed-in CR up directly
+      // (no "seen today"/"has a pending request" requirement — the cashier
+      // typing an exact CR and pressing Continue is enough). Fall back to
+      // the population-based search for any services implementation that
+      // does not provide it.
+      const patient =
+        typeof services?.resolvePatientByCr === "function"
+          ? await services.resolvePatientByCr(crToResolve, service.id)
+          : await (async () => {
+              if (typeof services?.searchPatientPage !== "function")
+                throw new Error("Database patient lookup is unavailable.");
+              const lookup = await services.searchPatientPage({
+                query: crToResolve,
+                exactCr: true,
+                hospitalServiceId: service.id,
+                admittedOnly: service.id === "ipd",
+                page: 0,
+                size: 10,
+              });
+              return lookup.items?.find(
+                (item) =>
+                  compactIdentifier(item.cr) === compactIdentifier(crToResolve),
+              );
+            })();
       if (!setupMounted.current || selection !== currentSelection.current)
         return;
-      const patient = lookup.items?.find(
-        (item) =>
-          compactIdentifier(item.cr) ===
-          compactIdentifier(selectedPatient?.cr || crQuery),
-      );
       if (!patient)
         throw new Error(
           "No eligible database patient was found for this CR number.",

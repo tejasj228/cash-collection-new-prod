@@ -79,6 +79,28 @@ export async function resolveApplicationRuntime() {
     services.searchPatients = async (options) =>
       (await services.searchPatientPage(options)).items;
 
+    // A cashier typing an exact CR into the "CR No." box and hitting
+    // Continue means to look that patient up directly, regardless of
+    // whether they are in today's OPD daily list or the pending-request
+    // queue — that scoping exists only to power the "Existing Patients"
+    // convenience listing/search, not manual entry. IPD keeps the
+    // pending-list lookup because that queue is the only admission signal
+    // available (patinfo returns no admission status of its own).
+    services.resolvePatientByCr = async (cr, hospitalServiceId) => {
+      if (hospitalServiceId === "ipd") {
+        const result = await pendingPatientPage({
+          query: cr,
+          exactCr: true,
+          hospitalServiceId,
+          page: 0,
+          size: 10,
+        });
+        return result.items[0] || null;
+      }
+      const patient = await fetchLegacyPatientInfo(cr);
+      return patient ? { ...patient, listServiceFamily: "OPD" } : null;
+    };
+
     Object.assign(
       services,
       createLegacyPendingRequestQueries(loadLiveRequests, () => liveRequests),
@@ -116,12 +138,10 @@ export async function resolveApplicationRuntime() {
           };
       }
       if (command.source === "direct") {
-        const result = await services.searchPatientPage({
-          query: String(command.crNumber),
-          exactCr: true,
-          hospitalServiceId: command.hospitalServiceId,
-        });
-        const patient = result.items[0];
+        const patient = await services.resolvePatientByCr(
+          String(command.crNumber),
+          command.hospitalServiceId,
+        );
         if (!patient)
           return {
             eligible: false,
