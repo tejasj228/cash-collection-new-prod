@@ -213,7 +213,6 @@ export default function CashCollectionApplication({
   const [txPatches, setTxPatches] = useState(() => new Map());
   const [shiftClearedAt, setShiftClearedAt] = useState(null);
   const [endShiftOpen, setEndShiftOpen] = useState(false);
-  const [workspaceModalOpen, setWorkspaceModalOpen] = useState(false);
   const [shiftPreparation, setShiftPreparation] = useState(null);
   const [shiftSnapshot, setShiftSnapshot] = useState(null);
   const [restartShiftOpen, setRestartShiftOpen] = useState(false);
@@ -587,9 +586,7 @@ export default function CashCollectionApplication({
 
   return (
     <AppDataProvider value={appData}>
-      <div
-        className={`hbims-cash-collection app-shell ${endShiftOpen || workspaceModalOpen ? "shift-dialog-open" : ""}`}
-      >
+      <div className="hbims-cash-collection app-shell">
         <TopNav
           active={activeNav}
           onNavigate={navigate}
@@ -631,7 +628,6 @@ export default function CashCollectionApplication({
                 selectedPatient={selectedPatient}
                 setSelectedPatient={setSelectedPatient}
                 services={integration?.services}
-                onModalVisibilityChange={setWorkspaceModalOpen}
               />
             ) : stage === "workspace" && selectedWorkflow ? (
               <DetailsWorkspace
@@ -647,7 +643,6 @@ export default function CashCollectionApplication({
                 onBack={() => setStage(detailsBackStage(mode))}
                 onConfirm={confirm}
                 services={integration?.services}
-                onModalVisibilityChange={setWorkspaceModalOpen}
               />
             ) : (
               <>

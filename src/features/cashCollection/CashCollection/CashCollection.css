@@ -1625,7 +1625,7 @@
 }
 .popover-backdrop {
   position: fixed;
-  z-index: 10;
+  z-index: 100;
   inset: 0;
   display: grid;
   place-items: center;
@@ -6565,9 +6565,6 @@
 .hbims-cash-collection .top-nav-end-shift .icon,
 .hbims-cash-collection .top-nav-end-shift svg {
   color: #fff;
-}
-.hbims-cash-collection.shift-dialog-open .top-nav {
-  visibility: hidden;
 }
 @media (max-width: 640px) {
   .hbims-cash-collection .top-nav-inner {
