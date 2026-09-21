@@ -379,7 +379,7 @@ function CollectionWorkspace({
         )}
       </div>
 
-      <PrintableBill {...billProps} />
+      {printDocument && <PrintableBill {...billProps} />}
 
       {billPreviewOpen && printDocument && (
         <BillPreviewDialog
