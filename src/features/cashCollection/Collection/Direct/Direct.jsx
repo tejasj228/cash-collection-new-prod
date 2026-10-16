@@ -35,7 +35,14 @@ function DirectCollectionIllustration() {
       role="img"
       aria-hidden="true"
     >
-      <ellipse cx="120" cy="190" rx="88" ry="10" fill="#eef2f8" />
+      <ellipse
+        className="direct-art-shadow"
+        cx="120"
+        cy="190"
+        rx="88"
+        ry="10"
+        fill="#eef2f8"
+      />
       {/* counter */}
       <rect
         x="34"
@@ -49,77 +56,168 @@ function DirectCollectionIllustration() {
       />
       <rect x="34" y="140" width="172" height="13" rx="6.5" fill="#2b7fd6" />
       {/* terminal */}
-      <rect
-        x="92"
-        y="66"
-        width="66"
-        height="86"
-        rx="11"
-        fill="#fff"
-        stroke="#dbe4f0"
-        strokeWidth="2"
-      />
-      <rect x="99" y="75" width="52" height="58" rx="5" fill="#eaf3fd" />
-      <circle cx="125" cy="103" r="17" fill="#eaf6f1" />
-      <path
-        d="M117 103.5l5.5 5.5 11-12"
-        fill="none"
-        stroke="#1c9e78"
-        strokeWidth="4.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <rect x="112" y="137" width="26" height="6" rx="3" fill="#c7d6ea" />
-      {/* tapped card */}
-      <g transform="rotate(-16 178 76)">
-        <rect x="156" y="60" width="46" height="30" rx="6" fill="#5bc0a8" />
+      <g className="direct-art-terminal">
         <rect
-          x="162"
-          y="67"
-          width="16"
-          height="4"
-          rx="2"
+          x="92"
+          y="66"
+          width="66"
+          height="86"
+          rx="11"
           fill="#fff"
-          opacity="0.85"
+          stroke="#dbe4f0"
+          strokeWidth="2"
         />
+        <rect x="99" y="75" width="52" height="58" rx="5" fill="#eaf3fd" />
+        <circle cx="125" cy="103" r="17" fill="#eaf6f1" />
+        <circle
+          className="direct-art-processing"
+          cx="125"
+          cy="103"
+          r="12"
+          fill="none"
+          stroke="#52a6e9"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeDasharray="18 57"
+        />
+        <circle
+          className="direct-art-success-ring"
+          cx="125"
+          cy="103"
+          r="18"
+          fill="none"
+          stroke="#5bc0a8"
+          strokeWidth="2"
+        />
+        <path
+          className="direct-art-check"
+          pathLength="1"
+          d="M117 103.5l5.5 5.5 11-12"
+          fill="none"
+          stroke="#1c9e78"
+          strokeWidth="4.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <rect x="112" y="137" width="26" height="6" rx="3" fill="#c7d6ea" />
         <rect
-          x="162"
-          y="76"
+          className="direct-art-indicator"
+          x="112"
+          y="137"
           width="26"
-          height="4"
-          rx="2"
-          fill="#fff"
-          opacity="0.55"
+          height="6"
+          rx="3"
+          fill="#5bc0a8"
         />
       </g>
-      <path
-        d="M204 58q7 8 4 18"
-        fill="none"
-        stroke="#a9b8cd"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-      <path
-        d="M211 54q10 11 5 25"
-        fill="none"
-        stroke="#c3ceda"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
+      {/* tapped card */}
+      <g className="direct-art-card">
+        <g transform="rotate(-16 178 76)">
+          <rect x="156" y="60" width="46" height="30" rx="6" fill="#5bc0a8" />
+          <rect
+            x="162"
+            y="67"
+            width="16"
+            height="4"
+            rx="2"
+            fill="#fff"
+            opacity="0.85"
+          />
+          <rect
+            x="162"
+            y="76"
+            width="26"
+            height="4"
+            rx="2"
+            fill="#fff"
+            opacity="0.55"
+          />
+        </g>
+        <path
+          className="direct-art-wave direct-art-wave-near"
+          d="M204 58q7 8 4 18"
+          fill="none"
+          stroke="#a9b8cd"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <path
+          className="direct-art-wave direct-art-wave-far"
+          d="M211 54q10 11 5 25"
+          fill="none"
+          stroke="#c3ceda"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+      </g>
       {/* receipt curling from the counter */}
-      <path
-        d="M52 141v-30a4 4 0 0 1 4-4h28a4 4 0 0 1 4 4v30"
-        fill="#fff"
-        stroke="#dbe4f0"
-        strokeWidth="2"
-      />
-      <rect x="60" y="115" width="20" height="3.5" rx="1.75" fill="#e4eaf3" />
-      <rect x="60" y="123" width="14" height="3.5" rx="1.75" fill="#e4eaf3" />
-      <rect x="60" y="131" width="20" height="3.5" rx="1.75" fill="#e4eaf3" />
+      <rect x="51" y="138" width="38" height="4" rx="2" fill="#1d66b5" />
+      <svg
+        x="50"
+        y="99"
+        width="40"
+        height="42"
+        viewBox="50 99 40 42"
+        overflow="hidden"
+      >
+        <g className="direct-art-receipt">
+          <path
+            d="M52 141v-30a4 4 0 0 1 4-4h28a4 4 0 0 1 4 4v30"
+            fill="#fff"
+            stroke="#dbe4f0"
+            strokeWidth="2"
+          />
+          <rect
+            x="60"
+            y="115"
+            width="20"
+            height="3.5"
+            rx="1.75"
+            fill="#e4eaf3"
+          />
+          <rect
+            x="60"
+            y="123"
+            width="14"
+            height="3.5"
+            rx="1.75"
+            fill="#e4eaf3"
+          />
+          <rect
+            x="60"
+            y="131"
+            width="20"
+            height="3.5"
+            rx="1.75"
+            fill="#e4eaf3"
+          />
+        </g>
+      </svg>
       {/* accents */}
-      <circle cx="48" cy="70" r="8" fill="#f0a94e" opacity="0.85" />
-      <circle cx="33" cy="90" r="5" fill="#f0a94e" opacity="0.45" />
-      <circle cx="205" cy="112" r="7" fill="#a17bd4" opacity="0.7" />
+      <circle
+        className="direct-art-accent direct-art-accent-one"
+        cx="48"
+        cy="70"
+        r="8"
+        fill="#f0a94e"
+        opacity="0.85"
+      />
+      <circle
+        className="direct-art-accent direct-art-accent-two"
+        cx="33"
+        cy="90"
+        r="5"
+        fill="#f0a94e"
+        opacity="0.45"
+      />
+      <circle
+        className="direct-art-accent direct-art-accent-three"
+        cx="205"
+        cy="112"
+        r="7"
+        fill="#a17bd4"
+        opacity="0.7"
+      />
     </svg>
   );
 }
